@@ -100,7 +100,7 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
 
-  std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
+  std::string odom_topic_name     = "/"+ _agent_name_ + "/" + (std::string)param_loader.loadParam2("odometry_topic", "");
   double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
   double      rate_tm_diagnostics = param_loader.loadParam2("rate/timer_diagnostics", 0.0);
 
@@ -143,16 +143,17 @@ void WrapperRosRBL::onInit()
   shopts.transport_hints    = ros::TransportHints().tcpNoDelay();
 
   if (_group_odoms_enabled_) {
-    for (const auto& topic : all_topics) {
-      if (topic.name.find(odom_topic_name) != std::string::npos) {
-        ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
-        sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
+    while (sh_group_odoms_.empty()){
+      for (const auto& topic : all_topics) {
+        if (topic.name.find(odom_topic_name) != std::string::npos) {
+          ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
+          sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
+        }
       }
-    }
 
-    if (sh_group_odoms_.empty()) {
-      ROS_WARN_STREAM("[WrapperRosRBL]: No topics matched: " << odom_topic_name.c_str());
-      return;
+      if (sh_group_odoms_.empty()) {
+        ROS_WARN_STREAM("[WrapperRosRBL]: No topics matched: " << odom_topic_name.c_str());
+      }
     }
   }
 
