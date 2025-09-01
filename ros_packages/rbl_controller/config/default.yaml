@@ -1,42 +1,30 @@
-uav_names: ["uav1", "uav2", "uav3", "uav4","uav5", "uav6", "uav7", "uav8", "uav9","uav10"]
+group_odoms:
+  enable: true
 
-# odometry_topic: "estimation_manager/ground_truth/odom"
-odometry_topic: "estimation_manager/odom_main"
+odometry_topic: estimation_manager/odom_main
 
-set_reference_timer:
-  rate: 10 #[Hz]
+rate:
+  timer_set_ref: 20
+  timer_diagnostics: 10
 
-diagnostics:
-  rate: 10 #[Hz]
-  odom_timeout: 1.0 # [s]
-
-odom_msg_max_latency: 1.0 # [s]
-
-# control approach params
-controlled_dimensions: 3
-
-
-d1: 0.2
-d2: 1
-d3: 0.2
-d4: 1
-radius: 4
-encumbrance: 2.5
-betaD: 1.5
-beta_min: 1.0
-dt: 0.01
-step_size: 0.075
-#maximum_distance_conn: 17.0
-
-
-#size_neighbors: [2.3,2.3,2.3,2.3]
-
-#size_neighbors_and_obstacles: [2.3, 2.3, 2.3, 2.3, 2.3, 2.3, 2.3]
-size_obstacles: [2.3,2.3,2.3]
-#obstacle1: [-3.0,24.0]
-#obstacle2 : [6.5,19.0]
-#obstacle3 : [-4.5,15.0]
-
-
-
-
+rbl_controller:
+  only_2d: false
+  z_min: 0.0
+  z_max: 10.0
+  z_ref: 5.0
+  d1: 0.5
+  d2: 0.5
+  d3: 0.5
+  d4: 0.5
+  d5: 0.5
+  d6: 1.0
+  d7: 0.2
+  radius: 3.5
+  betaD: 0.3
+  beta_min: 0.1
+  dt: 0.1
+  step_size: 0.2
+  encumbrance: 0.5
+  use_z_rule: false
+  cwvd_obs: 0.90
+  cwvd_rob: 0.90

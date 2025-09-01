@@ -25,19 +25,14 @@
 
 class WrapperRosRBL : public nodelet::Nodelet
 {
-
 public:
   virtual void onInit();
   bool         is_initialized_ = false;
   bool         is_activated_   = false;
 
   bool        _group_odoms_enabled_ = false;
-  int         _num_of_agents_;
   std::string _agent_name_;
   std::string _frame_;
-  double      _timeout_odom_;
-  double      _livox_tilt_deg_;
-  double      _livox_fov_;
 
   std::mutex                     mtx_rbl_;
   std::shared_ptr<RBLController> rbl_controller_;
@@ -60,9 +55,6 @@ public:
   ros::Timer tm_diagnostics_;
   void       cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te);
 
-  ros::Publisher                            pub_viz_pcl_;
-  std::shared_ptr<sensor_msgs::PointCloud2> getVizPCL(const pcl::PointCloud<pcl::PointXYZ>& pcl,
-                                                      const std::string&                    frame);
   ros::Publisher                            pub_viz_cell_A_;
   ros::Publisher                            pub_viz_cell_A_sensed_;
   std::shared_ptr<sensor_msgs::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
@@ -105,13 +97,7 @@ void WrapperRosRBL::onInit()
   mrs_lib::ParamLoader param_loader(nh, "WrapperRosRBL");
 
   param_loader.loadParam("uav_name", _agent_name_);
-
   param_loader.loadParam("control_frame", _frame_);
-  param_loader.loadParam("num_of_agents", _num_of_agents_);
-  param_loader.loadParam("timeout", _timeout_odom_);
-
-  param_loader.loadParam("livox/tilt_deg", _livox_tilt_deg_);
-  param_loader.loadParam("livox/fov", _livox_fov_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
 
   std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
@@ -159,13 +145,13 @@ void WrapperRosRBL::onInit()
   if (_group_odoms_enabled_) {
     for (const auto& topic : all_topics) {
       if (topic.name.find(odom_topic_name) != std::string::npos) {
-        ROS_INFO_STREAM("[RBLController]: Subscribing to topic: " << topic.name);
+        ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
         sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
       }
     }
 
     if (sh_group_odoms_.empty()) {
-      ROS_WARN_STREAM("[RBLController]: No topics matched: " << odom_topic_name.c_str());
+      ROS_WARN_STREAM("[WrapperRosRBL]: No topics matched: " << odom_topic_name.c_str());
       return;
     }
   }
@@ -185,7 +171,6 @@ void WrapperRosRBL::onInit()
 
   pub_viz_position_      = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
   pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
-  pub_viz_pcl_           = nh.advertise<sensor_msgs::PointCloud2>("viz/pcl", 1, true);
   pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
   pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
   pub_viz_path_          = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
@@ -224,7 +209,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
     if (sh_odom_.newMsg()) {
       auto res = transformer_->transformSingle(*sh_odom_.getMsg(), _frame_);
       if (!res) {
-        ROS_ERROR_THROTTLE(3.0, "[RBLController]: Could not transform odometry msg to control frame.");
+        ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
         return;
       }
       auto& odom = res.value();
@@ -239,7 +224,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
           auto odom_msg = sh_odom.getMsg();
           auto res      = transformer_->transformSingle(*odom_msg, _frame_);
           if (!res) {
-            ROS_ERROR_THROTTLE(3.0, "[RBLController]: Could not transform odometry msg to control frame.");
+            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
             return;
           }
           auto& odom = res.value();
@@ -252,7 +237,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
     if (sh_pcl_.newMsg()) {
       auto msg = sh_pcl_.getMsg();
       if (msg->header.frame_id != _frame_) {
-        ROS_ERROR_STREAM("[RBLController]: PCL msg is not in frame: " << _frame_.c_str());
+        ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
         return;
       }
       rbl_controller_->setPCL(msg);
@@ -279,8 +264,6 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)
     pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 0.5, _frame_));
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 0.5, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
-    auto pcl_ptr = getVizPCL(rbl_controller_->getPCL(), _frame_);
-    pub_viz_pcl_.publish(*pcl_ptr);
   }
 }
 
@@ -423,17 +406,6 @@ geometry_msgs::Point WrapperRosRBL::createPoint(double x,
   point.y = y;
   point.z = z;
   return point;
-}
-
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizPCL(const pcl::PointCloud<pcl::PointXYZ>& pcl,
-                                                                   const std::string&                    frame)
-{
-  sensor_msgs::PointCloud2 output;
-  pcl::toROSMsg(pcl, output);
-  output.header.frame_id = frame;
-  output.header.stamp    = ros::Time::now();
-
-  return std::make_shared<sensor_msgs::PointCloud2>(output);
 }
 
 #include <pluginlib/class_list_macros.h>
