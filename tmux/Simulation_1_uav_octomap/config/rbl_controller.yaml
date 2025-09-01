@@ -1,81 +1,28 @@
-uav_names: ["uav1"] #, "uav11"]
+livox:
+  tilt_deg: 20.0
+  fov:  59.0
 
-# odometry_topic: "estimation_manager/ground_truth/odom"
-odometry_topic: "estimation_manager/odom_main"
-uav_uvdar_ids: [1] # 0,1,2,3,4] #,"uav40","uav41"] #, \"uav11\"]\n
+group_odoms:
+  enable: 
 
-set_reference_timer:
-  rate: 10 # [Hz]
-  
-size_neighbors1: 0.5 
-size_obstacles1: 0.01 
-encumbrance: 0.2
-maximum_distance_conn: 10.0
-connectivity_flag: false #not used for now
-noisy_measurements: 0.0 #0.15
-noisy_angle: 0.0 #0.3
-threshold: 0.0 
-window_length: 1 #10
-bias_error: 0.0 #0.5
-cwvd_obs: 0.99
-cwvd_rob: 0.99
-sim: true
-refZ: 1.0
-max_obstacle_integration_dist: 9.0
-
-Adj_matrix_uav1: [0]
-
-# control approach params
-controlled_dimensions: 3
-
-max_distance_to_initial_position: 2.0
-
-#for 3D
-min_z: -100.0  
-max_z: 100.0
-
-flag_3D: true
-use_z_rule: true
-
-use_livox_tilted: true
-rotate_recieved_pcl: false #difference between simulation and livox
-livox_tilt_deg: 20.0
-livox_fov: 59.0
-# livox_fov: 360
-searchRadius: 0.6 #For meshing - max search for vertice in triangle SHOULD BE SET ACCORDINGLY WITH THE PCL I AM GETTING - mapping res 0.4 vox grid -> 0.6 serach radius
-use_bonxai_mapping: true #if true usis mapping to shape the cell S otherwise it uses the pointcloud for slam IF FALSE set frame for rbl as uav29/livox
-# if true set frame as point_lio_origin
-use_voxel: true #I started to use meshing to cut cell A instead of this, but this seems as a smarter alternative - should work for mapping wiht bonxai and also with raw point cloud
-map_resolution: 0.4
-
-d1: 0.5
-d2: 0.5
-d3: 0.5
-d4: 0.5 
-d5: 0.5
-d6: 1.0
-d7: 0.2
-radius: 3.5  #point lio 
-betaD: 0.1
-beta_min: 0.1
-dt: 0.1
-step_size: 0.35
-
-
-monitored_area_origin:
-  x: 0.0
-  y: 0.0
-  z: 0.0
-
-final_positions: # defined with respect to monitored_area_origin
-  uav1:
-    x: 50.0
-    y: 0.0
-    z: 1.0
-
-
-initial_positions: # defined with respect to monitored_area_origin
-  uav1:
-    x: 0.0
-    y: 0.0
-    z: 1.0
+rbl_controller:
+  only_2d: false
+  z_min: 1.0
+  z_max: 10.0
+  z_ref: 1.0
+  d1: 0.5
+  d2: 0.5
+  d3: 0.5
+  d4: 0.5 
+  d5: 0.5
+  d6: 1.0
+  d7: 0.2
+  radius: 3.5
+  encumbrance: 0.5
+  step_size: 0.35
+  betaD: 0.1
+  beta_min: 0.1
+  use_z_rule: false
+  dt: 0.1
+  cwvd_rob: 0.9
+  cwvd_obs: 0.9

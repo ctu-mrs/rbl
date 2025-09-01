@@ -21,54 +21,10 @@
 #include <Eigen/Eigenvalues>
 #include <cmath>
 #include <string>
+#include "rbl_controller.h"
 
 class WrapperRosRBL : public nodelet::Nodelet
 {
-private:
-  struct RBLParams
-  {
-    double step_size;
-    double radius;
-    double encumbrance;
-    double dt;
-    double beta_min;
-    double betaD;
-    double beta;
-    double d1;
-    double d2;
-    double d3;
-    double d4;
-    double d5;
-    double d6;
-    double d7;
-    double th;
-    double ph;
-    double max_connection_dist;
-    double cwvd_rob;
-    double cwvd_obs;
-    double radius_search;
-    bool   use_z_rule;
-    double z_ref;
-    double z_min;
-    double z_max;
-    bool   only_2d = false;
-  };
-
-  class RBLController
-  {
-  public:
-    RBLController(const RBLParams& params);
-    void setCurrentPosition(const Eigen::Vector3d& point);
-    void setGroupPositions(const std::vector<Eigen::Vector3d>& list_points);
-    void setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points);
-    void setGoal(const Eigen::Vector3d& point);
-
-    mrs_msgs::Reference            getNextRef();
-    Eigen::Vector3d                getGoal();
-    Eigen::Vector3d                getCurrentPosition();
-    Eigen::Vector3d                getCentroid();
-    pcl::PointCloud<pcl::PointXYZ> getPCL();
-  };
 
 public:
   virtual void onInit();
@@ -177,14 +133,11 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("rbl_controller/encumbrance", rbl_params_.encumbrance);
   param_loader.loadParam("rbl_controller/step_size", rbl_params_.step_size);
   param_loader.loadParam("rbl_controller/betaD", rbl_params_.betaD);
-  param_loader.loadParam("rbl_controller/beta", rbl_params_.beta);
-  param_loader.loadParam("rbl_controller/_beta_min", rbl_params_.beta_min);
+  param_loader.loadParam("rbl_controller/beta_min", rbl_params_.beta_min);
   param_loader.loadParam("rbl_controller/use_z_rule", rbl_params_.use_z_rule);
   param_loader.loadParam("rbl_controller/dt", rbl_params_.dt);
-  param_loader.loadParam("rbl_controller/max_connection_dist", rbl_params_.max_connection_dist);
   param_loader.loadParam("rbl_controller/cwvd_rob", rbl_params_.cwvd_rob);
   param_loader.loadParam("rbl_controller/cwvd_obs", rbl_params_.cwvd_obs);
-  param_loader.loadParam("rbl_controller/radius_search", rbl_params_.radius_search);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
