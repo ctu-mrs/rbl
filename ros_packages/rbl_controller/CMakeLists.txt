@@ -48,7 +48,7 @@ include_directories(
   ${pcl_ros_INCLUDE_DIRS}
 )
 
-add_library(nodelet_rbl_controller src/nodelet.cpp)
+add_library(nodelet_rbl_controller src/nodelet.cpp src/rbl_controller.cpp)
 add_dependencies(nodelet_rbl_controller
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}

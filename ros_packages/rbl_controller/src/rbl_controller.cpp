@@ -2895,7 +2895,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Ve
 //   //   return;
 //   // }
 
-//   /* nav_msgs::Odometry msg = *sh_ptr.getMsg(); */
+//   /* nav_msgs::Odometry msg = *sh_ptr.nexMsg(); */
 
 //   if ((ros::Time::now() - msg->header.stamp).toSec() > _odom_msg_max_latency_)
 //   {

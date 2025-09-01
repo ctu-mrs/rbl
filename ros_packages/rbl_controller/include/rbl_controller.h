@@ -72,7 +72,7 @@
 #include <deque>
 #include <utility>
 #include <chrono>
-#include <mrs_octomap_planner/Path.h>
+// #include <mrs_octomap_planner/Path.h>
 #include<optional>
 namespace formation_control
 {
@@ -165,9 +165,6 @@ struct RBLParams {
   double                                d5;
   double                                d6;
   double                                d7;
-  double                                th;
-  double                                ph;
-  double                                max_connection_dist;
   double                                cwvd_rob;
   double                                cwvd_obs;
   double                                radius_search;
@@ -180,9 +177,9 @@ struct RBLParams {
   double                                voxel_size                    = 0.4; //discretization for faster processing of obstacles for raw pcl and also needs to be set if map is used
   bool                                  replanner                     = false; //if true the alg also needs garmin alt - ground truth. For replanner map does not map bellow uav at the start;
   bool                                  limited_fov                   = false;
-  double                                lidar_tilt_deg                = 0.0;
-  double                                lidar_fov                     = 0.0;
-  Eigen::Vector3d                       lidar_translation             = Eigen::Vector3d(0.0, 0.0, 0.0);
+  // double                                lidar_tilt_deg                = 0.0;
+  // double                                lidar_fov                     = 0.0;
+  // Eigen::Vector3d                       lidar_translation             = Eigen::Vector3d(0.0, 0.0, 0.0);
 };
 
 class RBLController {
