@@ -64,8 +64,7 @@
 
 
             <!-- <param name="control_frame" value="$(arg UAV_NAME)/point_lio_origin" />  -->
-            <param name="control_frame"
-                   value="$(arg UAV_NAME)/world_origin" />
+            <param name="control_frame" value="$(arg UAV_NAME)/world_origin" />
 
 
             <!-- <param name="control_frame" value="$(arg UAV_NAME)/livox" /> -->

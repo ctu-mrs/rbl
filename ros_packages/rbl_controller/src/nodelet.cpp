@@ -151,7 +151,9 @@ void WrapperRosRBL::onInit()
       }
 
       if (sh_group_odoms_.empty()) {
-        ROS_WARN_STREAM("[WrapperRosRBL]: No topics matched: " << odom_topic_name.c_str());
+        ROS_WARN_ONCE("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
+      } else {
+        ROS_INFO("[WrapperRosRBL]: Topics matched: %s", odom_topic_name.c_str());
       }
     }
   }
@@ -196,7 +198,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   }
 
   if (!is_activated_) {
-    ROS_WARN("[WrapperRosRBL]: Waiting for activation");
+    ROS_WARN_ONCE("[WrapperRosRBL]: Waiting for activation");
     return;
   }
   ROS_INFO("[WrapperRosRBL]: Getting next ref.");
@@ -206,7 +208,6 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   msg_ref.request.header.stamp    = ros::Time::now();
   {
     std::scoped_lock lck(mtx_rbl_);
-
     if (sh_odom_.newMsg()) {
       auto res = transformer_->transformSingle(*sh_odom_.getMsg(), _frame_);
       if (!res) {
@@ -216,7 +217,6 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
       auto& odom = res.value();
       rbl_controller_->setCurrentPosition(pointToEigen(odom.pose.pose.position));
     }
-
     if (!sh_group_odoms_.empty()) {
 
       std::vector<Eigen::Vector3d> tmp_odoms;

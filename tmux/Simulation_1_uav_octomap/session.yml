@@ -21,30 +21,27 @@ windows:
           custom_config:=./config/custom_config.yaml
           world_config:=./config/world_config.yaml
           network_config:=./config/network_config.yaml
-  # - simulator:
-  #     layout: tiled
-  #     panes:
-  #       - waitForRos; roslaunch mrs_multirotor_simulator multirotor_simulator.launch custom_config:=./config/simulator.yaml
-  
-  # - hw_api:
-  #     layout: tiled
-  #     panes:
-  #       - waitForTime; export UAV_NAME=uav1; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
 
   - hw_api:
       layout: tiled
       panes:
         - waitForTime; roslaunch mrs_uav_px4_api api.launch
-        
-  # - control:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_core core.launch
-  
+      
+  - activation:
+      layout: tiled
+      synchronize: after
+      panes:
+        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+
   - rbl_controller:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+
+  - goto:
+      layout: tiled
+      panes:
+        - 'history -s rosservice call /$UAV_NAME/octomap_planner/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
 
   - gazebo:
       layout: tiled
@@ -67,54 +64,11 @@ windows:
           config_pcl_filter_rs_front:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/rs_front_filter.yaml
           config_pcl_filter_rs_down:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/rs_down_filter.yaml
 
-  # - uvdar:
-  #     layout: tiled
-  #     panes:
-  #       - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
-        
-  # - lidar:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForControl; roslaunch laserscan_clusters example.launch
-
-        
-  # - replanner:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForControl; roslaunch replanner example.launch
-
-  - activation:
-      layout: tiled
-      synchronize: after
-      panes:
-        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
-
-  # - fly_to_start:
-  #     layout: tiled
-  #     synchronize: after
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
-
-  # - automatic_start:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml
-  
-  # - gazebo: 
-  #   layout: tiled
-  #   panes: 
-  #     - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch world_name:=forest gui:=true
-      # - roslaunch mrs_simulation simulation.launch gui:=true world_name:=forest
-
   - takeoff:
       layout: tiled
       panes:
         - waitForHw; roslaunch mrs_uav_autostart automatic_start.launch
         - 'waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard'
-  - goto:
-      layout: tiled
-      panes:
-        - 'history -s rosservice call /$UAV_NAME/octomap_planner/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
 
   # - tf_connector:
   #     layout: tiled
@@ -128,10 +82,7 @@ windows:
         - waitForControl; rosrun rviz rviz -d ../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/rviz.rviz
         - waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
         - waitForTime; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch rviz_topic_name:='/move_base_simple/goal' reference_service_name:="/$UAV_NAME/octomap_planner/reference"
-  # - rviz:
-  #     layout: tiled
-  #     panes:
-  #       - waitForControl; rosrun rviz rviz -d ./rviz.rviz
+
   - layout:
       layout: tiled
       panes:
