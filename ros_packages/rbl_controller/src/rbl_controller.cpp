@@ -27,6 +27,9 @@ void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points
 
 void RBLController::setGoal(const Eigen::Vector3d& point) {
   _goal = point;
+  _destination = point;
+  _ph = 0.0;
+  _th = 0.0;
 }
 
 void RBLController::setAltitude(const double& alt) {
@@ -47,7 +50,7 @@ mrs_msgs::Reference RBLController::getNextRef() {
     p_ref.position.z = _agent_pos.z();
     return p_ref;
   }
-
+  
   processPclCloud(_cloud, _no_ground_cloud, _agent_pos, _altitude);
   _cell_A.clear();
   _cell_S.clear();
@@ -56,7 +59,11 @@ mrs_msgs::Reference RBLController::getNextRef() {
   computeCentroid(_c1, _cell_A, _destination, _beta);
   computeCentroid(_c2, _cell_S, _destination, _beta);
   computeCentroid(_c1_no_rot, _cell_A, _goal, _beta);
-  
+  std::cout << "[RBLController]: Agent posisiton  x: " << _agent_pos.x() << ", y: " << _agent_pos.y() << ", z: " << _agent_pos.z() << std::endl;
+  std::cout << "[RBLController]: Destination  x: " << _destination.x() << ", y: " << _destination.y() << ", z: " << _destination.z() << std::endl;
+  std::cout << "[RBLController]: Goal  x: " << _goal.x() << ", y: " << _goal.y() << ", z: " << _goal.z() << std::endl;
+  std::cout << "[RBLController]: Centroid c1 x: " << _c1.x() << ", y: " << _c1.y() << ", z: " << _c1.z() << std::endl;
+
   applyRules( _beta, _th, _ph, _destination, _goal, _agent_pos, _c1, _c2, _c1_no_rot, _params.d1, _params.d2, _params.d3, _params.d4, _params.d5, _params.d6, _params.d7, _params.betaD, _params.beta_min, _params.dt);
 
   determineNextRef(p_ref, _agent_pos, _goal, _c1, _rpy, _params.limited_fov);
@@ -76,7 +83,9 @@ Eigen::Vector3d RBLController::getCentroid() {
   return _c1;
 }
 
-// pcl::PointCloud<pcl::PointXYZ> getPCL();
+std::vector<Eigen::Vector3d> RBLController::getCellA() {
+  return _cell_A;
+}
 
 void RBLController::processPclCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& no_ground_cloud, Eigen::Vector3d& agent_pos, const double& altitude) {
   if (cloud->size() <= 0) {
@@ -303,14 +312,19 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vec
 
 void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude) {
 
+  // std::cout << "[RBLController]: Create cell_S" << std::endl;
   if (_params.only_2d){ //2D case
     pointsInsideCircle(cell_S, agent_pos, _params.radius, _params.step_size);
   } else { //3D case
     pointsInsideSphere(cell_S, agent_pos, _params.radius, _params.step_size, altitude);
   }
-
-  if (!_neighbors_pos.empty() || cloud->size() > 0) {
+  
+  if (!_neighbors_pos.empty() || (cloud && cloud->size() > 0)) {
+    // std::cout << "[RBLController]: Partition A" << std::endl;
     partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+  } else {
+    // std::cout << "[RBLController]: A=S" << std::endl;
+    cell_A = cell_S;
   }
 }
 

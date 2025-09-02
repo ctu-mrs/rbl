@@ -196,6 +196,7 @@ public:
   Eigen::Vector3d                getGoal(); 
   Eigen::Vector3d                getCurrentPosition();
   Eigen::Vector3d                getCentroid();
+  std::vector<Eigen::Vector3d>   getCellA();
   pcl::PointCloud<pcl::PointXYZ> getPCL();
 
 private:

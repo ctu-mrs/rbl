@@ -201,10 +201,9 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   }
 
   if (!is_activated_) {
-    ROS_WARN_ONCE("[WrapperRosRBL]: Waiting for activation");
+    ROS_WARN("[WrapperRosRBL]: Waiting for activation");
     return;
   }
-  ROS_INFO("[WrapperRosRBL]: Getting next ref.");
 
   mrs_msgs::ReferenceStampedSrv msg_ref;
   msg_ref.request.header.frame_id = _frame_;
@@ -279,6 +278,7 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)
     pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 0.5, _frame_));
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 0.5, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
+    pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
   }
 }
 
@@ -376,6 +376,28 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
   marker.color.a            = 0.3;
 
   return marker;
+}
+
+std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,
+                                                      const std::string&                  frame)
+{
+  pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
+
+  pcl_cloud.points.resize(points.size());
+
+  for (size_t i = 0; i < points.size(); ++i) {
+    pcl_cloud.points[i].x = points[i].x();
+    pcl_cloud.points[i].y = points[i].y();
+    pcl_cloud.points[i].z = points[i].z();
+  }
+
+  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+
+  pcl::toROSMsg(pcl_cloud, *ros_msg);
+
+  ros_msg->header.frame_id = frame;
+
+  return ros_msg;
 }
 
 visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,

@@ -6,7 +6,7 @@ attach: false
 tmux_options: -f /etc/ctu-mrs/tmux.conf
 # you can modify these
 pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=x500; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml
-startup_window: goto
+startup_window: activation
 windows:
   - roscore:
       layout: tiled
@@ -24,15 +24,19 @@ windows:
       layout: tiled
       panes:
         -  export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_px4_api api.launch
-  - rbl_controller:
-      layout: tiled
-      panes:
-        - export UAV_NAME=uav1; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
   - activation:
       layout: tiled
       synchronize: after
       panes:
-        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activate
+  - rbl_controller:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+  - goto:
+      layout: tiled
+      panes:
+        - 'history -s rosservice call /$UAV_NAME/rbl_controller/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
   - gazebo:
       layout: tiled
       panes:
@@ -54,10 +58,6 @@ windows:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard
-  - goto:
-      layout: tiled
-      panes:
-        - 'history -s rosservice call /$UAV_NAME/rbl_controller/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
   - tf_connector:
       layout: tiled
       panes:
@@ -77,7 +77,7 @@ windows:
       panes:
         - export UAV_NAME=uav1; waitForHw; roslaunch mrs_octomap_planner minimal_planner.launch 
           custom_config:=./config/minimal_planner.yaml
-  - plotjuggler:
-      layout: tiled
-      panes:
-        - waitForHw; rosrun plotjuggler plotjuggler -l plotjuggler.xml
+  # - plotjuggler:
+  #     layout: tiled
+  #     panes:
+  #       - waitForHw; rosrun plotjuggler plotjuggler -l plotjuggler.xml
