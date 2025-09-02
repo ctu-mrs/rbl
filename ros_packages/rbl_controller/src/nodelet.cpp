@@ -100,8 +100,8 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
 
-  std::string odom_topic_name     = "/"+ _agent_name_ + "/" + (std::string)param_loader.loadParam2("odometry_topic", "");
-  double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
+  std::string odom_topic_name = param_loader.loadParam2("odometry_topic", "");
+  double      rate_tm_set_ref = param_loader.loadParam2("rate/timer_set_ref", 0.0);
   double      rate_tm_diagnostics = param_loader.loadParam2("rate/timer_diagnostics", 0.0);
 
   param_loader.loadParam("rbl_controller/only_2d", rbl_params_.only_2d);
@@ -140,11 +140,13 @@ void WrapperRosRBL::onInit()
   shopts.transport_hints    = ros::TransportHints().tcpNoDelay();
 
   if (_group_odoms_enabled_) {
-    while (sh_group_odoms_.empty()){
+
+    while (sh_group_odoms_.empty()) {
       ros::master::V_TopicInfo all_topics;
       ros::master::getTopics(all_topics);
+
       for (const auto& topic : all_topics) {
-        if (topic.name.find(odom_topic_name) != std::string::npos) {
+        if (topic.name.find(_agent_name_) == std::string::npos && topic.name.find(odom_topic_name) != std::string::npos) {
           ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
           sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
         }
@@ -152,7 +154,8 @@ void WrapperRosRBL::onInit()
 
       if (sh_group_odoms_.empty()) {
         ROS_WARN_ONCE("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
-      } else {
+      }
+      else {
         ROS_INFO("[WrapperRosRBL]: Topics matched: %s", odom_topic_name.c_str());
       }
     }
@@ -209,27 +212,38 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   {
     std::scoped_lock lck(mtx_rbl_);
     if (sh_odom_.newMsg()) {
-      auto res = transformer_->transformSingle(*sh_odom_.getMsg(), _frame_);
+      auto                        odom = sh_odom_.getMsg();
+      geometry_msgs::PointStamped tmp_pt;
+      tmp_pt.header = odom->header;
+      tmp_pt.point  = odom->pose.pose.position;
+
+      auto res = transformer_->transformSingle(tmp_pt, _frame_);
+
       if (!res) {
         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
         return;
       }
-      auto& odom = res.value();
-      rbl_controller_->setCurrentPosition(pointToEigen(odom.pose.pose.position));
+      rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
     }
+
     if (!sh_group_odoms_.empty()) {
 
       std::vector<Eigen::Vector3d> tmp_odoms;
-      for (auto& sh_odom : sh_group_odoms_) {
-        if (sh_odom.newMsg()) {
-          auto odom_msg = sh_odom.getMsg();
-          auto res      = transformer_->transformSingle(*odom_msg, _frame_);
+      for (auto& tmp_sh: sh_group_odoms_) {
+
+        if (tmp_sh.newMsg()) {
+          auto                        odom = tmp_sh.getMsg();
+          geometry_msgs::PointStamped tmp_pt;
+          tmp_pt.header = odom->header;
+          tmp_pt.point  = odom->pose.pose.position;
+
+          auto res = transformer_->transformSingle(tmp_pt, _frame_);
+
           if (!res) {
             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
             return;
           }
-          auto& odom = res.value();
-          tmp_odoms.emplace_back(pointToEigen(odom.pose.pose.position));
+          tmp_odoms.emplace_back(pointToEigen(res.value().point));
         }
       }
       rbl_controller_->setGroupPositions(tmp_odoms);
@@ -277,7 +291,7 @@ bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Req
     ROS_WARN("[WrapperRosRBL]: %s", res.message.c_str());
   }
   else {
-    res.message = "RBL activated";
+    res.message   = "RBL activated";
     is_activated_ = true;
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }

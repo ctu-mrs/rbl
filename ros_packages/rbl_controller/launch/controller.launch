@@ -8,14 +8,16 @@
 
     <arg name="custom_config"
          default="" />
+    <arg name="control_frame"
+         default="$(arg UAV_NAME)/world_origin" />
 
     <!-- will it run using GNU debugger? -->
-    <arg name="DEBUG"
+    <arg name="debug"
          default="false" />
-    <arg unless="$(arg DEBUG)"
+    <arg unless="$(arg debug)"
          name="launch_prefix_debug"
          value="" />
-    <arg if="$(arg DEBUG)"
+    <arg if="$(arg debug)"
          name="launch_prefix_debug"
          value="debug_roslaunch" />
 
@@ -48,78 +50,35 @@
               launch-prefix="$(arg launch_prefix_debug)"
               output="screen">
 
-            <!-- lidar clustering to measure distance to leader -->
-            <!-- <node name="lidar_clusters$(arg UAV_NAME)" pkg="rbl_controller"
-            type="lidar_clusters" output="screen"/> -->
             <!-- Parameters loaded from launch file -->
             <param name="simulation"
                    value="$(eval arg('RUN_TYPE') == 'simulation')" />
             <param name="uav_name"
                    value="$(arg UAV_NAME)" />
-            <!-- TODO: move this to config .yaml so you can change if simulation or experiment -->
-
-            <!-- <param name="control_frame" value="$(arg UAV_NAME)/hector_origin" /> -->
-
-            <!-- <param name="control_frame" value="$(arg UAV_NAME)/fcu" /> -->
-
-
-            <!-- <param name="control_frame" value="$(arg UAV_NAME)/point_lio_origin" />  -->
-            <param name="control_frame" value="$(arg UAV_NAME)/world_origin" />
-
-
-            <!-- <param name="control_frame" value="$(arg UAV_NAME)/livox" /> -->
-            <!-- <node pkd="tf2_ros" type="static_transform_publisher"
-            name="point_lio_init_to_control_frame" args="0 0 0 0 0.785 0 $(arg
-            UAV_NAME)/point_lio_init point_lio_init_for_control_frame" />
-            <param name="control_frame" value="$(arg UAV_NAME)/point_lio_init_for_control_frame" /> -->
+            <param name="control_frame" value="$(arg control_frame)" />
 
             <!-- ROS parameters config file -->
             <rosparam file="$(find rbl_controller)/config/default.yaml" />
             <rosparam file="$(arg custom_config)" />
-            <!-- <rosparam file="$(find formation_controller_susd)/config/$(arg RUN_TYPE).yaml" /> -->
 
-            <!-- Subscribers (note that the topic names will also be remapped using the namespace as
-            a prefix) -->
-            <remap from="~tracker_cmd_in"
-                   to="control_manager/tracker_cmd" />
+<!-- NOTE: the names will also be remapped using the namespace as a prefix) -->
+            <!-- Subscribers -->
+            <remap from="~odom_in"
+                   to="estimation_manager/odom_main" />
+            <remap from="~pcl_in"
+                   to="octomap_local_vis/octomap_point_cloud_centers" />
 
-            <!-- Service clients (note that the service names will also be remapped using the
-            namespace as a prefix) -->
-            <remap from="~ref_pos_out"
-                   to="control_manager/reference" />
-            <remap from="~goto_out"
-                   to="control_manager/goto" />
-            <remap from="~get_path_out"
-                   to="minimal_octomap_planner/get_path"/>
-            <!-- Service servers (note that the service names will also be remapped using the
-            namespace as a prefix) -->
+            <!-- Service servers -->
             <remap from="~control_activation_in"
-                   to="~activation" />
+                   to="~activate" />
             <remap from="~control_deactivation_in"
-                   to="~deactivation" />
-            <remap from="~fly_to_start_in"
-                   to="~fly_to_start" />
-            <remap from="~save_to_csv_in"
-                   to="~save_to_csv" />
-            <remap from="~planner_goto_out"
-                   to="octomap_planner/goto" />
+                   to="~deactivate" />
             <remap from="~goto_in"
                    to="~goto" />
 
-            <!-- Publishers (note that the service names will also be remapped using the namespace
-            as a prefix) -->
-            <remap from="~destination_out"
-                   to="~destination_vis" />
-            <remap from="~centroid_out"
-                   to="~centroid_vis" />
-            <remap from="~position_out"
-                   to="~position_vis" />
-            <remap from="~obstacle_markers_out"
-                   to="~obstacles_vis" />
-            <remap from="~neighbors_markers_out"
-                   to="~neighbors_vis" />
-            <remap from="~hull_markers_out"
-                   to="~hull_vis" />
+            <!-- Service clients -->
+            <remap from="~ref_out"
+                   to="control_manager/reference" />
         </node>
     </group>
 </launch>
