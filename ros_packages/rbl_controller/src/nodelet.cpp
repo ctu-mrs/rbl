@@ -130,9 +130,6 @@ void WrapperRosRBL::onInit()
     ros::shutdown();
   }
 
-  ros::master::V_TopicInfo all_topics;
-  ros::master::getTopics(all_topics);
-
   mrs_lib::SubscribeHandlerOptions shopts;
   shopts.nh                 = nh;
   shopts.node_name          = "WrapperRosRBL";
@@ -144,6 +141,8 @@ void WrapperRosRBL::onInit()
 
   if (_group_odoms_enabled_) {
     while (sh_group_odoms_.empty()){
+      ros::master::V_TopicInfo all_topics;
+      ros::master::getTopics(all_topics);
       for (const auto& topic : all_topics) {
         if (topic.name.find(odom_topic_name) != std::string::npos) {
           ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
