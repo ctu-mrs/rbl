@@ -196,9 +196,10 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   }
 
   if (!is_activated_) {
-    ROS_WARN_ONCE("[WrapperRosRBL]: Waiting for activation");
+    ROS_WARN("[WrapperRosRBL]: Waiting for activation");
     return;
   }
+  ROS_INFO("[WrapperRosRBL]: Getting next ref.");
 
   mrs_msgs::ReferenceStampedSrv msg_ref;
   msg_ref.request.header.frame_id = _frame_;
@@ -277,6 +278,7 @@ bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Req
   }
   else {
     res.message = "RBL activated";
+    is_activated_ = true;
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }
   return true;
