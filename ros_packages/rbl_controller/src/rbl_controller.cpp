@@ -1616,6 +1616,7 @@ bool RBLController::activationParamsServiceCallback(rbl_controller::ActivatePara
     radius = req.radius;
     encumbrance = req.encumbrance;
     size_neighbors1 = req.encumbrance;
+    size_neighbors.assign(_uav_names_.size() - 1, size_neighbors1);
     connectivity_flag = req.connectivity;
     cwvd_rob = req.cwvd;
     cwvd_obs = req.cwvd;
