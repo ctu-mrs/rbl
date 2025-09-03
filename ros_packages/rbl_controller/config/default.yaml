@@ -28,3 +28,4 @@ rbl_controller:
   use_z_rule: false
   cwvd_obs: 0.90
   cwvd_rob: 0.90
+  use_garmin_alt: true

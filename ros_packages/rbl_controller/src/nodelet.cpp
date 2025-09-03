@@ -15,6 +15,7 @@
 #include <pcl/point_types.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/Range.h>
 #include <std_srvs/Trigger.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Dense>
@@ -75,6 +76,7 @@ public:
                                                                const std::string&     frame);
 
   mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
+  mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
   mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2> sh_pcl_;
 
   std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
@@ -124,6 +126,7 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("rbl_controller/dt", rbl_params_.dt);
   param_loader.loadParam("rbl_controller/cwvd_rob", rbl_params_.cwvd_rob);
   param_loader.loadParam("rbl_controller/cwvd_obs", rbl_params_.cwvd_obs);
+  param_loader.loadParam("rbl_controller/use_garmin_alt", rbl_params_.use_garmin_alt);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -162,6 +165,7 @@ void WrapperRosRBL::onInit()
   }
 
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
+  sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
   sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
 
   tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
@@ -223,6 +227,11 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
         return;
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
+    }
+    
+    if (sh_alt_.newMsg()) {
+      auto                        alt = sh_alt_.getMsg();
+      rbl_controller_->setAltitude(alt->range);
     }
 
     if (!sh_group_odoms_.empty()) {

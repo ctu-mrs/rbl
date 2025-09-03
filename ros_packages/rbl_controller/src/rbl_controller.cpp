@@ -11,6 +11,9 @@ RBLController::RBLController(const RBLParams& params) :_params(params) {
 
 void RBLController::setCurrentPosition(const Eigen::Vector3d& point) {
   _agent_pos = point;
+  if (!_params.use_garmin_alt) {
+    _altitude = _agent_pos.z();
+  }
 }
 
 void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_points) {
@@ -59,6 +62,7 @@ mrs_msgs::Reference RBLController::getNextRef() {
   computeCentroid(_c1, _cell_A, _destination, _beta);
   computeCentroid(_c2, _cell_S, _destination, _beta);
   computeCentroid(_c1_no_rot, _cell_A, _goal, _beta);
+  std::cout << "[RBLController]: Altitude: " << _altitude << std::endl;
   std::cout << "[RBLController]: Agent posisiton  x: " << _agent_pos.x() << ", y: " << _agent_pos.y() << ", z: " << _agent_pos.z() << std::endl;
   std::cout << "[RBLController]: Destination  x: " << _destination.x() << ", y: " << _destination.y() << ", z: " << _destination.z() << std::endl;
   std::cout << "[RBLController]: Goal  x: " << _goal.x() << ", y: " << _goal.y() << ", z: " << _goal.z() << std::endl;
