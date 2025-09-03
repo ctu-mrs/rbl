@@ -170,14 +170,14 @@ void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere, con
   double z_center = center[2];
 
   double r_low = std::min(radius, std::max(altitude - _params.z_min, 0.));
-  //TODO r_high
+  double r_high = std::min(radius, _params.z_max - altitude);
 
   int    x_min    = static_cast<int>((x_center - radius) / step_size);
   int    x_max    = static_cast<int>((x_center + radius) / step_size);
   int    y_min    = static_cast<int>((y_center - radius) / step_size);
   int    y_max    = static_cast<int>((y_center + radius) / step_size);
   int    z_min    = static_cast<int>((z_center - r_low) / step_size);
-  int    z_max    = static_cast<int>((z_center + radius) / step_size);
+  int    z_max    = static_cast<int>((z_center + r_high) / step_size);
 
   std::vector<double> x_coords, y_coords, z_coords;
   for (int i = x_min; i <= x_max; ++i)
