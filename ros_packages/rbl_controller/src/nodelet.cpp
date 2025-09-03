@@ -102,8 +102,8 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
 
-  std::string odom_topic_name = param_loader.loadParam2("odometry_topic", "");
-  double      rate_tm_set_ref = param_loader.loadParam2("rate/timer_set_ref", 0.0);
+  std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
+  double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
   double      rate_tm_diagnostics = param_loader.loadParam2("rate/timer_diagnostics", 0.0);
 
   param_loader.loadParam("rbl_controller/only_2d", rbl_params_.only_2d);
@@ -149,7 +149,8 @@ void WrapperRosRBL::onInit()
       ros::master::getTopics(all_topics);
 
       for (const auto& topic : all_topics) {
-        if (topic.name.find(_agent_name_) == std::string::npos && topic.name.find(odom_topic_name) != std::string::npos) {
+        if (topic.name.find(_agent_name_) == std::string::npos &&
+            topic.name.find(odom_topic_name) != std::string::npos) {
           ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
           sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
         }
@@ -228,16 +229,16 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
     }
-    
+
     if (sh_alt_.newMsg()) {
-      auto                        alt = sh_alt_.getMsg();
+      auto alt = sh_alt_.getMsg();
       rbl_controller_->setAltitude(alt->range);
     }
 
     if (!sh_group_odoms_.empty()) {
 
       std::vector<Eigen::Vector3d> tmp_odoms;
-      for (auto& tmp_sh: sh_group_odoms_) {
+      for (auto& tmp_sh : sh_group_odoms_) {
 
         if (tmp_sh.newMsg()) {
           auto                        odom = tmp_sh.getMsg();
@@ -266,7 +267,12 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
       rbl_controller_->setPCL(msg);
     }
 
-    msg_ref.request.reference = rbl_controller_->getNextRef();
+    auto ret = rbl_controller_->getNextRef();
+    if (!ret) {
+      ROS_ERROR_STREAM("[WrapperRosRBL]: Could not get next valid ref");
+      return;
+    }
+    msg_ref.request.reference = ret.value();
   }
 
   if (!sc_set_ref_.call(msg_ref)) {
@@ -388,7 +394,7 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
 }
 
 std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,
-                                                      const std::string&                  frame)
+                                                                     const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
 
