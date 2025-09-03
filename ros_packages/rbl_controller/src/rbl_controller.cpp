@@ -62,11 +62,11 @@ mrs_msgs::Reference RBLController::getNextRef() {
   computeCentroid(_c1, _cell_A, _destination, _beta);
   computeCentroid(_c2, _cell_S, _destination, _beta);
   computeCentroid(_c1_no_rot, _cell_A, _goal, _beta);
-  std::cout << "[RBLController]: Altitude: " << _altitude << std::endl;
-  std::cout << "[RBLController]: Agent posisiton  x: " << _agent_pos.x() << ", y: " << _agent_pos.y() << ", z: " << _agent_pos.z() << std::endl;
-  std::cout << "[RBLController]: Destination  x: " << _destination.x() << ", y: " << _destination.y() << ", z: " << _destination.z() << std::endl;
-  std::cout << "[RBLController]: Goal  x: " << _goal.x() << ", y: " << _goal.y() << ", z: " << _goal.z() << std::endl;
-  std::cout << "[RBLController]: Centroid c1 x: " << _c1.x() << ", y: " << _c1.y() << ", z: " << _c1.z() << std::endl;
+  // std::cout << "[RBLController]: Altitude: " << _altitude << std::endl;
+  // std::cout << "[RBLController]: Agent posisiton  x: " << _agent_pos.x() << ", y: " << _agent_pos.y() << ", z: " << _agent_pos.z() << std::endl;
+  // std::cout << "[RBLController]: Destination  x: " << _destination.x() << ", y: " << _destination.y() << ", z: " << _destination.z() << std::endl;
+  // std::cout << "[RBLController]: Goal  x: " << _goal.x() << ", y: " << _goal.y() << ", z: " << _goal.z() << std::endl;
+  // std::cout << "[RBLController]: Centroid c1 x: " << _c1.x() << ", y: " << _c1.y() << ", z: " << _c1.z() << std::endl;
 
   applyRules( _beta, _th, _ph, _destination, _goal, _agent_pos, _c1, _c2, _c1_no_rot, _params.d1, _params.d2, _params.d3, _params.d4, _params.d5, _params.d6, _params.d7, _params.betaD, _params.beta_min, _params.dt);
 
@@ -315,8 +315,6 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vec
 }
 
 void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude) {
-
-  // std::cout << "[RBLController]: Create cell_S" << std::endl;
   if (_params.only_2d){ //2D case
     pointsInsideCircle(cell_S, agent_pos, _params.radius, _params.step_size);
   } else { //3D case
@@ -324,10 +322,8 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A
   }
   
   if (!_neighbors_pos.empty() || (cloud && cloud->size() > 0)) {
-    // std::cout << "[RBLController]: Partition A" << std::endl;
     partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
   } else {
-    // std::cout << "[RBLController]: A=S" << std::endl;
     cell_A = cell_S;
   }
 }
