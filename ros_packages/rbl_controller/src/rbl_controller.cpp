@@ -3,6 +3,21 @@
 RBLController::RBLController(const RBLParams& params) : params_(params)
 {
   radius_sensing_ = params_.radius / params_.cwvd_obs + sqrt((params_.voxel_size / 2) * (params_.voxel_size / 2));
+  beta_ = params_.beta_min;
+  if (params.replanner) {
+    ReplannerParams replanner_params;
+    replanner_params.encumbrance = params.encumbrance;
+    replanner_params.voxel_size = params.voxel_size;
+    replanner_params.map_width = 20.0;
+    replanner_params.map_height = 10.0;
+    replanner_params.weight_safety = 1.0;
+    replanner_params.weight_deviation = 1.0;
+    replanner_params.inflation_bonus = 0.0;
+    replanner_params.replanner_vox_size = 0.2;
+    
+
+    rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
+  }
 }
 
 void RBLController::setCurrentPosition(const Eigen::Vector3d& point)
@@ -55,48 +70,74 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
     return std::nullopt;
   }
 
+  if (params_.replanner) {
+    rbl_replanner_->setAltitude(altitude_);
+    rbl_replanner_->setCurrentPosition(agent_pos_);
+    rbl_replanner_->setGoal(goal_);
+    rbl_replanner_->setPCL(cloud_);
+    path_ = rbl_replanner_->plan();
+    inflated_map_ = rbl_replanner_->getInflatedCloud();
+  }
+
   cell_A_.clear();
   cell_S_.clear();
   createAndPartitionCellA(cell_A_, cell_S_, agent_pos_, neighbors_pos_, no_ground_cloud, altitude_);
 
-  computeCentroid(c1_, cell_A_, destination_, beta_);
-  computeCentroid(c2_, cell_S_, destination_, beta_);
-  computeCentroid(c1_no_rot_, cell_A_, goal_, beta_);
-  // std::cout << "[RBLController]: Altitude: " << altitude_ << std::endl;
-  // std::cout << "[RBLController]: Agent posisiton  x: " << agent_pos_.x() << ", y: " << agent_pos_.y() << ", z: " <<
-  // agent_pos_.z() << std::endl; std::cout << "[RBLController]: Destination  x: " << destination_.x() << ", y: " <<
-  // destination_.y() << ", z: " << destination_.z() << std::endl; std::cout << "[RBLController]: Goal  x: " <<
-  // goal_.x() << ", y: " << goal_.y() << ", z: " << goal_.z() << std::endl; std::cout << "[RBLController]: Centroid c1
-  // x: " << c1_.x() << ", y: " << c1_.y() << ", z: " << c1_.z() << std::endl;
 
-  applyRules(beta_,
-             th_,
-             ph_,
-             destination_,
-             goal_,
-             agent_pos_,
-             c1_,
-             c2_,
-             c1_no_rot_,
-             params_.d1,
-             params_.d2,
-             params_.d3,
-             params_.d4,
-             params_.d5,
-             params_.d6,
-             params_.d7,
-             params_.betaD,
-             params_.beta_min,
-             params_.dt);
+  if (params_.replanner) {
+    waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
+    destination_ = waypoint_;
+    computeCentroid(c1_, cell_A_, destination_, beta_);
+    computeCentroid(c2_, cell_S_, destination_, beta_);
+    computeCentroid(c1_no_rot_, cell_A_, waypoint_, beta_);
+    applyRules(beta_, th_, ph_, destination_, waypoint_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
+  } else {
+    computeCentroid(c1_, cell_A_, destination_, beta_);
+    computeCentroid(c2_, cell_S_, destination_, beta_);
+    computeCentroid(c1_no_rot_, cell_A_, goal_, beta_);
+    applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
+  }
+  
+  // std::cout << "[RBLController]: Altitude: " << altitude_ << std::endl;
+  // std::cout << "[RBLController]: Agent posisiton  x: " << agent_pos_.x() << ", y: " << agent_pos_.y() << ", z: " << agent_pos_.z() << std::endl; 
+  // std::cout << "[RBLController]: Destination  x: " << destination_.x() << ", y: " << destination_.y() << ", z: " << destination_.z() << std::endl; 
+  // std::cout << "[RBLController]: Waypoint  x: " << waypoint_.x() << ", y: " << waypoint_.y() << ", z: " << waypoint_.z() << std::endl; 
+  // std::cout << "[RBLController]: Goal  x: " << goal_.x() << ", y: " << goal_.y() << ", z: " << goal_.z() << std::endl; 
+  // std::cout << "[RBLController]: Centroid c1 x: " << c1_.x() << ", y: " << c1_.y() << ", z: " << c1_.z() << std::endl;
+
+  // applyRules(beta_,
+  //            th_,
+  //            ph_,
+  //            destination_,
+  //            goal_,
+  //            agent_pos_,
+  //            c1_,
+  //            c2_,
+  //            c1_no_rot_,
+  //            params_.d1,
+  //            params_.d2,
+  //            params_.d3,
+  //            params_.d4,
+  //            params_.d5,
+  //            params_.d6,
+  //            params_.d7,
+  //            params_.betaD,
+  //            params_.beta_min,
+  //            params_.dt);
 
   determineNextRef(p_ref, agent_pos_, goal_, c1_, rpy_, params_.limited_fov);
-
+  
   return p_ref;
 }
 
 Eigen::Vector3d RBLController::getGoal()
 {
   return goal_;
+}
+
+Eigen::Vector3d RBLController::getWaypoint()
+{
+  return waypoint_;
 }
 
 Eigen::Vector3d RBLController::getCurrentPosition()
@@ -114,6 +155,19 @@ std::vector<Eigen::Vector3d> RBLController::getCellA()
   return cell_A_;
 }
 
+std::vector<Eigen::Vector3d> RBLController::getInflatedMap()
+{
+  return inflated_map_;
+}
+
+std::vector<Eigen::Vector3d> RBLController::getPath()
+{
+  if (params_.replanner) {
+    return path_;
+  }
+  return {};
+}
+
 std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
 RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                    const Eigen::Vector3d&                           agent_pos,
@@ -125,20 +179,20 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
     return nullptr;
   }
 
-  if (!params_.use_map) {
+  if (params_.use_map) {
     voxelizePcl(cloud, params_.voxel_size);
   }
 
-  if (params_.replanner) {
-    std::cout << "[RBLController]: Adding an artificial ground plan to the PointCloud" << std::endl;
+  // if (params_.replanner) {
+  //   std::cout << "[RBLController]: Adding an artificial ground plan to the PointCloud at this height: " << agent_pos.z() - altitude << std::endl; //TODO uncoment
 
-    Eigen::Vector3d patch_seed(agent_pos.x(), agent_pos.y(), agent_pos.z() - altitude);
-    auto            ground_patch = getpointsInsideCircle(patch_seed, 3.0, params_.voxel_size);
+  //   Eigen::Vector3d patch_seed(agent_pos.x(), agent_pos.y(), agent_pos.z() - altitude);
+  //   auto            ground_patch = getpointsInsideCircle(patch_seed, 3.0, params_.voxel_size);
 
-    for (const auto& p : ground_patch) {
-      cloud->emplace_back(p.x(), p.y(), p.z());
-    }
-  }
+  //   for (const auto& p : ground_patch) {
+  //     cloud->emplace_back(p.x(), p.y(), p.z());
+  //   }
+  // }
 
   pcl::PointCloud<pcl::PointXYZ> temp_no_ground_cloud;
   temp_no_ground_cloud.reserve(cloud->points.size());
@@ -155,7 +209,7 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
 void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                 double                                           voxel_size)
 {
-  std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl;
+  // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
   pcl::PointCloud<pcl::PointXYZ>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
@@ -417,7 +471,6 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
     sum_z += z_in[i] * scalar_values[i];
     sum += scalar_values[i];
   }
-
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
 }
 
@@ -469,7 +522,7 @@ void RBLController::applyRules(double&                beta,
       beta = std::max(beta - dt, beta_min);  //  std::max(beta - dt * (epsilon), beta_min);
     }
     else {
-      beta = beta - dt * (beta - betaD);
+      beta = std::max(beta - dt * (beta - betaD), beta_min);
     }
 
     // second condition
@@ -585,6 +638,35 @@ void RBLController::applyRules(double&                beta,
     destination[0]   = current_j_x + distance * cos(new_angle);
     destination[1]   = current_j_y + distance * sin(new_angle);
   }
+}
+
+Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector3d>& path, 
+                                                 const Eigen::Vector3d& agent_pos,
+                                                 const Eigen::Vector3d& goal)
+{
+  double min_dist_sq = std::numeric_limits<double>::max();
+  int closest_point_index = -1;
+
+  for (size_t i = 0; i < path.size(); ++i) {
+    double dist_sq = (path[i] - agent_pos).squaredNorm();
+    if (dist_sq < min_dist_sq) {
+      min_dist_sq = dist_sq;
+      closest_point_index = i;
+    }
+  }
+
+  if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
+    return path.back(); 
+  }
+
+  double dist_agent_goal = (goal - agent_pos).norm();
+  Eigen::Vector3d closest_point = path[closest_point_index];
+  Eigen::Vector3d next_point = path[closest_point_index + 1];
+  Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
+
+  Eigen::Vector3d waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
+  
+  return waypoint;
 }
 
 void RBLController::determineNextRef(mrs_msgs::Reference&   p_ref,

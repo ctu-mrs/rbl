@@ -60,6 +60,9 @@ public:
   ros::Publisher                            pub_viz_cell_A_sensed_;
   std::shared_ptr<sensor_msgs::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                         const std::string&                  frame);
+  ros::Publisher                            pub_viz_inflated_map_;
+  std::shared_ptr<sensor_msgs::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
+                                                              const std::string&                  frame);
   ros::Publisher                            pub_viz_path_;
   nav_msgs::Path                            getVizPath(const std::vector<Eigen::Vector3d>& path,
                                                        const std::string&                  frame);
@@ -74,6 +77,11 @@ public:
   visualization_msgs::Marker                getVizModGroupGoal(const Eigen::Vector3d& point,
                                                                const double           scale,
                                                                const std::string&     frame);
+  ros::Publisher                            pub_viz_waypoint_;
+  visualization_msgs::Marker                getVizWaypoint(const Eigen::Vector3d& point,
+                                                           const double           scale,
+                                                           const std::string&     frame);
+
 
   mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
   mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
@@ -127,6 +135,7 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("rbl_controller/cwvd_rob", rbl_params_.cwvd_rob);
   param_loader.loadParam("rbl_controller/cwvd_obs", rbl_params_.cwvd_obs);
   param_loader.loadParam("rbl_controller/use_garmin_alt", rbl_params_.use_garmin_alt);
+  param_loader.loadParam("rbl_controller/replanner", rbl_params_.replanner);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -183,8 +192,10 @@ void WrapperRosRBL::onInit()
   pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
   pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
   pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
+  pub_viz_inflated_map_  = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
   pub_viz_path_          = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
   pub_viz_target_        = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
+  pub_viz_waypoint_      = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
 
   transformer_ = std::make_shared<mrs_lib::Transformer>(nh, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
@@ -206,7 +217,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   }
 
   if (!is_activated_) {
-    ROS_WARN("[WrapperRosRBL]: Waiting for activation");
+    ROS_WARN_ONCE("[WrapperRosRBL]: Waiting for activation");
     return;
   }
 
@@ -291,9 +302,12 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)
     std::scoped_lock lck(mtx_rbl_);
 
     pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 0.5, _frame_));
+    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 0.5, _frame_));
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 0.5, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
+    pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
+    pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }
 }
 
@@ -393,6 +407,32 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
   return marker;
 }
 
+visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,
+                                                         const double           scale,
+                                                         const std::string&     frame)
+{
+  visualization_msgs::Marker marker;
+  marker.header.frame_id    = frame;
+  marker.header.stamp       = ros::Time::now();
+  marker.ns                 = "waypoint";
+  marker.id                 = 0;
+  marker.type               = visualization_msgs::Marker::SPHERE;
+  marker.action             = visualization_msgs::Marker::ADD;
+  marker.pose.position.x    = point(0);
+  marker.pose.position.y    = point(1);
+  marker.pose.position.z    = point(2);
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x            = scale;
+  marker.scale.y            = scale;
+  marker.scale.z            = scale;
+  marker.color.r            = 0.0;
+  marker.color.g            = 0.0;
+  marker.color.b            = 1.0;
+  marker.color.a            = 0.3;
+
+  return marker;
+}                                                           
+
 std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                                      const std::string&                  frame)
 {
@@ -413,6 +453,54 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::
   ros_msg->header.frame_id = frame;
 
   return ros_msg;
+}
+
+std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
+                                                                           const std::string&                  frame)
+{
+  pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
+
+  pcl_cloud.points.resize(points.size());
+
+  for (size_t i = 0; i < points.size(); ++i) {
+    pcl_cloud.points[i].x = points[i].x();
+    pcl_cloud.points[i].y = points[i].y();
+    pcl_cloud.points[i].z = points[i].z();
+  }
+
+  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+
+  pcl::toROSMsg(pcl_cloud, *ros_msg);
+
+  ros_msg->header.frame_id = frame;
+
+  return ros_msg;
+}
+
+nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,
+                                         const std::string&                  frame)
+{
+  nav_msgs::Path path_msg;
+  path_msg.header.stamp = ros::Time::now();
+  path_msg.header.frame_id = frame;
+
+  for (const auto& pt : path) {
+    geometry_msgs::PoseStamped pose;
+    pose.header.stamp = ros::Time::now();
+    pose.header.frame_id = frame;
+    pose.pose.position.x = pt.x();
+    pose.pose.position.y = pt.y();
+    pose.pose.position.z = pt.z();
+
+    pose.pose.orientation.x = 0.0;
+    pose.pose.orientation.y = 0.0;
+    pose.pose.orientation.z = 0.0;
+    pose.pose.orientation.w = 1.0;
+
+    path_msg.poses.push_back(pose);
+  }
+
+  return path_msg;
 }
 
 visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,

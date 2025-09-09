@@ -38,7 +38,8 @@
 #include <deque>
 #include <utility>
 #include <chrono>
-#include<optional>
+#include <optional>
+#include "rbl_replanner.h"
 
 struct RBLParams {
   double                                step_size;
@@ -78,12 +79,15 @@ public:
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
 
-    std::optional<mrs_msgs::Reference>            getNextRef();
-  Eigen::Vector3d                getGoal(); 
-  Eigen::Vector3d                getCurrentPosition();
-  Eigen::Vector3d                getCentroid();
-  std::vector<Eigen::Vector3d>   getCellA();
-  pcl::PointCloud<pcl::PointXYZ> getPCL();
+  std::optional<mrs_msgs::Reference>            getNextRef();
+  Eigen::Vector3d                               getGoal(); 
+  Eigen::Vector3d                               getWaypoint();
+  Eigen::Vector3d                               getCurrentPosition();
+  Eigen::Vector3d                               getCentroid();
+  std::vector<Eigen::Vector3d>                  getCellA();
+  std::vector<Eigen::Vector3d>                  getInflatedMap();
+  std::vector<Eigen::Vector3d>                  getPath();
+  pcl::PointCloud<pcl::PointXYZ>                getPCL();
 
 private:
   RBLParams                                                 params_;
@@ -95,6 +99,7 @@ private:
   double                                                    th_; //azimuthal
   Eigen::Vector3d                                           goal_; //final goal where the uav will converge
   Eigen::Vector3d                                           destination_; //rotated current goal/waypoint
+  Eigen::Vector3d                                           waypoint_; //replanner waypoint
   Eigen::Vector3d                                           agent_pos_; 
   Eigen::Vector3d                                           rpy_; 
   Eigen::Vector3d                                           c1_;
@@ -103,11 +108,14 @@ private:
   std::vector<Eigen::Vector3d>                              neighbors_pos_;
   std::vector<Eigen::Vector3d>                              cell_A_;
   std::vector<Eigen::Vector3d>                              cell_S_;
+  std::vector<Eigen::Vector3d>                              inflated_map_;
+  std::vector<Eigen::Vector3d>                              path_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
+  std::shared_ptr<RBLReplanner>                             rbl_replanner_;
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
   void voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, double voxel_size);
-std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center, const double& radius, const double& step_size);
+  std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center, const double& radius, const double& step_size);
   void pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere, const Eigen::Vector3d& center, const double& radius, const double& step_size, const double& altitude);
   void partitionCellA(std::vector<Eigen::Vector3d>&                             cell_A, 
                       std::vector<Eigen::Vector3d>&                             cell_S, 
@@ -121,6 +129,7 @@ std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center
   void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 
                   const Eigen::Vector3d goal, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& c1, const Eigen::Vector3d& c2, const Eigen::Vector3d& c1_no_rot,
                   const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
+  Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
   void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const bool& limited_fov=false);
 };
 
