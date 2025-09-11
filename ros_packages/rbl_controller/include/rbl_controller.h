@@ -66,7 +66,7 @@ struct RBLParams {
   bool                                  use_map                       = false;
   double                                voxel_size                    = 0.4; //discretization for faster processing of obstacles for raw pcl and also needs to be set if map is used
   bool                                  replanner                     = false; //if true the alg also needs garmin alt - ground truth. For replanner map does not map bellow uav at the start;
-  bool                                  limited_fov                   = false;
+  bool                                  limited_fov                   = true;
 };
 
 class RBLController {
@@ -130,7 +130,8 @@ private:
                   const Eigen::Vector3d goal, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& c1, const Eigen::Vector3d& c2, const Eigen::Vector3d& c1_no_rot,
                   const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
   Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
-  void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const bool& limited_fov=false);
+  void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
+  double determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
 };
 
 #endif

@@ -82,6 +82,7 @@ struct ReplannerParams {
   double                                                    map_height;
   double                                                    weight_safety;
   double                                                    weight_deviation;
+  double                                                    replanner_freq;
   double                                                    eps                   = 0.001;
   double                                                    inflation_bonus       = 0.1;
   double                                                    replanner_vox_size    = 0.1; 
@@ -98,18 +99,21 @@ public:
   std::vector<Eigen::Vector3d> getInflatedCloud();
 
   std::vector<Eigen::Vector3d> plan();
+  bool shouldReplan();
 
 private:
   ReplannerParams                                           params_;
   double                                                    voxel_size_;
   double                                                    inflation_;
+  double                                                    replanner_period_;
   int                                                       inflation_coeff_;
   double                                                    altitude_;
   Eigen::Vector3d                                           agent_pos_;
   Eigen::Vector3d                                           goal_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
   std::vector<Eigen::Vector3d>                              path_;
-
+  std::chrono::high_resolution_clock::time_point            last_replan;
+  bool                                                      first_plan;
   //Variables related to grid
   int                                                       _X_;
   int                                                       _Y_;

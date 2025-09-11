@@ -14,7 +14,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
     replanner_params.weight_deviation = 1.0;
     replanner_params.inflation_bonus = 0.0;
     replanner_params.replanner_vox_size = 0.2;
-    
+    replanner_params.replanner_freq = 1.0; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -71,12 +71,14 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
   }
 
   if (params_.replanner) {
-    rbl_replanner_->setAltitude(altitude_);
-    rbl_replanner_->setCurrentPosition(agent_pos_);
-    rbl_replanner_->setGoal(goal_);
-    rbl_replanner_->setPCL(cloud_);
-    path_ = rbl_replanner_->plan();
-    inflated_map_ = rbl_replanner_->getInflatedCloud();
+    if (rbl_replanner_->shouldReplan()) {
+      rbl_replanner_->setAltitude(altitude_);
+      rbl_replanner_->setCurrentPosition(agent_pos_);
+      rbl_replanner_->setGoal(goal_);
+      rbl_replanner_->setPCL(cloud_);
+      path_ = rbl_replanner_->plan();
+      inflated_map_ = rbl_replanner_->getInflatedCloud();
+    }
   }
 
   cell_A_.clear();
@@ -125,7 +127,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
   //            params_.beta_min,
   //            params_.dt);
 
-  determineNextRef(p_ref, agent_pos_, goal_, c1_, rpy_, params_.limited_fov);
+  determineNextRef(p_ref, agent_pos_, goal_, c1_, rpy_, path_);
   
   return p_ref;
 }
@@ -669,30 +671,38 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   return waypoint;
 }
 
-void RBLController::determineNextRef(mrs_msgs::Reference&   p_ref,
-                                     const Eigen::Vector3d& agent_pos,
-                                     const Eigen::Vector3d& goal,
-                                     const Eigen::Vector3d& c1,
-                                     const Eigen::Vector3d& rpy,
-                                     const bool&            limited_fov)
+void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
+                                     const Eigen::Vector3d&         agent_pos,
+                                     const Eigen::Vector3d&         goal,
+                                     const Eigen::Vector3d&         c1,
+                                     const Eigen::Vector3d&         rpy,
+                                     const std::vector<Eigen::Vector3d>& path)
 {
-  if (limited_fov) {
-    double desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
-    if ((agent_pos - goal).norm() >= 0.2) {
-      p_ref.heading = desired_heading;
+  if (params_.limited_fov) {
+    double desired_heading;
+    if (params_.replanner) {
+      desired_heading = determineYaw(agent_pos, path, rpy); //using replanner determin heading based on path
+    } else {
+      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); //rotate towards the calculated centroid
     }
+    
     double diff       = std::fmod(desired_heading - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
 
-    if (std::abs(difference) < M_PI / 2) {
+    if (std::abs(difference) < M_PI / 6) {
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
-    }
-    else {
+    } else {
       p_ref.position.x = agent_pos[0];
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
+    }
+
+    if ((agent_pos - goal).norm() <= 0.2) { //Arived at goal pos
+      p_ref.heading = rpy[2]; //keep the same heading
+    } else {
+      p_ref.heading = desired_heading;
     }
   }
   else {
@@ -700,4 +710,63 @@ void RBLController::determineNextRef(mrs_msgs::Reference&   p_ref,
     p_ref.position.y = c1[1];
     p_ref.position.z = c1[2];
   }
+}
+
+double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy)
+{
+  double current_yaw = rpy[2];
+  double min_dist_sq = std::numeric_limits<double>::max();
+  int closest_point_index = -1;
+
+  for (size_t i = 0; i < path.size(); ++i) {
+    double dist_sq = (path[i] - agent_pos).squaredNorm();
+    if (dist_sq < min_dist_sq) {
+      min_dist_sq = dist_sq;
+      closest_point_index = i;
+    }
+  }
+
+  Eigen::Vector3d closest_point = path[closest_point_index];
+
+  if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
+    return current_yaw; 
+  }
+
+  const double look_ahead_dist_sq = 1.0 * 1.0; 
+
+  Eigen::Vector3d target_point = path[closest_point_index];
+  double accumulated_dist_sq = 0.0;
+
+  for (size_t i = closest_point_index + 1; i < path.size(); ++i) {
+    accumulated_dist_sq += (path[i] - path[i-1]).squaredNorm();
+    if (accumulated_dist_sq > look_ahead_dist_sq) {
+      target_point = path[i];
+      break;
+    }
+  }
+
+  Eigen::Vector3d direction_vector = target_point - agent_pos;
+  double desired_yaw = std::atan2(direction_vector.y(), direction_vector.x());
+
+  const double max_yaw_change = M_PI / 6.0; 
+
+  double yaw_diff = desired_yaw - current_yaw;
+
+  if (yaw_diff > M_PI) {
+      yaw_diff -= 2 * M_PI;
+  } else if (yaw_diff < -M_PI) {
+      yaw_diff += 2 * M_PI;
+  }
+
+  yaw_diff = std::clamp(yaw_diff, -max_yaw_change, max_yaw_change);
+
+  double final_yaw = current_yaw + yaw_diff;
+
+  if (final_yaw > M_PI) {
+    final_yaw -= 2 * M_PI;
+  } else if (final_yaw < -M_PI) {
+    final_yaw += 2 * M_PI;
+  }
+
+  return final_yaw;
 }

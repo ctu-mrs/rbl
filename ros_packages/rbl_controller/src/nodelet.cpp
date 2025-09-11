@@ -136,6 +136,7 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("rbl_controller/cwvd_obs", rbl_params_.cwvd_obs);
   param_loader.loadParam("rbl_controller/use_garmin_alt", rbl_params_.use_garmin_alt);
   param_loader.loadParam("rbl_controller/replanner", rbl_params_.replanner);
+  param_loader.loadParam("rbl_controller/limited_fov", rbl_params_.limited_fov);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -239,6 +240,32 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
         return;
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
+      Eigen::Vector3d euler;
+
+      double q_x = odom->pose.pose.orientation.x;
+      double q_y = odom->pose.pose.orientation.y;
+      double q_z = odom->pose.pose.orientation.z;
+      double q_w = odom->pose.pose.orientation.w;
+
+      // Roll (X-axis rotation)
+      double sinr_cosp = 2.0 * (q_w * q_x + q_y * q_z);
+      double cosr_cosp = 1.0 - 2.0 * (q_x * q_x + q_y * q_y);
+      euler.x() = std::atan2(sinr_cosp, cosr_cosp);
+
+      // Pitch (Y-axis rotation)
+      double sinp = 2.0 * (q_w * q_y - q_z * q_x);
+      if (std::abs(sinp) >= 1){
+        euler.y() = std::copysign(M_PI / 2, sinp); // Use 90 degrees if out of range
+      } else {
+        euler.y() = std::asin(sinp);
+      }
+
+      // Yaw (Z-axis rotation)
+      double siny_cosp = 2.0 * (q_w * q_z + q_x * q_y);
+      double cosy_cosp = 1.0 - 2.0 * (q_y * q_y + q_z * q_z);
+      euler.z() = std::atan2(siny_cosp, cosy_cosp);
+
+      rbl_controller_->setRollPitchYaw(euler);
     }
 
     if (sh_alt_.newMsg()) {

@@ -18,6 +18,9 @@ RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
   _Y_ = (_Y_ % 2 == 0) ? _Y_ : _Y_ + 1;
   _Z_ = (_Z_ % 2 == 0) ? _Z_ : _Z_ + 1;
 
+  replanner_period_ = 1.0 / params.replanner_freq;
+  first_plan = true;
+
   _inflated_grid_  = VoxelGrid(_X_, _Y_, _Z_);
   _clearance_grid_ = VoxelGrid(_X_, _Y_, _Z_);
 }
@@ -67,13 +70,13 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   fillAndInflateGrid(_inflated_grid_, cloud_);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration_inflate = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "[RBLReplanner]: Time taken by fillAndInflateGrid: " << duration_inflate.count() << " microseconds" << std::endl;
+  // std::cout << "[RBLReplanner]: Time taken by fillAndInflateGrid: " << duration_inflate.count() << " microseconds" << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
   calculateClearanceGrid(_clearance_grid_, _inflated_grid_);
   stop = std::chrono::high_resolution_clock::now();
   auto duration_clearance = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "[RBLReplanner]: Time taken by calculateClearanceGrid: " << duration_clearance.count() << " microseconds" << std::endl;
+  // std::cout << "[RBLReplanner]: Time taken by calculateClearanceGrid: " << duration_clearance.count() << " microseconds" << std::endl;
 
   _path_ = calculateGridPath(path_);
 
@@ -81,11 +84,30 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   path_ = AStarPlan(_agent_pos_, _goal_, _path_, _inflated_grid_, _clearance_grid_);
   stop = std::chrono::high_resolution_clock::now();
   auto duration_a_star = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "[RBLReplanner]: Time taken by AStarPlan: " << duration_a_star.count() << " microseconds" << std::endl;
+  // std::cout << "[RBLReplanner]: Time taken by AStarPlan: " << duration_a_star.count() << " microseconds" << std::endl;
 
-  std::cout << "[RBLReplanner]: Overall planning took: " << (duration_inflate.count() + duration_clearance.count() + duration_a_star.count()) / 1000 << " miliseconds" << std::endl;
+  // std::cout << "[RBLReplanner]: Overall planning took: " << (duration_inflate.count() + duration_clearance.count() + duration_a_star.count()) / 1000 << " miliseconds" << std::endl;
 
   return path_;
+}
+
+bool RBLReplanner::shouldReplan()
+{ 
+  auto current_time = std::chrono::high_resolution_clock::now();
+  if (first_plan) 
+  {
+    first_plan = false;
+    last_replan = current_time;
+    return true;
+  }
+  
+  std::chrono::duration<double> diff = current_time - last_replan;
+
+  if (diff.count() >= replanner_period_) {
+    last_replan = current_time;
+    return true;
+  }
+  return false;
 }
 
 void RBLReplanner::initializationPlan()

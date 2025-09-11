@@ -30,3 +30,4 @@ rbl_controller:
   cwvd_rob: 0.90
   use_garmin_alt: true
   replanner: true
+  limited_fov: true
