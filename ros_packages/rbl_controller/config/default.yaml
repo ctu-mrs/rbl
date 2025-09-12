@@ -31,3 +31,4 @@ rbl_controller:
   use_garmin_alt: true
   replanner: true
   limited_fov: true
+  ciri: true

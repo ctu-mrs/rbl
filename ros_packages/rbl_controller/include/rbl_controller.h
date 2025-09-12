@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <Eigen/Eigen>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 #include <mrs_msgs/Reference.h>
@@ -40,6 +41,7 @@
 #include <chrono>
 #include <optional>
 #include "rbl_replanner.h"
+#include "ciri.h"
 
 struct RBLParams {
   double                                step_size;
@@ -67,6 +69,7 @@ struct RBLParams {
   double                                voxel_size                    = 0.4; //discretization for faster processing of obstacles for raw pcl and also needs to be set if map is used
   bool                                  replanner                     = false; //if true the alg also needs garmin alt - ground truth. For replanner map does not map bellow uav at the start;
   bool                                  limited_fov                   = true;
+  bool                                  ciri                          = false;
 };
 
 class RBLController {
@@ -112,6 +115,7 @@ private:
   std::vector<Eigen::Vector3d>                              path_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;
+  std::shared_ptr<CIRI>                                     ciri_solver_;
 
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
   void voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, double voxel_size);
@@ -122,8 +126,15 @@ private:
                       const Eigen::Vector3d&                                    agent_pos,
                       const std::vector<Eigen::Vector3d>&                       neighbors,
                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&          cloud);
+  void partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
+                          std::vector<Eigen::Vector3d>&                    cell_S,
+                          const Eigen::Vector3d&                           agent_pos,
+                          const Eigen::Vector3d&                           waypoint,
+                          const std::vector<Eigen::Vector3d>&              neighbors,
+                          std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
+  void convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points);
   void closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& voxel_center, const double& voxel_size);
-  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude);
+  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude);
   void computeCentroid(Eigen::Vector3d& centroid, std::vector<Eigen::Vector3d>& cell, Eigen::Vector3d& destination, double& beta);
   void compute_scalar_value(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, double beta);
   void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 

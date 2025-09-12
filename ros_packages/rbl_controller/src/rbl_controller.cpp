@@ -18,6 +18,13 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
+
+  if (params.ciri) {
+    ciriParams  ciri_params;
+    ciri_params.epsilon = 1e-6;
+    ciri_params.inflation = params.encumbrance + params.voxel_size/2;
+    ciri_solver_ = std::make_shared<CIRI>(ciri_params);
+  }
 }
 
 void RBLController::setCurrentPosition(const Eigen::Vector3d& point)
@@ -79,16 +86,15 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
       path_ = rbl_replanner_->plan();
       inflated_map_ = rbl_replanner_->getInflatedCloud();
     }
+    waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
+    destination_ = waypoint_;
   }
 
   cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, cell_S_, agent_pos_, neighbors_pos_, no_ground_cloud, altitude_);
-
+  createAndPartitionCellA(cell_A_, cell_S_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_);
 
   if (params_.replanner) {
-    waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
-    destination_ = waypoint_;
     computeCentroid(c1_, cell_A_, destination_, beta_);
     computeCentroid(c2_, cell_S_, destination_, beta_);
     computeCentroid(c1_no_rot_, cell_A_, waypoint_, beta_);
@@ -170,10 +176,9 @@ std::vector<Eigen::Vector3d> RBLController::getPath()
   return {};
 }
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
-RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                                   const Eigen::Vector3d&                           agent_pos,
-                                   const double&                                    altitude)
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                                                                   const Eigen::Vector3d&                           agent_pos,
+                                                                                   const double&                                    altitude)
 {
 
   if (cloud->size() <= 0) {
@@ -410,6 +415,99 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   }
 }
 
+void RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
+                                       std::vector<Eigen::Vector3d>&                    cell_S,
+                                       const Eigen::Vector3d&                           agent_pos,
+                                       const Eigen::Vector3d&                           waypoint,
+                                       const std::vector<Eigen::Vector3d>&              neighbors,
+                                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)
+{ 
+  // map cloud ptr to Eigen::Matrix3Xd as input to ciri
+  size_t num_points = cloud->points.size();
+  if (num_points == 0) {
+    std::cout << "[RBLController]: Mapping cloud ptr to Eigen::Matrix3Xd not possible, cloud is empty." << std::endl;
+    return;
+  }
+  Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(reinterpret_cast<float*>(cloud->points.data()), 3, num_points);
+  const Eigen::Matrix3Xf& pc = pcl_map;
+
+  Eigen::MatrixX4f bd(6, 4); 
+  // Populate the boundary matrix with plane equations
+  bd <<  1,  0,  0, -(agent_pos.x() + 10),
+      -1,  0,  0,  (agent_pos.x() - 10), 
+       0,  1,  0, -(agent_pos.y() + 10), 
+       0, -1,  0,  (agent_pos.y() - 10), 
+       0,  0,  1, -(agent_pos.z() + 10), 
+       0,  0, -1,  (agent_pos.z() - 10); 
+
+
+  bool result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), waypoint.cast<float>());
+
+  if (result) {
+    std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
+  } else {
+    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    return;
+  }
+
+
+  std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data = ciri_solver_->getPlaneData();
+
+
+  std::vector<bool>                   remove_mask(cell_S.size(), false);
+
+  std::vector<Eigen::Vector3d> plane_normals;
+  std::vector<Eigen::Vector3d> plane_points;
+
+  convertPlaneData(plane_data, plane_normals, plane_points);
+
+  std::vector<double> plane_offsets(plane_normals.size());
+
+  // #pragma omp parallel for
+  for (int j = 0; j < static_cast<int>(plane_normals.size()); ++j) {
+    plane_offsets[j] = plane_normals[j].dot(plane_points[j]);
+  }
+
+  // #pragma omp parallel for schedule(dynamic, 64)
+  for (int i = 0; i < static_cast<int>(cell_S.size()); ++i) {
+    if (remove_mask[i]) continue;
+
+    const Eigen::Vector3d& point         = cell_S[i];
+    bool                   should_remove = false;
+
+    for (size_t j = 0; j < plane_normals.size(); ++j) {
+      double side = plane_normals[j].dot(point) - plane_offsets[j];
+      if (side >= 0) {
+        should_remove = true;
+        break;
+      }
+    }
+
+    if (should_remove) remove_mask[i] = true;
+  }
+
+  for (size_t i = 0; i < cell_S.size(); ++i) {
+    if (!remove_mask[i]) {
+      cell_A.push_back(cell_S[i]);
+    }
+  }
+}
+
+void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points)
+{
+  plane_normals.clear();
+  plane_points.clear();
+  
+  plane_normals.reserve(plane_data.size());
+  plane_points.reserve(plane_data.size());
+
+  for (const auto& plane_pair : plane_data) {
+    plane_normals.push_back(plane_pair.first.cast<double>());
+    plane_points.push_back(plane_pair.second.cast<double>());
+  }
+}
+
+
 void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,
                                         const Eigen::Vector3d& agent_pos,
                                         const Eigen::Vector3d& voxel_center,
@@ -428,6 +526,7 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,
 void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,
                                             std::vector<Eigen::Vector3d>&                    cell_S,
                                             const Eigen::Vector3d&                           agent_pos,
+                                            const Eigen::Vector3d&                           waypoint,
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
                                             std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                             const double&                                    altitude)
@@ -440,7 +539,11 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
   }
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
-    partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+    if (params_.ciri) {
+      partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
+    } else {
+      partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+    }    
   }
   else {
     cell_A = cell_S;
