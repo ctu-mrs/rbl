@@ -11,7 +11,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
     replanner_params.map_width = 20.0;
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
-    replanner_params.weight_deviation = 10.0;
+    replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = 0.0;
     replanner_params.replanner_vox_size = 0.2;
     replanner_params.replanner_freq = 1.0; //[Hz]
@@ -828,6 +828,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
 
 double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy)
 {
+  const double max_yaw_change = M_PI / 6.0; 
   double current_yaw = rpy[2];
   double min_dist_sq = std::numeric_limits<double>::max();
   int closest_point_index = -1;
@@ -846,41 +847,58 @@ double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::
     return current_yaw; 
   }
 
-  const double look_ahead_dist_sq = 1.0 * 1.0; 
+  const double look_ahead_dist_sq = 5.0 * 5.0; 
 
   Eigen::Vector3d target_point = path[closest_point_index];
   double accumulated_dist_sq = 0.0;
+  double yaw_diff_max = 0.0;
+  double yaw_diff_min = 0.0;
+
+  bool yaw_diff_max_first = false;
+  bool yaw_diff_min_first = false;
 
   for (size_t i = closest_point_index + 1; i < path.size(); ++i) {
     accumulated_dist_sq += (path[i] - path[i-1]).squaredNorm();
+    Eigen::Vector3d direction_vector = path[i] - agent_pos;
+    double yaw_to_point = std::atan2(direction_vector.y(), direction_vector.x());
+    double yaw_diff = yaw_to_point - current_yaw;
+    yaw_diff_max = std::max(yaw_diff_max, yaw_diff);
+    yaw_diff_min = std::min(yaw_diff_min, yaw_diff);
+
+    if (yaw_diff_max>max_yaw_change && !yaw_diff_min_first) {
+      yaw_diff_max_first = true;
+    }
+
+    if (-yaw_diff_min<-max_yaw_change && !yaw_diff_max_first) {
+      yaw_diff_min_first = true;
+    }
+
     if (accumulated_dist_sq > look_ahead_dist_sq || (i == path.size()-1)) {
-      target_point = path[i];
       break;
     }
   }
 
-  Eigen::Vector3d direction_vector = target_point - agent_pos;
-  double desired_yaw = std::atan2(direction_vector.y(), direction_vector.x());
-
-  // const double max_yaw_change = M_PI / 6.0; 
-
-  double yaw_diff = desired_yaw - current_yaw;
-
-  if (yaw_diff > M_PI) {
-    yaw_diff -= 2 * M_PI;
-  } else if (yaw_diff < -M_PI) {
-    yaw_diff += 2 * M_PI;
+  double final_yaw;
+  if (yaw_diff_max_first) {
+    final_yaw = current_yaw + yaw_diff_max;
+  } else if (yaw_diff_min_first) {
+    final_yaw = current_yaw + yaw_diff_min;
+  } else { //final goal
+    Eigen::Vector3d direction_vector = path.back() - agent_pos;
+    final_yaw = std::atan2(direction_vector.y(), direction_vector.x());
   }
 
-  // yaw_diff = std::clamp(yaw_diff, -max_yaw_change, max_yaw_change);
-
-  double final_yaw = current_yaw + yaw_diff;
-
-  if (final_yaw > M_PI) {
-    final_yaw -= 2 * M_PI;
-  } else if (final_yaw < -M_PI) {
-    final_yaw += 2 * M_PI;
-  }
+  final_yaw = normalizeAngle(final_yaw);
 
   return final_yaw;
+}
+
+double RBLController::normalizeAngle(double angle)
+{
+  if (angle > M_PI) {
+    angle -= 2 * M_PI;
+  } else if (angle < -M_PI) {
+    angle += 2 * M_PI;
+  }
+  return angle;
 }
