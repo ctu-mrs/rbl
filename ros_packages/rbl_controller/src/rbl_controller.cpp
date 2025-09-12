@@ -11,7 +11,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
     replanner_params.map_width = 20.0;
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
-    replanner_params.weight_deviation = 1.0;
+    replanner_params.weight_deviation = 10.0;
     replanner_params.inflation_bonus = 0.0;
     replanner_params.replanner_vox_size = 0.2;
     replanner_params.replanner_freq = 1.0; //[Hz]
@@ -415,7 +415,7 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   }
 }
 
-void RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
+bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
                                        std::vector<Eigen::Vector3d>&                    cell_S,
                                        const Eigen::Vector3d&                           agent_pos,
                                        const Eigen::Vector3d&                           waypoint,
@@ -426,7 +426,7 @@ void RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   size_t num_points = cloud->points.size();
   if (num_points == 0) {
     std::cout << "[RBLController]: Mapping cloud ptr to Eigen::Matrix3Xd not possible, cloud is empty." << std::endl;
-    return;
+    return false;
   }
   Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(reinterpret_cast<float*>(cloud->points.data()), 3, num_points);
   const Eigen::Matrix3Xf& pc = pcl_map;
@@ -444,10 +444,10 @@ void RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   bool result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), waypoint.cast<float>());
 
   if (result) {
-    std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
+    // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
     std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
-    return;
+    return false;
   }
 
 
@@ -491,6 +491,7 @@ void RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
       cell_A.push_back(cell_S[i]);
     }
   }
+  return true;
 }
 
 void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points)
@@ -540,7 +541,11 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
+      bool success = partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
+      if (!success || cell_A.size()==0) {
+        std::cout << "[RBLController]: Ciri failed using classic partition." << std::endl;
+        partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+      }
     } else {
       partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
     }    
@@ -769,7 +774,13 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   Eigen::Vector3d next_point = path[closest_point_index + 1];
   Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
 
-  Eigen::Vector3d waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
+  Eigen::Vector3d waypoint;
+  // if (params_.ciri) {
+  //   waypoint = next_point;
+  // } else {
+  //   waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
+  // }
+  waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
   
   return waypoint;
 }
@@ -791,8 +802,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
     
     double diff       = std::fmod(desired_heading - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-
-    if (std::abs(difference) < M_PI / 6) {
+    if (std::abs(difference) < M_PI / 4) { //+-45 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
@@ -801,6 +811,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
     }
+    p_ref.heading = desired_heading;
 
     if ((agent_pos - goal).norm() <= 0.2) { //Arived at goal pos
       p_ref.heading = rpy[2]; //keep the same heading
@@ -842,7 +853,7 @@ double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::
 
   for (size_t i = closest_point_index + 1; i < path.size(); ++i) {
     accumulated_dist_sq += (path[i] - path[i-1]).squaredNorm();
-    if (accumulated_dist_sq > look_ahead_dist_sq) {
+    if (accumulated_dist_sq > look_ahead_dist_sq || (i == path.size()-1)) {
       target_point = path[i];
       break;
     }
@@ -851,17 +862,17 @@ double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::
   Eigen::Vector3d direction_vector = target_point - agent_pos;
   double desired_yaw = std::atan2(direction_vector.y(), direction_vector.x());
 
-  const double max_yaw_change = M_PI / 6.0; 
+  // const double max_yaw_change = M_PI / 6.0; 
 
   double yaw_diff = desired_yaw - current_yaw;
 
   if (yaw_diff > M_PI) {
-      yaw_diff -= 2 * M_PI;
+    yaw_diff -= 2 * M_PI;
   } else if (yaw_diff < -M_PI) {
-      yaw_diff += 2 * M_PI;
+    yaw_diff += 2 * M_PI;
   }
 
-  yaw_diff = std::clamp(yaw_diff, -max_yaw_change, max_yaw_change);
+  // yaw_diff = std::clamp(yaw_diff, -max_yaw_change, max_yaw_change);
 
   double final_yaw = current_yaw + yaw_diff;
 

@@ -126,7 +126,7 @@ private:
                       const Eigen::Vector3d&                                    agent_pos,
                       const std::vector<Eigen::Vector3d>&                       neighbors,
                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&          cloud);
-  void partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
+  bool partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
                           std::vector<Eigen::Vector3d>&                    cell_S,
                           const Eigen::Vector3d&                           agent_pos,
                           const Eigen::Vector3d&                           waypoint,
