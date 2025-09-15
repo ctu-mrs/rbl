@@ -791,7 +791,11 @@ bool Ellipsoid::pointsInside(const Eigen::Matrix3Xf &pc, Eigen::Matrix<float, 3,
     }
   }
   if (!pts.empty()) {
-    out = Eigen::Map<const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>>(pts[0].data(), 3, pts.size());
+    out.resize(3, pts.size());
+    for (size_t i = 0; i < pts.size(); i++) {
+      out.col(i) = pts[i];
+    }
+    // out = Eigen::Map<const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>>(pts[0].data(), 3, pts.size());
     return true;
   } else {
     return false;
