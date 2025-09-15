@@ -20,6 +20,7 @@ RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
 
   replanner_period_ = 1.0 / params.replanner_freq;
   first_plan = true;
+  goal_changed_ = false;
 
   _inflated_grid_  = VoxelGrid(_X_, _Y_, _Z_);
   _clearance_grid_ = VoxelGrid(_X_, _Y_, _Z_);
@@ -33,7 +34,11 @@ void RBLReplanner::setCurrentPosition(const Eigen::Vector3d& point)
 
 void RBLReplanner::setGoal(const Eigen::Vector3d& point)
 {
-  goal_        = point;
+  double tolerance = 1e-6; 
+  if (!goal_.isApprox(point, tolerance)) {
+    goal_changed_ = true;
+    goal_ = point;
+  }
 }
 
 void RBLReplanner::setAltitude(const double& alt)
@@ -72,10 +77,12 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   auto duration_inflate = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   // std::cout << "[RBLReplanner]: Time taken by fillAndInflateGrid: " << duration_inflate.count() << " microseconds" << std::endl;
 
-  _path_ = calculateGridPath(path_);
+  _path_ = worldPathToGridPath(path_);
 
   if (!shouldReplan(path_, agent_pos_, _path_, _inflated_grid_)) {
-    return path_;
+    std::vector<std::tuple<int,int,int>> _smooth_path = smoothPath(_path_, _inflated_grid_);
+    std::vector<Eigen::Vector3d> smooth_path_ = gridPathToWorldPath(_smooth_path);
+    return smooth_path_;
   }
 
   start = std::chrono::high_resolution_clock::now();
@@ -85,18 +92,30 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   // std::cout << "[RBLReplanner]: Time taken by calculateClearanceGrid: " << duration_clearance.count() << " microseconds" << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
-  path_ = AStarPlan(_agent_pos_, _goal_, _path_, _inflated_grid_, _clearance_grid_);
+  _path_ = AStarPlan(_agent_pos_, _goal_, _path_, _inflated_grid_, _clearance_grid_);
+  path_ = gridPathToWorldPath(_path_);
   stop = std::chrono::high_resolution_clock::now();
   auto duration_a_star = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   // std::cout << "[RBLReplanner]: Time taken by AStarPlan: " << duration_a_star.count() << " microseconds" << std::endl;
-
   // std::cout << "[RBLReplanner]: Overall planning took: " << (duration_inflate.count() + duration_clearance.count() + duration_a_star.count()) / 1000 << " miliseconds" << std::endl;
 
-  return path_;
+  std::vector<std::tuple<int,int,int>> _smooth_path = smoothPath(_path_, _inflated_grid_);
+  // std::cout << "[RBLReplanner]: Path from A*: " << _path_.size() << ", smoothed path: " << _smooth_path.size() << std::endl;
+  std::vector<Eigen::Vector3d> smooth_path_ = gridPathToWorldPath(_smooth_path);
+  // path_ = gridPathToWorldPath(_smooth_path);
+  //interpolate path
+
+  return smooth_path_;
 }
 
 bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
 { 
+  if (goal_changed_) {
+    std::cout << "[RBLReplanner]: Replanning, goal_changed " << std::endl;
+    goal_changed_ = false;
+    return true;
+  }
+
   if (path.size() == 0) {
     // path is empty -> replan 
     std::cout << "[RBLReplanner]: Replanning, because path lenght is 0. " << std::endl;
@@ -369,7 +388,19 @@ void RBLReplanner::calculate1dSquaredDistance(std::vector<int>& data, int length
   }
 }
 
-std::vector<std::tuple<int, int, int>> RBLReplanner::calculateGridPath(const std::vector<Eigen::Vector3d>& path)
+std::vector<Eigen::Vector3d> RBLReplanner::gridPathToWorldPath(std::vector<std::tuple<int, int ,int>>& _path) 
+{
+  std::vector<Eigen::Vector3d> path;
+  if (_path.empty()) {
+    return path;
+  }
+  for (auto _point: _path) {
+    path.push_back(gridIdxToWorldCoords(_point));
+  }
+  return path;
+} 
+
+std::vector<std::tuple<int, int, int>> RBLReplanner::worldPathToGridPath(const std::vector<Eigen::Vector3d>& path)
 {
   std::vector<std::tuple<int, int, int>> _path;
   for (const auto& point: path) {
@@ -378,7 +409,78 @@ std::vector<std::tuple<int, int, int>> RBLReplanner::calculateGridPath(const std
   return _path;
 }
 
-std::vector<Eigen::Vector3d> RBLReplanner::AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid) 
+std::vector<std::tuple<int, int, int>> RBLReplanner::smoothPath(const std::vector<std::tuple<int, int ,int>>& _path, const std::optional<VoxelGrid>& grid) 
+{
+  std::vector<std::tuple<int, int, int>> _smooth_path_fwrd;
+  if (_path.empty()) {
+    return _smooth_path_fwrd;
+  }
+  if (_path.size()<= 2) {
+    return _path;
+  }
+  _smooth_path_fwrd.push_back(_path.front());
+
+  // Forward pass
+  size_t last_smooth_idx = 0;
+  for (size_t i = 1; i < _path.size(); ++i) {
+    if (canConnectPoints(_path[last_smooth_idx], _path[i], grid)) {
+      continue;
+    } else {
+      _smooth_path_fwrd.push_back(_path[i - 1]);
+      last_smooth_idx = i - 1;
+      i = last_smooth_idx + 1;
+    }
+  }
+  _smooth_path_fwrd.push_back(_path.back());
+
+  // Backward pass
+  std::vector<std::tuple<int, int, int>> final_smooth_path;
+  final_smooth_path.push_back(_smooth_path_fwrd.back());
+  size_t last_smooth_idx_bck = _smooth_path_fwrd.size() - 1;
+  for (size_t i = _smooth_path_fwrd.size() - 2; i >= 0 && i != (size_t)-1; --i) {
+    if (canConnectPoints(_smooth_path_fwrd[last_smooth_idx_bck], _smooth_path_fwrd[i], grid)) {
+      continue;
+    } else {
+      final_smooth_path.push_back(_smooth_path_fwrd[i + 1]);
+      last_smooth_idx_bck = i + 1;
+      i = last_smooth_idx_bck - 1;
+    }
+  }
+  final_smooth_path.push_back(_smooth_path_fwrd.front()); 
+  std::reverse(final_smooth_path.begin(), final_smooth_path.end());
+
+  return final_smooth_path;
+}
+
+bool RBLReplanner::canConnectPoints(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2, const std::optional<VoxelGrid>& grid)
+{
+  int x1 = std::get<0>(p1);
+  int y1 = std::get<1>(p1);
+  int z1 = std::get<2>(p1);
+
+  int x2 = std::get<0>(p2);
+  int y2 = std::get<1>(p2);
+  int z2 = std::get<2>(p2);
+
+
+  double dist = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
+  double step = 0.5; 
+
+  for (double t = 0; t <= dist; t += step) {
+    double ratio = t / dist;
+    int x = static_cast<int>(std::round(x1 + (x2 - x1) * ratio));
+    int y = static_cast<int>(std::round(y1 + (y2 - y1) * ratio));
+    int z = static_cast<int>(std::round(z1 + (z2 - z1) * ratio));
+      
+    if (grid.value().at(x, y, z) == 1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::vector<std::tuple<int, int ,int>> RBLReplanner::AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid) 
 { 
   Node* start_node = new Node(nullptr, closestFreeIdx(_start, grid));
   Node* end_node = new Node(nullptr, closestFreeIdx(_goal, grid));
@@ -401,29 +503,29 @@ std::vector<Eigen::Vector3d> RBLReplanner::AStarPlan(const std::tuple<int, int, 
     closed_voxels.at(current_node->position) = 1;
 
     if (*current_node == *end_node) { //reconstruct the path
-      std::cout << "[RBLReplanner]: Reconstructing path." << std::endl;
+      // std::cout << "[RBLReplanner]: Reconstructing path." << std::endl;
       Node* current = current_node;
-      std::vector<std::tuple<int, int ,int>> path_idx;
+      std::vector<std::tuple<int, int ,int>> _path;
       // if (grid->at(_goal) == 1) {
       //   path_idx.push_back(_goal); // because at the start of the func I find the closest free idx on the grid
       // }      
       while (current != nullptr) { //nullptr means start
-        path_idx.push_back(current->position);
+        _path.push_back(current->position);
         current = current->parent;
       }
       // if (grid->at(_start) == 1) {
       //   path_idx.push_back(_start); // because at the start of the func I find the closest free idx on the grid
       // }
-      std::reverse(path_idx.begin(), path_idx.end());
+      std::reverse(_path.begin(), _path.end());
 
-      std::vector<Eigen::Vector3d> path;
-      for (auto point_idx: path_idx) {
-        path.push_back(gridIdxToWorldCoords(point_idx));
-      }
+      // std::vector<Eigen::Vector3d> path;
+      // for (auto _point: _path) {
+      //   path.push_back(gridIdxToWorldCoords(_point));
+      // }
 
       for (Node* node : all_allocated_nodes) delete node;
-      std::cout << "[RBLReplanner]: Path found returning path of this size: " << path.size() << std::endl;
-      return path;
+      // std::cout << "[RBLReplanner]: Path found returning path of this size: " << _path.size() << std::endl;
+      return _path;
     }
     std::vector<Node*> children;
     int new_positions[][3] = {

@@ -113,26 +113,6 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
   // std::cout << "[RBLController]: Goal  x: " << goal_.x() << ", y: " << goal_.y() << ", z: " << goal_.z() << std::endl; 
   // std::cout << "[RBLController]: Centroid c1 x: " << c1_.x() << ", y: " << c1_.y() << ", z: " << c1_.z() << std::endl;
 
-  // applyRules(beta_,
-  //            th_,
-  //            ph_,
-  //            destination_,
-  //            goal_,
-  //            agent_pos_,
-  //            c1_,
-  //            c2_,
-  //            c1_no_rot_,
-  //            params_.d1,
-  //            params_.d2,
-  //            params_.d3,
-  //            params_.d4,
-  //            params_.d5,
-  //            params_.d6,
-  //            params_.d7,
-  //            params_.betaD,
-  //            params_.beta_min,
-  //            params_.dt);
-
   determineNextRef(p_ref, agent_pos_, goal_, c1_, rpy_, path_);
   
   return p_ref;
@@ -568,7 +548,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
   }
 
   std::vector<double> scalar_values;
-  compute_scalar_value(scalar_values, x_in, y_in, z_in, destination, beta);
+  computeScalarValue(scalar_values, x_in, y_in, z_in, destination, beta);
 
   double sum_x = 0.0;
   double sum_y = 0.0;
@@ -584,7 +564,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
 }
 
-void RBLController::compute_scalar_value(std::vector<double>&       scalar_values,
+void RBLController::computeScalarValue(std::vector<double>&       scalar_values,
                                          const std::vector<double>& x_test,
                                          const std::vector<double>& y_test,
                                          const std::vector<double>& z_test,
@@ -769,20 +749,21 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
     return path.back(); 
   }
 
-  double dist_agent_goal = (goal - agent_pos).norm();
+  // double dist_agent_goal = (goal - agent_pos).norm();
   Eigen::Vector3d closest_point = path[closest_point_index];
   Eigen::Vector3d next_point = path[closest_point_index + 1];
-  Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
+  // Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
 
-  Eigen::Vector3d waypoint;
+  // Eigen::Vector3d waypoint;
   // if (params_.ciri) {
   //   waypoint = next_point;
   // } else {
   //   waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
   // }
-  waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
+  // waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
   
-  return waypoint;
+  // return waypoint;
+  return next_point;
 }
 
 void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,

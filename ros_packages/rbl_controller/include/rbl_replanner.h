@@ -112,8 +112,10 @@ private:
   Eigen::Vector3d                                           goal_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
   std::vector<Eigen::Vector3d>                              path_;
+  std::vector<Eigen::Vector3d>                              smooth_path_;
   std::chrono::high_resolution_clock::time_point            last_replan;
   bool                                                      first_plan;
+  bool                                                      goal_changed_;
   //Variables related to grid
   int                                                       _X_;
   int                                                       _Y_;
@@ -137,8 +139,11 @@ private:
   void fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
   void calculateClearanceGrid(std::optional<VoxelGrid>& clearance_grid, const std::optional<VoxelGrid>& input_grid);
   void calculate1dSquaredDistance(std::vector<int>& data, int length, int stride);
-  std::vector<std::tuple<int, int, int>> calculateGridPath(const std::vector<Eigen::Vector3d>& path);
-  std::vector<Eigen::Vector3d> AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid);
+  std::vector<Eigen::Vector3d> gridPathToWorldPath(std::vector<std::tuple<int, int ,int>>& _path);
+  std::vector<std::tuple<int, int, int>> worldPathToGridPath(const std::vector<Eigen::Vector3d>& path);
+  std::vector<std::tuple<int, int, int>> smoothPath(const std::vector<std::tuple<int, int ,int>>& _path, const std::optional<VoxelGrid>& grid);
+  bool canConnectPoints(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2, const std::optional<VoxelGrid>& grid);
+  std::vector<std::tuple<int, int ,int>> AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid);
   double deviationPenalty(const std::vector<std::tuple<int, int, int>>& _path, const std::tuple<int, int, int>& _p1, const std::tuple<int, int, int>& _p2);
   double euclideanDistance(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2);
   std::tuple<int, int, int> closestFreeIdx(const std::tuple<int, int, int>& _position, const std::optional<VoxelGrid>& grid);
