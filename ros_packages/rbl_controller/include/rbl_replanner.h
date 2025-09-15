@@ -99,7 +99,7 @@ public:
   std::vector<Eigen::Vector3d> getInflatedCloud();
 
   std::vector<Eigen::Vector3d> plan();
-  bool shouldReplan();
+  bool replanTimer();
 
 private:
   ReplannerParams                                           params_;
@@ -123,6 +123,10 @@ private:
   std::vector<std::tuple<int, int, int>>                    _path_;
   std::optional<VoxelGrid>                                  _inflated_grid_;
   std::optional<VoxelGrid>                                  _clearance_grid_;
+
+  bool shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid);
+  bool percentageCompleted(const double percentage, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos);
+  bool pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid);
 
   void initializationPlan();
   double roundToNextMultiple(double value, double multiple);

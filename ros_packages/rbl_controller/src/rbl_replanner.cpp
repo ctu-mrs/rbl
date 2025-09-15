@@ -72,13 +72,17 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   auto duration_inflate = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   // std::cout << "[RBLReplanner]: Time taken by fillAndInflateGrid: " << duration_inflate.count() << " microseconds" << std::endl;
 
+  _path_ = calculateGridPath(path_);
+
+  if (!shouldReplan(path_, agent_pos_, _path_, _inflated_grid_)) {
+    return path_;
+  }
+
   start = std::chrono::high_resolution_clock::now();
   calculateClearanceGrid(_clearance_grid_, _inflated_grid_);
   stop = std::chrono::high_resolution_clock::now();
   auto duration_clearance = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   // std::cout << "[RBLReplanner]: Time taken by calculateClearanceGrid: " << duration_clearance.count() << " microseconds" << std::endl;
-
-  _path_ = calculateGridPath(path_);
 
   start = std::chrono::high_resolution_clock::now();
   path_ = AStarPlan(_agent_pos_, _goal_, _path_, _inflated_grid_, _clearance_grid_);
@@ -91,7 +95,78 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   return path_;
 }
 
-bool RBLReplanner::shouldReplan()
+bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
+{ 
+  if (path.size() == 0) {
+    // path is empty -> replan 
+    std::cout << "[RBLReplanner]: Replanning, because path lenght is 0. " << std::endl;
+    return true;
+  }
+
+  //50% completed? -> replan
+  if (percentageCompleted(0.5, path, agent_pos)) {
+    std::cout << "[RBLReplanner]: Replanning, because completed 50 percent of the path. " << std::endl;
+    return true;
+  }
+  
+  //path blocked? -> replan
+  if (pathBlocked(_path, grid)) {
+    std::cout << "[RBLReplanner]: Replanning, because path is blocked now. " << std::endl;
+    return true;
+  }
+
+  return false;
+}
+
+bool RBLReplanner::percentageCompleted(const double percentage, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos)
+// true -> will replan
+// false will not replan based on this condition
+{
+  double min_dist_sq = std::numeric_limits<double>::max();
+  double path_length_sq = 0.0;
+  int closest_point_index = -1;
+
+  for (size_t i = 0; i < path.size(); ++i) {
+    if (i>0) {
+      path_length_sq += (path[i] - path[i-1]).squaredNorm();
+    }
+    double dist_sq = (path[i] - agent_pos).squaredNorm();
+    if (dist_sq < min_dist_sq) {
+      min_dist_sq = dist_sq;
+      closest_point_index = i;
+    }
+  }
+
+  if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
+    return true; 
+  }
+
+  double length_to_closest_point_sq = 0.0;
+  for (size_t i = 1; i < closest_point_index; ++i) {
+    length_to_closest_point_sq += (path[i] - path[i-1]).squaredNorm();
+  }
+
+  if (length_to_closest_point_sq/path_length_sq >= percentage) {
+    return true;
+  }
+  return false;
+}
+
+bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
+{
+  int x, y, z;
+  for (size_t i = 0; i< _path.size(); ++i) {
+    x = std::get<0>(_path[i]);
+    y = std::get<1>(_path[i]);
+    z = std::get<2>(_path[i]);
+    if (grid->at(x, y, z) == 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool RBLReplanner::replanTimer()
 { 
   auto current_time = std::chrono::high_resolution_clock::now();
   if (first_plan) 

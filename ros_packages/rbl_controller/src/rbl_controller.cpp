@@ -78,7 +78,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
   }
 
   if (params_.replanner) {
-    if (rbl_replanner_->shouldReplan()) {
+    if (rbl_replanner_->replanTimer()) {
       rbl_replanner_->setAltitude(altitude_);
       rbl_replanner_->setCurrentPosition(agent_pos_);
       rbl_replanner_->setGoal(goal_);
@@ -446,7 +446,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
-    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
 
@@ -543,7 +543,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
     if (params_.ciri) {
       bool success = partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
       if (!success || cell_A.size()==0) {
-        std::cout << "[RBLController]: Ciri failed using classic partition." << std::endl;
+        // std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
       }
     } else {
@@ -802,7 +802,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
     
     double diff       = std::fmod(desired_heading - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 4) { //+-45 deg
+    if (std::abs(difference) < M_PI / 2) { //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
