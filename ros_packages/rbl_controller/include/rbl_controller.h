@@ -141,8 +141,9 @@ private:
                   const Eigen::Vector3d goal, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& c1, const Eigen::Vector3d& c2, const Eigen::Vector3d& c1_no_rot,
                   const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
   Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
-  void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
-  double determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
+  void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
+  double determineYaw(const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
+  // double determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
   double normalizeAngle(double angle);
 };
 
