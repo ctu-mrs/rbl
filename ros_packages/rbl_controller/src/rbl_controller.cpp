@@ -417,15 +417,46 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   Eigen::MatrixX4f bd(6, 4); 
   // Populate the boundary matrix with plane equations
-  bd <<  1,  0,  0, -(agent_pos.x() + 10),
-      -1,  0,  0,  (agent_pos.x() - 10), 
-       0,  1,  0, -(agent_pos.y() + 10), 
-       0, -1,  0,  (agent_pos.y() - 10), 
-       0,  0,  1, -(agent_pos.z() + 10), 
-       0,  0, -1,  (agent_pos.z() - 10); 
+  // bd <<  1,  0,  0, -(agent_pos.x() + 10),
+  //     -1,  0,  0,  (agent_pos.x() - 10), 
+  //      0,  1,  0, -(agent_pos.y() + 10), 
+  //      0, -1,  0,  (agent_pos.y() - 10), 
+  //      0,  0,  1, -(agent_pos.z() + 10), 
+  //      0,  0, -1,  (agent_pos.z() - 10); 
+  bd <<  1,  0,  0, -(agent_pos.x() + params_.radius + 1.0),
+        -1,  0,  0,  (agent_pos.x() - params_.radius - 1.0), 
+         0,  1,  0, -(agent_pos.y() + params_.radius + 1.0), 
+         0, -1,  0,  (agent_pos.y() - params_.radius - 1.0), 
+         0,  0,  1, -(agent_pos.z() + params_.radius + 1.0), 
+         0,  0, -1,  (agent_pos.z() - params_.radius - 1.0); 
 
+  double dist_agent_waypoint = (waypoint - agent_pos).norm();
+  Eigen::Vector3d direction_vec = (agent_pos - waypoint)/dist_agent_waypoint;
 
-  bool result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), waypoint.cast<float>());
+  int segments = 5;
+  bool result = false;
+  std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
+
+  for (int i = 0; i < segments; ++i) {
+    Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+    std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
+    result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+
+    plane_data = ciri_solver_->getPlaneData();
+
+    if (plane_data.size() > 50) {
+      std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+      result = false;
+    }
+
+    if (result) {
+      break;
+    } else {
+      std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+    }
+  }
+
+  
 
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
@@ -435,9 +466,11 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   }
 
 
-  std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data = ciri_solver_->getPlaneData();
+  // plane_data = ciri_solver_->getPlaneData();
 
-  std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+  // if (plane_data.size() > 50) {
+  //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+  // }
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
 
@@ -495,7 +528,7 @@ void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f
     Eigen::Vector3d agent_vec = agent_pos - point_d;
     double dot_product = agent_vec.dot(normal_d);
 
-    if (dot_product < 0) {
+    if (dot_product > 0) {
       normal_d = -normal_d;
     }
 
@@ -540,7 +573,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
     if (params_.ciri) {
       bool success = partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
       if (!success || cell_A.size()==0) {
-        // std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
+        std::cout << "[RBLController]: Ciri failed. Using classic partition. Success: " << success << ", Cell_A points: " << cell_A.size() << std::endl;
         partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
       }
     } else {

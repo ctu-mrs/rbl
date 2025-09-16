@@ -6,7 +6,7 @@ RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
   voxel_size_ = roundToNextMultiple(params.voxel_size, params.replanner_vox_size);
   inflation_ = roundToNextMultiple(params.encumbrance + params.inflation_bonus, params.replanner_vox_size);
   // std::cout << "[RBLReplanner]: voxel_size_: " << voxel_size_ << ", inflation_: " << inflation_ << std::endl;
-  inflation_coeff_ = std::ceil((inflation_) / params.replanner_vox_size);
+  inflation_coeff_ = std::ceil((inflation_) / params.replanner_vox_size) - 1;
   std::cout << "Inflation coef: " << inflation_coeff_ << std::endl;
   //   int inflation_coeff = std::ceil(encumbrance / map_resolution);
 
