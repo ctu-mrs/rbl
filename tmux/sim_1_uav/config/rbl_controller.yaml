@@ -32,4 +32,5 @@ rbl_controller:
   replanner: true
   limited_fov: true
   ciri: true
+  boundary_threshold: 1.0
   voxel_size: 0.4
