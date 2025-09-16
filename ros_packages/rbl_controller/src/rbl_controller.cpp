@@ -426,13 +426,14 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
-    // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
 
 
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data = ciri_solver_->getPlaneData();
 
+  std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
 
@@ -753,17 +754,20 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   Eigen::Vector3d closest_point = path[closest_point_index];
   Eigen::Vector3d next_point = path[closest_point_index + 1];
   // Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
-
-  // Eigen::Vector3d waypoint;
+  Eigen::Vector3d direction_vector = (next_point - agent_pos) / (next_point - agent_pos).norm();
+  double dist_agent_next_point = (next_point - agent_pos).norm();
+  // std::cout << "[RBLController]: Distance agent to next point on path: " << dist_agent_next_point << std::endl;
+  Eigen::Vector3d waypoint;
   // if (params_.ciri) {
   //   waypoint = next_point;
   // } else {
   //   waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
   // }
-  // waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
+  // waypoint = closest_point + a * std::min(params_.radius, dist_agent_goal);
+  waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
   
-  // return waypoint;
-  return next_point;
+  return waypoint;
+  // return next_point;
 }
 
 void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
@@ -833,7 +837,7 @@ double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const Eigen
     double current_yaw = rpy.z();
     double delta_yaw_to_waypoint = yaw_to_waypoint - current_yaw;
     double delta_yaw_to_next = yaw_to_next_waypoint - current_yaw;
-
+    
     while (delta_yaw_to_waypoint > M_PI) delta_yaw_to_waypoint -= 2 * M_PI;
     while (delta_yaw_to_waypoint < -M_PI) delta_yaw_to_waypoint += 2 * M_PI;
 
