@@ -96,17 +96,19 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
 
   cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, cell_S_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_);
+  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_);
+
+  std::vector<Eigen::Vector3d> emptyVec;
 
   if (params_.replanner) {
-    computeCentroid(c1_, cell_A_, destination_, beta_);
-    computeCentroid(c2_, cell_S_, destination_, beta_);
-    computeCentroid(c1_no_rot_, cell_A_, waypoint_, beta_);
+    computeCentroid(c1_, agent_pos_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
+    computeCentroid(c2_, agent_pos_, cell_S_, emptyVec, emptyVec, destination_, beta_);
+    computeCentroid(c1_no_rot_, agent_pos_, cell_A_, plane_normals_, plane_points_, waypoint_, beta_);
     applyRules(beta_, th_, ph_, destination_, waypoint_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
   } else {
-    computeCentroid(c1_, cell_A_, destination_, beta_);
-    computeCentroid(c2_, cell_S_, destination_, beta_);
-    computeCentroid(c1_no_rot_, cell_A_, goal_, beta_);
+    computeCentroid(c1_, agent_pos_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
+    computeCentroid(c2_, agent_pos_, cell_S_, emptyVec, emptyVec, destination_, beta_);
+    computeCentroid(c1_no_rot_, agent_pos_, cell_A_, plane_normals_, plane_points_, goal_, beta_);
     applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
   }
   
@@ -290,6 +292,8 @@ void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,
 
 void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,
                                    std::vector<Eigen::Vector3d>&                    cell_S,
+                                   std::vector<Eigen::Vector3d>&                    plane_normals,
+                                   std::vector<Eigen::Vector3d>&                    plane_points,
                                    const Eigen::Vector3d&                           agent_pos,
                                    const std::vector<Eigen::Vector3d>&              neighbors,
                                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)
@@ -298,8 +302,8 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   std::vector<bool>                   remove_mask(cell_S.size(), false);
   pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
 
-  std::vector<Eigen::Vector3d> plane_normals;
-  std::vector<Eigen::Vector3d> plane_points;
+  plane_normals.clear();
+  plane_points.clear();
 
   // check other agents
   for (const auto& neighbor : neighbors) {
@@ -401,6 +405,8 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
 
 bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
                                        std::vector<Eigen::Vector3d>&                    cell_S,
+                                       std::vector<Eigen::Vector3d>&                    plane_normals,
+                                       std::vector<Eigen::Vector3d>&                    plane_points,
                                        const Eigen::Vector3d&                           agent_pos,
                                        const Eigen::Vector3d&                           waypoint,
                                        const std::vector<Eigen::Vector3d>&              neighbors,
@@ -474,8 +480,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
 
-  std::vector<Eigen::Vector3d> plane_normals;
-  std::vector<Eigen::Vector3d> plane_points;
+  plane_normals.clear();
+  plane_points.clear();
 
   convertPlaneData(plane_data, plane_normals, plane_points, agent_pos);
 
@@ -556,6 +562,8 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,
 
 void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,
                                             std::vector<Eigen::Vector3d>&                    cell_S,
+                                            std::vector<Eigen::Vector3d>&                    plane_normals,
+                                            std::vector<Eigen::Vector3d>&                    plane_points,
                                             const Eigen::Vector3d&                           agent_pos,
                                             const Eigen::Vector3d&                           waypoint,
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
@@ -571,13 +579,13 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      bool success = partitionCellACiri(cell_A, cell_S, agent_pos, waypoint, neighbors_pos, cloud);
+      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud);
       if (!success || cell_A.size()==0) {
-        std::cout << "[RBLController]: Ciri failed. Using classic partition. Success: " << success << ", Cell_A points: " << cell_A.size() << std::endl;
-        partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+        // std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
+        partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
       }
     } else {
-      partitionCellA(cell_A, cell_S, agent_pos, neighbors_pos, cloud);
+      partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
     }    
   }
   else {
@@ -586,7 +594,10 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 }
 
 void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
+                                    Eigen::Vector3d&              agent_pos,
                                     std::vector<Eigen::Vector3d>& cell,
+                                    std::vector<Eigen::Vector3d>& plane_normals,
+                                    std::vector<Eigen::Vector3d>& plane_points,
                                     Eigen::Vector3d&              destination,
                                     double&                       beta)
 {
@@ -612,6 +623,37 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
     sum += scalar_values[i];
   }
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
+
+  double min_distance = std::numeric_limits<double>::max();
+  size_t closest_plane_index = -1;
+
+  for (size_t i = 0; i < plane_normals.size(); ++i) {
+    const Eigen::Vector3d& normal = plane_normals[i];
+    const Eigen::Vector3d& point_on_plane = plane_points[i];
+    
+    Eigen::Vector3d normalized_normal = normal.normalized();
+    
+    double distance = std::abs((centroid - point_on_plane).dot(normalized_normal));
+    
+    if (distance < min_distance) {
+      min_distance = distance;
+      closest_plane_index = i;
+    }
+  }
+
+  if (closest_plane_index == -1) {
+    min_distance = params_.radius - (agent_pos - centroid).norm();
+  }
+
+
+  // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) + std::pow((centroid[2] - ), 2));
+  if (min_distance < params_.boundary_threshold && beta < 20) {
+    beta = beta + 0.1;
+    std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " << min_distance << std::endl;
+    computeCentroid(centroid, agent_pos, cell, plane_normals, plane_points, destination, beta);
+  }
+
+
 }
 
 void RBLController::computeScalarValue(std::vector<double>&       scalar_values,

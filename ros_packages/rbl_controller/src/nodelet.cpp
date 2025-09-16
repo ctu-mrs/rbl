@@ -138,6 +138,7 @@ void WrapperRosRBL::onInit()
   param_loader.loadParam("rbl_controller/replanner", rbl_params_.replanner);
   param_loader.loadParam("rbl_controller/limited_fov", rbl_params_.limited_fov);
   param_loader.loadParam("rbl_controller/ciri", rbl_params_.ciri);
+  param_loader.loadParam("rbl_controller/boundary_threshold", rbl_params_.boundary_threshold);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
