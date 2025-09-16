@@ -62,6 +62,7 @@ struct RBLParams {
   bool                                  use_z_rule;
   double                                z_min;
   double                                z_max;
+  double                                boundary_threshold;
   bool                                  use_garmin_alt                = false;
   bool                                  only_2d                       = false;
   double                                z_ref                         = 1.0;
