@@ -86,6 +86,10 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
       path_ = rbl_replanner_->plan();
       inflated_map_ = rbl_replanner_->getInflatedCloud();
     }
+    if (path_.size() == 0) {
+      p_ref = pRefAgent(agent_pos_, rpy_[2]);
+      return p_ref;
+    }
     waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
     destination_ = waypoint_;
   }
@@ -440,7 +444,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   std::vector<Eigen::Vector3d> plane_normals;
   std::vector<Eigen::Vector3d> plane_points;
 
-  convertPlaneData(plane_data, plane_normals, plane_points);
+  convertPlaneData(plane_data, plane_normals, plane_points, agent_pos);
 
   std::vector<double> plane_offsets(plane_normals.size());
 
@@ -475,7 +479,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   return true;
 }
 
-void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points)
+void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos)
 {
   plane_normals.clear();
   plane_points.clear();
@@ -484,8 +488,20 @@ void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f
   plane_points.reserve(plane_data.size());
 
   for (const auto& plane_pair : plane_data) {
-    plane_normals.push_back(plane_pair.first.cast<double>());
-    plane_points.push_back(plane_pair.second.cast<double>());
+    // plane_normals.push_back(plane_pair.first.cast<double>());
+    // plane_points.push_back(plane_pair.second.cast<double>());
+    Eigen::Vector3d normal_d = plane_pair.first.cast<double>();
+    Eigen::Vector3d point_d = plane_pair.second.cast<double>();
+    Eigen::Vector3d agent_vec = agent_pos - point_d;
+    double dot_product = agent_vec.dot(normal_d);
+
+    if (dot_product < 0) {
+      normal_d = -normal_d;
+    }
+
+    plane_normals.push_back(normal_d);
+    plane_points.push_back(point_d);
+
   }
 }
 
@@ -811,6 +827,16 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,
     p_ref.position.y = c1[1];
     p_ref.position.z = c1[2];
   }
+}
+
+mrs_msgs::Reference RBLController::pRefAgent(const Eigen::Vector3d& agent_pos, const double yaw)
+{
+  mrs_msgs::Reference p_ref;
+  p_ref.position.x = agent_pos.x();
+  p_ref.position.y = agent_pos.y();
+  p_ref.position.z = agent_pos.z();
+  p_ref.heading = yaw;
+  return p_ref;
 }
 
 double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy)
