@@ -445,20 +445,20 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   for (int i = 0; i < segments; ++i) {
     Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
-    std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
+    // std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
     result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
 
     plane_data = ciri_solver_->getPlaneData();
 
     if (plane_data.size() > 50) {
-      std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+      // std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
       result = false;
     }
 
     if (result) {
       break;
     } else {
-      std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+      // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
     }
   }
 
@@ -467,7 +467,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
-    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
 
@@ -649,7 +649,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) + std::pow((centroid[2] - ), 2));
   if (min_distance < params_.boundary_threshold && beta < 20) {
     beta = beta + 0.1;
-    std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " << min_distance << std::endl;
+    // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " << min_distance << std::endl;
     computeCentroid(centroid, agent_pos, cell, plane_normals, plane_points, destination, beta);
   }
 
