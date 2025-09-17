@@ -2,12 +2,12 @@
 
 RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
 {
-  ROS_WARN("[RBLReplanner]: Replanner initialization");
+  std::cout << "[RBLReplanner]: Replanner initialization" << std::endl;
   voxel_size_ = roundToNextMultiple(params.voxel_size, params.replanner_vox_size);
   inflation_ = roundToNextMultiple(params.encumbrance + params.inflation_bonus, params.replanner_vox_size);
   // std::cout << "[RBLReplanner]: voxel_size_: " << voxel_size_ << ", inflation_: " << inflation_ << std::endl;
   inflation_coeff_ = std::ceil((inflation_) / params.replanner_vox_size) - 1;
-  // std::cout << "Inflation coef: " << inflation_coeff_ << std::endl;
+  std::cout << "Inflation coef: " << inflation_coeff_ << std::endl;
   //   int inflation_coeff = std::ceil(encumbrance / map_resolution);
 
   _X_ = static_cast<int>(std::ceil(params.map_width / params.replanner_vox_size)); 
@@ -111,26 +111,26 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
 bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
 { 
   if (goal_changed_) {
-ROS_WARN("[RBLReplanner]: Replanning, goal_changed ");
+    std::cout << "[RBLReplanner]: Replanning, goal_changed " << std::endl;
     goal_changed_ = false;
     return true;
   }
 
   if (path.size() == 0) {
     // path is empty -> replan 
-    ROS_WARN("[RBLReplanner]: Replanning, because path length is 0.");
+    std::cout << "[RBLReplanner]: Replanning, because path lenght is 0. " << std::endl;
     return true;
   }
 
   //50% completed? -> replan
   if (percentageCompleted(0.5, path, agent_pos)) {
-    ROS_WARN("[RBLReplanner]: Replanning, because 50%% of the path has been completed.");
+    std::cout << "[RBLReplanner]: Replanning, because completed 50 percent of the path. " << std::endl;
     return true;
   }
   
   //path blocked? -> replan
   if (pathBlocked(_path, grid)) {
-    ROS_WARN("[RBLReplanner]: Replanning, because path is blocked now. ");
+    std::cout << "[RBLReplanner]: Replanning, because path is blocked now. " << std::endl;
     return true;
   }
 
@@ -574,7 +574,7 @@ std::vector<std::tuple<int, int ,int>> RBLReplanner::AStarPlan(const std::tuple<
   
   for (Node* node : all_allocated_nodes) delete node;
 
-  ROS_WARN("[RBLReplanner]: No path found");
+  std::cout << "[RBLReplanner]: No path found" << std::endl;
 
   return {};
 }
