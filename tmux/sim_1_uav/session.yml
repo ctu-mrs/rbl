@@ -42,14 +42,16 @@ windows:
       panes:
         - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch world_name:=forest gui:=false
         - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 --$UAV_TYPE --enable-rangefinder --enable-ouster model:=OS0-128 use_gpu:=True"
-  - mapplan:
+
+  - losos:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_octomap_mapping_planning mapplan.launch
-          config_octomap_server:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/octomap_server.yaml
-          config_pcl_filter_ouster:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/ouster_filter_mapping.yaml
-          config_pcl_filter_rs_front:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/rs_front_filter.yaml
-          config_pcl_filter_rs_down:=../../../mrs_octomap_mapping_planning/ros_packages/mrs_octomap_mapping_planning/tmux/simulation_example/config/rs_down_filter.yaml
+        - 'waitForHw; roslaunch mrs_losos_server losos.launch
+          config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
+          config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
+          config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml
+          config_pcl_filter_rs_down:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_down_filter.yaml'
+
   - automatic_start:
       layout: tiled
       panes:

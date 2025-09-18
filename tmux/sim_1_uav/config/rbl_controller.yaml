@@ -29,7 +29,7 @@ rbl_controller:
   cwvd_obs: 0.90
   cwvd_rob: 0.90
   use_garmin_alt: true
-  replanner: true
+  replanner: true 
   limited_fov: true
   ciri: true
   boundary_threshold: 0.2

@@ -68,7 +68,7 @@
             <remap from="~alt_in"
                    to="mavros/distance_sensor/garmin" />
             <remap from="~pcl_in"
-                   to="octomap_local_vis/octomap_point_cloud_centers" />
+                   to="losos_server/current_submap_pc" />
 
             <!-- Service servers -->
             <remap from="~control_activation_in"
