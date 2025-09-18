@@ -58,10 +58,6 @@ windows:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard
-  - tf_connector:
-      layout: tiled
-      panes:
-        - waitForTime; roslaunch mrs_tf_connector tf_connector.launch custom_config:=./config/tf_connector.yaml
   - rviz:
       layout: tiled
       panes:
@@ -72,12 +68,13 @@ windows:
       layout: tiled
       panes:
         - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
-  - minimal_planner:
-      layout: tiled
-      panes:
-        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_octomap_planner minimal_planner.launch 
-          custom_config:=./config/minimal_planner.yaml
   # - plotjuggler:
   #     layout: tiled
   #     panes:
   #       - waitForHw; rosrun plotjuggler plotjuggler -l plotjuggler.xml
+  #
+  
+  - tf_connector:
+      layout: tiled
+      panes:
+        - waitForTime; roslaunch mrs_tf_connector tf_connector.launch custom_config:=./config/tf_connector.yaml

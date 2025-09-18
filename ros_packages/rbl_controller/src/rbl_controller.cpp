@@ -96,7 +96,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
 
   cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_);
+  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_, p_ref);
 
   std::vector<Eigen::Vector3d> emptyVec;
 
@@ -410,7 +410,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        const Eigen::Vector3d&                           agent_pos,
                                        const Eigen::Vector3d&                           waypoint,
                                        const std::vector<Eigen::Vector3d>&              neighbors,
-                                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)
+                                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                      mrs_msgs::Reference&                              p_ref)
 { 
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
@@ -437,28 +438,33 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
          0,  0, -1,  (agent_pos.z() - params_.radius - 1.0); 
 
   double dist_agent_waypoint = (waypoint - agent_pos).norm();
-  Eigen::Vector3d direction_vec = (agent_pos - waypoint)/dist_agent_waypoint;
-
-  int segments = 5;
+  // Eigen::Vector3d direction_vec = (agent_pos - waypoint)/dist_agent_waypoint;
+  Eigen::Vector3d direction_vec;
+  direction_vec[0] = cos(p_ref.heading);
+  direction_vec[1] = sin(p_ref.heading);
+  direction_vec[2] = 0;
+  int segments = 50;
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  for (int i = 0; i < segments; ++i) {
-    Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+  for (int i = 1; i < segments; ++i) {
+    // Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+
+    Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
     // std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
     result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
 
     plane_data = ciri_solver_->getPlaneData();
 
-    if (plane_data.size() > 50) {
-      // std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
-      result = false;
-    }
+    // if (plane_data.size() > 50) {
+    //   // std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+    //   result = false;
+    // }
 
     if (result) {
       break;
     } else {
-      // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+      std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
     }
   }
 
@@ -467,7 +473,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
-    // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
 
@@ -568,7 +574,8 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
                                             const Eigen::Vector3d&                           waypoint,
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
                                             std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                                            const double&                                    altitude)
+                                            const double&                                    altitude,
+                                            mrs_msgs::Reference&                             p_ref)
 {
   if (params_.only_2d) {  // 2D case
     cell_S = getpointsInsideCircle(agent_pos, params_.radius, params_.step_size);
@@ -579,7 +586,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud);
+      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, p_ref);
       if (!success || cell_A.size()==0) {
         // std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
