@@ -12,9 +12,9 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
-    replanner_params.inflation_bonus = 0.5;
+    replanner_params.inflation_bonus = 0.0;
     replanner_params.replanner_vox_size = 0.2;
-    replanner_params.replanner_freq = 0.33; //[Hz]
+    replanner_params.replanner_freq = 1.0; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -101,7 +101,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
 
   cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_, p_ref);
+  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_, c1_);
 
   std::vector<Eigen::Vector3d> emptyVec;
 
@@ -421,7 +421,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        const Eigen::Vector3d&                           waypoint,
                                        const std::vector<Eigen::Vector3d>&              neighbors,
                                        std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                                      mrs_msgs::Reference&                              p_ref)
+                                       const Eigen::Vector3d&                           c1)
 { 
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
@@ -457,27 +457,32 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
+  Eigen::Vector3d seed_b;
+  seed_b[0] = c1[0]; 
+  seed_b[1] = c1[1];
+  seed_b[2] = c1[2];
+  result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+  std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
+
   // for (int i = 1; i < segments; ++i) {
-  for (int i = 0; i < segments; ++i) {
-    Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+  // for (int i = 0; i < segments; ++i) {
+  //   Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+  //   // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
+  //   result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
 
-    // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
-    // std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
-    result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+  plane_data = ciri_solver_->getPlaneData();
 
-    plane_data = ciri_solver_->getPlaneData();
-
-    // if (plane_data.size() > 50) {
-    //   // std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
-    //   result = false;
-    // }
-
-    if (result) {
-      break;
-    } else {
-      std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+    if (plane_data.size() > 50) {
+      std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+      // result = false;
     }
-  }
+
+  //   if (result) {
+  //     break;
+  //   } else {
+  //     std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+  //   }
+  // }
 
   
 
@@ -586,8 +591,8 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
                                             std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                             const double&                                    altitude,
-                                            mrs_msgs::Reference&                             p_ref)
-{
+                                            const Eigen::Vector3d&                           c1)
+  {
   if (params_.only_2d) {  // 2D case
     cell_S = getpointsInsideCircle(agent_pos, params_.radius, params_.step_size);
   }
@@ -597,7 +602,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, p_ref);
+      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, c1);
       if (!success || cell_A.size()==0) {
         std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
@@ -737,13 +742,14 @@ void RBLController::applyRules(double&                beta,
       th = std::max(0.0, th - 2 * dt);
     }
 
+    th = 0;
+
 
     // third condition
     if (th == M_PI / 2 &&
         sqrt(pow((current_j_x - c1_no_rot[0]), 2) + pow((current_j_y - c1_no_rot[1]), 2)) > dist_current_c1_plane_xy) {
       th = 0;
     }
-
     double dist_c1_c2_z      = fabs(c1[2] - c2[2]);
     double dist_current_c1_z = fabs(current_j_z - c1[2]);
     double to_c2_z           = c2[2] - current_j_z;
@@ -797,7 +803,6 @@ void RBLController::applyRules(double&                beta,
     double dy   = goal[1] - current_j_y;
     double dz   = goal[2] - current_j_z;
     double dist = sqrt(dx * dx + dy * dy + dz * dz);
-
     double theta = atan2(dy, dx);    //!! azimuthal angle in xy plane
     double phi   = acos(dz / dist);  // polar angel from the z axis
 
