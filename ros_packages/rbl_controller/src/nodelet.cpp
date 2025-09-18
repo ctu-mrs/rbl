@@ -92,6 +92,7 @@ public:
   std::shared_ptr<mrs_lib::Transformer> transformer_;
 
   Eigen::Vector3d      pointToEigen(const geometry_msgs::Point& point);
+  Eigen::Vector3d      vectorToEigen(const geometry_msgs::Vector3& vec);
   geometry_msgs::Point pointFromEigen(const Eigen::Vector3d& vec);
   geometry_msgs::Point createPoint(double x,
                                    double y,
@@ -235,7 +236,6 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
       geometry_msgs::PointStamped tmp_pt;
       tmp_pt.header = odom->header;
       tmp_pt.point  = odom->pose.pose.position;
-
       auto res = transformer_->transformSingle(tmp_pt, _frame_);
 
       if (!res) {
@@ -243,6 +243,17 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
         return;
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
+
+      geometry_msgs::Vector3Stamped tmp_vel;
+      tmp_vel.header = odom->header;
+      tmp_vel.vector = odom->twist.twist.linear;
+      auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+
+      if (!vel_res) {
+        ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity to control frame.");
+        return;
+      }
+      rbl_controller_->setCurrentVelocity(vectorToEigen(vel_res->vector));
       Eigen::Vector3d euler;
 
       double q_x = odom->pose.pose.orientation.x;
@@ -279,6 +290,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
     if (!sh_group_odoms_.empty()) {
 
       std::vector<Eigen::Vector3d> tmp_odoms;
+      std::vector<Eigen::Vector3d> tmp_vels;
       for (auto& tmp_sh : sh_group_odoms_) {
 
         if (tmp_sh.newMsg()) {
@@ -294,6 +306,17 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
             return;
           }
           tmp_odoms.emplace_back(pointToEigen(res.value().point));
+
+          geometry_msgs::Vector3Stamped tmp_vel;
+          tmp_vel.header = odom->header;
+          tmp_vel.vector = odom->twist.twist.linear;
+        
+          auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+          if (!vel_res) {
+            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
+            return;
+          }
+          tmp_vels.emplace_back(vectorToEigen(vel_res->vector));  // store velocity
         }
       }
       rbl_controller_->setGroupPositions(tmp_odoms);
@@ -561,6 +584,11 @@ visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& 
 Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)
 {
   return Eigen::Vector3d(point.x, point.y, point.z);
+}
+
+Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)
+{
+  return Eigen::Vector3d(vec.x, vec.y, vec.z);
 }
 
 geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)

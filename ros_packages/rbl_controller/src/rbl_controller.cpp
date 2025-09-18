@@ -8,13 +8,13 @@ RBLController::RBLController(const RBLParams& params) : params_(params)
     ReplannerParams replanner_params;
     replanner_params.encumbrance = params.encumbrance;
     replanner_params.voxel_size = params.voxel_size;
-    replanner_params.map_width = 20.0;
+    replanner_params.map_width = 30.0;
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
-    replanner_params.inflation_bonus = 0.0;
+    replanner_params.inflation_bonus = 0.5;
     replanner_params.replanner_vox_size = 0.2;
-    replanner_params.replanner_freq = 1.0; //[Hz]
+    replanner_params.replanner_freq = 0.33; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -33,6 +33,11 @@ void RBLController::setCurrentPosition(const Eigen::Vector3d& point)
   if (!params_.use_garmin_alt) {
     altitude_ = agent_pos_.z();
   }
+}
+
+void RBLController::setCurrentVelocity(const Eigen::Vector3d& point)
+{
+  agent_vel_ = point;
 }
 
 void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_points)
@@ -101,14 +106,14 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()
   std::vector<Eigen::Vector3d> emptyVec;
 
   if (params_.replanner) {
-    computeCentroid(c1_, agent_pos_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
-    computeCentroid(c2_, agent_pos_, cell_S_, emptyVec, emptyVec, destination_, beta_);
-    computeCentroid(c1_no_rot_, agent_pos_, cell_A_, plane_normals_, plane_points_, waypoint_, beta_);
+    computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
+    computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, beta_);
+    computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, waypoint_, beta_);
     applyRules(beta_, th_, ph_, destination_, waypoint_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
   } else {
-    computeCentroid(c1_, agent_pos_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
-    computeCentroid(c2_, agent_pos_, cell_S_, emptyVec, emptyVec, destination_, beta_);
-    computeCentroid(c1_no_rot_, agent_pos_, cell_A_, plane_normals_, plane_points_, goal_, beta_);
+    computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
+    computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, beta_);
+    computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, goal_, beta_);
     applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
   }
   
@@ -137,6 +142,11 @@ Eigen::Vector3d RBLController::getWaypoint()
 Eigen::Vector3d RBLController::getCurrentPosition()
 {
   return agent_pos_;
+}
+
+Eigen::Vector3d RBLController::getCurrentVelocity()
+{
+  return agent_vel_;
 }
 
 Eigen::Vector3d RBLController::getCentroid()
@@ -438,19 +448,20 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
          0,  0, -1,  (agent_pos.z() - params_.radius - 1.0); 
 
   double dist_agent_waypoint = (waypoint - agent_pos).norm();
-  // Eigen::Vector3d direction_vec = (agent_pos - waypoint)/dist_agent_waypoint;
-  Eigen::Vector3d direction_vec;
-  direction_vec[0] = cos(p_ref.heading);
-  direction_vec[1] = sin(p_ref.heading);
-  direction_vec[2] = 0;
+  Eigen::Vector3d direction_vec = (agent_pos - waypoint)/dist_agent_waypoint;
+  // Eigen::Vector3d direction_vec;
+  // direction_vec[0] = cos(p_ref.heading);
+  // direction_vec[1] = sin(p_ref.heading);
+  // direction_vec[2] = 0;
   int segments = 50;
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  for (int i = 1; i < segments; ++i) {
-    // Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
+  // for (int i = 1; i < segments; ++i) {
+  for (int i = 0; i < segments; ++i) {
+    Eigen::Vector3d seed_b = waypoint + i * direction_vec * (dist_agent_waypoint/segments);
 
-    Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
+    // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
     // std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
     result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
 
@@ -588,7 +599,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
     if (params_.ciri) {
       bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, p_ref);
       if (!success || cell_A.size()==0) {
-        // std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
+        std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
       }
     } else {
@@ -602,6 +613,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
 void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
                                     Eigen::Vector3d&              agent_pos,
+                                    Eigen::Vector3d&              agent_vel,
                                     std::vector<Eigen::Vector3d>& cell,
                                     std::vector<Eigen::Vector3d>& plane_normals,
                                     std::vector<Eigen::Vector3d>& plane_points,
@@ -652,12 +664,12 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,
     min_distance = params_.radius - (agent_pos - centroid).norm();
   }
 
-
+  std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) + std::pow((centroid[2] - ), 2));
-  if (min_distance < params_.boundary_threshold && beta < 20) {
+  if (min_distance < params_.boundary_threshold && beta < 20 && agent_vel_.norm() > 0.5) {
     beta = beta + 0.1;
     // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " << min_distance << std::endl;
-    computeCentroid(centroid, agent_pos, cell, plane_normals, plane_points, destination, beta);
+    computeCentroid(centroid, agent_pos, agent_vel_, cell, plane_normals, plane_points, destination, beta);
   }
 
 

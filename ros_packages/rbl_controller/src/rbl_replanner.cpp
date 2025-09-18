@@ -123,7 +123,7 @@ bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen:
   }
 
   //50% completed? -> replan
-  if (percentageCompleted(0.5, path, agent_pos)) {
+  if (percentageCompleted(0.3, path, agent_pos)) {
     std::cout << "[RBLReplanner]: Replanning, because completed 50 percent of the path. " << std::endl;
     return true;
   }
