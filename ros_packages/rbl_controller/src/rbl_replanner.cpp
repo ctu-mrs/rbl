@@ -1,6 +1,6 @@
 #include "rbl_replanner.h"
 
-RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
+RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)// //{
 {
   std::cout << "[RBLReplanner]: Replanner initialization" << std::endl;
   voxel_size_ = roundToNextMultiple(params.voxel_size, params.replanner_vox_size);
@@ -24,34 +24,34 @@ RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)
 
   _inflated_grid_  = VoxelGrid(_X_, _Y_, _Z_);
   _clearance_grid_ = VoxelGrid(_X_, _Y_, _Z_);
-}
+}// //}
 
-void RBLReplanner::setCurrentPosition(const Eigen::Vector3d& point)
+void RBLReplanner::setCurrentPosition(const Eigen::Vector3d& point)// //{
 {
   agent_pos_ = point;
   // std::cout << "[RBLReplanner] Setting Agent position to x: " << agent_pos_.x() << ", y: " << agent_pos_.y() << ", z: " << agent_pos_.z() << std::endl;
-}
+}// //}
 
-void RBLReplanner::setGoal(const Eigen::Vector3d& point)
+void RBLReplanner::setGoal(const Eigen::Vector3d& point)// //{
 {
   double tolerance = 1e-6; 
   if (!goal_.isApprox(point, tolerance)) {
     goal_changed_ = true;
     goal_ = point;
   }
-}
+}// //}
 
-void RBLReplanner::setAltitude(const double& alt)
+void RBLReplanner::setAltitude(const double& alt)// //{
 {
   altitude_ = alt;
-}
+}// //}
 
-void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)
+void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)// //{
 {
   cloud_ = cloud;
-}
+}// //}
 
-std::vector<Eigen::Vector3d> RBLReplanner::getInflatedCloud()
+std::vector<Eigen::Vector3d> RBLReplanner::getInflatedCloud()// //{
 {
   std::vector<Eigen::Vector3d> points;
   for (int x = 0; x < _inflated_grid_->X; ++x) {
@@ -65,9 +65,9 @@ std::vector<Eigen::Vector3d> RBLReplanner::getInflatedCloud()
   }
   // std::cout << "[RBLReplanner]: getting inflated cloud of size: " << points.size() << std::endl;
   return points;
-}
+}// //}
 
-std::vector<Eigen::Vector3d> RBLReplanner::plan()
+std::vector<Eigen::Vector3d> RBLReplanner::plan()// //{
 { 
   initializationPlan();
 
@@ -106,9 +106,9 @@ std::vector<Eigen::Vector3d> RBLReplanner::plan()
   //interpolate path
 
   return smooth_path_;
-}
+}// //}
 
-bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
+bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)// //{
 { 
   if (goal_changed_) {
     std::cout << "[RBLReplanner]: Replanning, goal_changed " << std::endl;
@@ -135,9 +135,9 @@ bool RBLReplanner::shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen:
   }
 
   return false;
-}
+}// //}
 
-bool RBLReplanner::percentageCompleted(const double percentage, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos)
+bool RBLReplanner::percentageCompleted(const double percentage, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos)// //{
 // true -> will replan
 // false will not replan based on this condition
 {
@@ -169,9 +169,9 @@ bool RBLReplanner::percentageCompleted(const double percentage, const std::vecto
     return true;
   }
   return false;
-}
+}// //}
 
-bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)
+bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)// //{
 {
   int x, y, z;
   for (size_t i = 0; i< _path.size(); ++i) {
@@ -183,9 +183,9 @@ bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std
     }
   }
   return false;
-}
+}// //}
 
-bool RBLReplanner::replanTimer()
+bool RBLReplanner::replanTimer()// //{
 { 
   auto current_time = std::chrono::high_resolution_clock::now();
   if (first_plan) 
@@ -202,9 +202,9 @@ bool RBLReplanner::replanTimer()
     return true;
   }
   return false;
-}
+}// //}
 
-void RBLReplanner::initializationPlan()
+void RBLReplanner::initializationPlan()// //{
 {
   _inflated_grid_->clear();
   _clearance_grid_->clear();
@@ -214,53 +214,53 @@ void RBLReplanner::initializationPlan()
   int y_goal = std::clamp(std::get<1>(_point), 0, _Y_-1);
   int z_goal = std::clamp(std::get<2>(_point), 0, _Z_-1);
   _goal_ = std::make_tuple(x_goal, y_goal, z_goal);
-}
+}// //}
 
-double RBLReplanner::roundToNextMultiple(double value, double multiple) 
+double RBLReplanner::roundToNextMultiple(double value, double multiple) // //{
 {
   if (multiple == 0.0) {
     return value;
   }
   return std::ceil(value / multiple) * multiple;
-}
+}// //}
 
-Eigen::Vector3d RBLReplanner::gridIdxToWorldCoords(const std::tuple<int, int, int>& _point)
+Eigen::Vector3d RBLReplanner::gridIdxToWorldCoords(const std::tuple<int, int, int>& _point)// //{
 {
   Eigen::Vector3d point;
   point.x() = (std::get<0>(_point) - std::get<0>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.x();
   point.y() = (std::get<1>(_point) - std::get<1>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.y();
   point.z() = (std::get<2>(_point) - std::get<2>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.z();
   return point;
-}
+}// //}
 
-Eigen::Vector3d RBLReplanner::gridIdxToWorldCoords(const int& x, const int& y, const int& z)
+Eigen::Vector3d RBLReplanner::gridIdxToWorldCoords(const int& x, const int& y, const int& z)// //{
 {
   Eigen::Vector3d point;
   point.x() = (x - std::get<0>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.x();
   point.y() = (y - std::get<1>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.y();
   point.z() = (z - std::get<2>(_agent_pos_))*params_.replanner_vox_size + agent_pos_.z();
   return point;
-}
+}// //}
 
-std::tuple<int, int, int> RBLReplanner::worldCoordsToGridIdx(const Eigen::Vector3d& point) 
+std::tuple<int, int, int> RBLReplanner::worldCoordsToGridIdx(const Eigen::Vector3d& point) // //{
 {
   int x = static_cast<int>(std::round((point.x() - agent_pos_.x()) / params_.replanner_vox_size)) + std::get<0>(_agent_pos_);
   int y = static_cast<int>(std::round((point.y() - agent_pos_.y()) / params_.replanner_vox_size)) + std::get<1>(_agent_pos_);
   int z = static_cast<int>(std::round((point.z() - agent_pos_.z()) / params_.replanner_vox_size)) + std::get<2>(_agent_pos_);
   // std::cout << "[RBLReplanner] Returning x: " << x << ", y: " << y << ", z: " << z << std::endl;
   return std::make_tuple(x, y, z);
-}
+}// //}
 
-std::tuple<int, int, int> RBLReplanner::worldCoordsToGridIdx(const pcl::PointXYZ& point)
+std::tuple<int, int, int> RBLReplanner::worldCoordsToGridIdx(const pcl::PointXYZ& point)// //{
 {
   int x = static_cast<int>(std::round((point.x - agent_pos_.x()) / params_.replanner_vox_size)) + std::get<0>(_agent_pos_);
   int y = static_cast<int>(std::round((point.y - agent_pos_.y()) / params_.replanner_vox_size)) + std::get<1>(_agent_pos_);
   int z = static_cast<int>(std::round((point.z - agent_pos_.z()) / params_.replanner_vox_size)) + std::get<2>(_agent_pos_);
   // std::cout << "[RBLReplanner] Returning x: " << x << ", y: " << y << ", z: " << z << std::endl;
   return std::make_tuple(x, y, z);
-}
+}// //}
 
-void RBLReplanner::fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud) 
+void RBLReplanner::fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud) // //{
 {
   int x, y, z;
   std::vector<std::vector<int>> idx_to_inflate;
@@ -298,10 +298,10 @@ void RBLReplanner::fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std:
       grid->at(x,y,0) = 1; //fill the floor
     }
   }
-}
+}// //}
 
 //Felzenszwalb & Huttenlocher (F&H) algorithm
-void RBLReplanner::calculateClearanceGrid(std::optional<VoxelGrid>& clearance_grid, const std::optional<VoxelGrid>& input_grid) 
+void RBLReplanner::calculateClearanceGrid(std::optional<VoxelGrid>& clearance_grid, const std::optional<VoxelGrid>& input_grid) // //{
 {
   if (!input_grid.has_value() || !clearance_grid.has_value()) {
     return;
@@ -350,9 +350,9 @@ void RBLReplanner::calculateClearanceGrid(std::optional<VoxelGrid>& clearance_gr
   for (int i = 0; i < out_grid.data.size(); ++i) {
     out_grid.data[i] = static_cast<int>(std::sqrt(out_grid.data[i]));
   }
-}
+}// //}
 
-void RBLReplanner::calculate1dSquaredDistance(std::vector<int>& data, int length, int stride) 
+void RBLReplanner::calculate1dSquaredDistance(std::vector<int>& data, int length, int stride) // //{
 {
   std::vector<int> f(length);
   std::vector<int> v(length);
@@ -386,9 +386,9 @@ void RBLReplanner::calculate1dSquaredDistance(std::vector<int>& data, int length
     int r = v[k];
     data[q * stride] = data[r * stride] + (q - r) * (q - r);
   }
-}
+}// //}
 
-std::vector<Eigen::Vector3d> RBLReplanner::gridPathToWorldPath(std::vector<std::tuple<int, int ,int>>& _path) 
+std::vector<Eigen::Vector3d> RBLReplanner::gridPathToWorldPath(std::vector<std::tuple<int, int ,int>>& _path) // //{
 {
   std::vector<Eigen::Vector3d> path;
   if (_path.empty()) {
@@ -398,18 +398,18 @@ std::vector<Eigen::Vector3d> RBLReplanner::gridPathToWorldPath(std::vector<std::
     path.push_back(gridIdxToWorldCoords(_point));
   }
   return path;
-} 
+} // //}
 
-std::vector<std::tuple<int, int, int>> RBLReplanner::worldPathToGridPath(const std::vector<Eigen::Vector3d>& path)
+std::vector<std::tuple<int, int, int>> RBLReplanner::worldPathToGridPath(const std::vector<Eigen::Vector3d>& path)// //{
 {
   std::vector<std::tuple<int, int, int>> _path;
   for (const auto& point: path) {
     _path.push_back(worldCoordsToGridIdx(point));
   }
   return _path;
-}
+}// //}
 
-std::vector<std::tuple<int, int, int>> RBLReplanner::smoothPath(const std::vector<std::tuple<int, int ,int>>& _path, const std::optional<VoxelGrid>& grid) 
+std::vector<std::tuple<int, int, int>> RBLReplanner::smoothPath(const std::vector<std::tuple<int, int ,int>>& _path, const std::optional<VoxelGrid>& grid) // //{
 {
   std::vector<std::tuple<int, int, int>> _smooth_path_fwrd;
   if (_path.empty()) {
@@ -450,9 +450,9 @@ std::vector<std::tuple<int, int, int>> RBLReplanner::smoothPath(const std::vecto
   std::reverse(final_smooth_path.begin(), final_smooth_path.end());
 
   return final_smooth_path;
-}
+}// //}
 
-bool RBLReplanner::canConnectPoints(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2, const std::optional<VoxelGrid>& grid)
+bool RBLReplanner::canConnectPoints(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2, const std::optional<VoxelGrid>& grid)// //{
 {
   int x1 = std::get<0>(p1);
   int y1 = std::get<1>(p1);
@@ -478,9 +478,9 @@ bool RBLReplanner::canConnectPoints(const std::tuple<int, int, int>& p1, const s
   }
 
   return true;
-}
+}// //}
 
-std::vector<std::tuple<int, int ,int>> RBLReplanner::AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid) 
+std::vector<std::tuple<int, int ,int>> RBLReplanner::AStarPlan(const std::tuple<int, int, int> _start, const std::tuple<int, int, int> _goal, const std::vector<std::tuple<int, int, int>>& _path, const std::optional<VoxelGrid>& grid, const std::optional<VoxelGrid>& clearance_grid) // //{
 { 
   Node* start_node = new Node(nullptr, closestFreeIdx(_start, grid));
   Node* end_node = new Node(nullptr, closestFreeIdx(_goal, grid));
@@ -577,9 +577,9 @@ std::vector<std::tuple<int, int ,int>> RBLReplanner::AStarPlan(const std::tuple<
   std::cout << "[RBLReplanner]: No path found" << std::endl;
 
   return {};
-}
+}// //}
 
-double RBLReplanner::deviationPenalty(const std::vector<std::tuple<int, int, int>>& _path, const std::tuple<int, int, int>& _p1, const std::tuple<int, int, int>& _p2)
+double RBLReplanner::deviationPenalty(const std::vector<std::tuple<int, int, int>>& _path, const std::tuple<int, int, int>& _p1, const std::tuple<int, int, int>& _p2)// //{
 {
   for (size_t i = 0; i < _path.size(); ++i) {
     if (_path[i] == _p1) {
@@ -591,14 +591,14 @@ double RBLReplanner::deviationPenalty(const std::vector<std::tuple<int, int, int
     }
   }
   return 1.0;
-}
+}// //}
 
-double RBLReplanner::euclideanDistance(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2) 
+double RBLReplanner::euclideanDistance(const std::tuple<int, int, int>& p1, const std::tuple<int, int, int>& p2) // //{
 {
   return params_.replanner_vox_size * sqrt(pow(std::get<0>(p1) - std::get<0>(p2), 2) + pow(std::get<1>(p1) - std::get<1>(p2), 2) + pow(std::get<2>(p1) - std::get<2>(p2), 2));
-}
+}// //}
 
-std::tuple<int, int, int> RBLReplanner::closestFreeIdx(const std::tuple<int, int, int>& _position, const std::optional<VoxelGrid>& grid) 
+std::tuple<int, int, int> RBLReplanner::closestFreeIdx(const std::tuple<int, int, int>& _position, const std::optional<VoxelGrid>& grid) // //{
 {
   if (grid->at(std::get<0>(_position), std::get<1>(_position), std::get<2>(_position)) == 0) {
     return _position;
@@ -648,4 +648,4 @@ std::tuple<int, int, int> RBLReplanner::closestFreeIdx(const std::tuple<int, int
     }
   }
   return _position; //return original
-}
+}// //}

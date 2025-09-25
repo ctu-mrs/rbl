@@ -24,7 +24,7 @@
 #include <string>
 #include "rbl_controller.h"
 
-class WrapperRosRBL : public nodelet::Nodelet
+class WrapperRosRBL : public nodelet::Nodelet// //{
 {
 public:
   virtual void onInit();
@@ -97,9 +97,9 @@ public:
   geometry_msgs::Point createPoint(double x,
                                    double y,
                                    double z);
-};
+};// //}
 
-void WrapperRosRBL::onInit()
+void WrapperRosRBL::onInit()// //{
 {
   ros::NodeHandle& nh = getPrivateNodeHandle();
   NODELET_DEBUG("Initializing nodelet...");
@@ -213,9 +213,9 @@ void WrapperRosRBL::onInit()
 
   is_initialized_ = true;
   ROS_INFO("[WrapperRosRBL]: Initialization completed");
-}
+}// //}
 
-void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
+void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
 {
   if (!is_initialized_) {
     return;
@@ -342,9 +342,9 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)
   if (!sc_set_ref_.call(msg_ref)) {
     ROS_ERROR("[WrapperRosRBL]: Failed to call service set reference");
   }
-}
+}// //}
 
-void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)
+void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)// //{
 {
 
   if (!is_initialized_) {
@@ -362,9 +362,9 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
     pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }
-}
+}// //}
 
-bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
+bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,// //{
                                          std_srvs::Trigger::Response&                 res)
 {
   res.success = true;
@@ -378,9 +378,9 @@ bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Req
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }
   return true;
-}
+}// //}
 
-bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
+bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,// //{
                                            std_srvs::Trigger::Response&                 res)
 {
   res.success = true;
@@ -393,9 +393,9 @@ bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::R
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }
   return true;
-}
+}// //}
 
-bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,
+bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,// //{
                                       mrs_msgs::Vec4::Response& res)
 {
   {
@@ -406,9 +406,9 @@ bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,
   res.message = "Goal set";
   ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   return true;
-}
+}// //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,
+visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,// //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -432,9 +432,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& 
   marker.color.a            = 0.3;
 
   return marker;
-}
+}// //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,
+visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,// //{
                                                              const double           scale,
                                                              const std::string&     frame)
 {
@@ -458,9 +458,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
   marker.color.a            = 0.3;
 
   return marker;
-}
+}// //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,
+visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,// //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -484,9 +484,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& 
   marker.color.a            = 0.3;
 
   return marker;
-}                                                           
+}                                                           // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,
+std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,// //{
                                                                      const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
@@ -506,9 +506,9 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::
   ros_msg->header.frame_id = frame;
 
   return ros_msg;
-}
+}// //}
 
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
+std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,// //{
                                                                            const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
@@ -528,9 +528,9 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const
   ros_msg->header.frame_id = frame;
 
   return ros_msg;
-}
+}// //}
 
-nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,
+nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,// //{
                                          const std::string&                  frame)
 {
   nav_msgs::Path path_msg;
@@ -554,9 +554,9 @@ nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& pat
   }
 
   return path_msg;
-}
+}// //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,
+visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,// //{
                                                          const std::string&     frame)
 {
   visualization_msgs::Marker marker;
@@ -579,24 +579,24 @@ visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& 
   marker.color.a            = 1.0;
 
   return marker;
-}
+}// //}
 
-Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)
+Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)// //{
 {
   return Eigen::Vector3d(point.x, point.y, point.z);
-}
+}// //}
 
-Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)
+Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)// //{
 {
   return Eigen::Vector3d(vec.x, vec.y, vec.z);
-}
+}// //}
 
-geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)
+geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)// //{
 {
   return createPoint(vec(0), vec(1), vec(2));
-}
+}// //}
 
-geometry_msgs::Point WrapperRosRBL::createPoint(double x,
+geometry_msgs::Point WrapperRosRBL::createPoint(double x,// //{
                                                 double y,
                                                 double z)
 {
@@ -605,7 +605,7 @@ geometry_msgs::Point WrapperRosRBL::createPoint(double x,
   point.y = y;
   point.z = z;
   return point;
-}
+}// //}
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(WrapperRosRBL,
