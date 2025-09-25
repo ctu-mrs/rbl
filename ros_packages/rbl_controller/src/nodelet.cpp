@@ -140,6 +140,7 @@ void WrapperRosRBL::onInit()// //{
   param_loader.loadParam("rbl_controller/limited_fov", rbl_params_.limited_fov);
   param_loader.loadParam("rbl_controller/ciri", rbl_params_.ciri);
   param_loader.loadParam("rbl_controller/boundary_threshold", rbl_params_.boundary_threshold);
+  param_loader.loadParam("rbl_controller/boundary_threshold_speed", rbl_params_.boundary_threshold_speed);
   param_loader.loadParam("rbl_controller/voxel_size", rbl_params_.voxel_size);
 
   if (!param_loader.loadedSuccessfully()) {
@@ -354,9 +355,9 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)/
   {
     std::scoped_lock lck(mtx_rbl_);
 
-    pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 0.5, _frame_));
-    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 0.5, _frame_));
-    pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 0.5, _frame_));
+    pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 2*rbl_params_.encumbrance, _frame_));
+    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2*rbl_params_.encumbrance, _frame_));
+    pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2*rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));

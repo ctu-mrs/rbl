@@ -40,6 +40,8 @@
 #include <utility>
 #include <chrono>
 #include <optional>
+#include <mutex>
+#include <future>
 #include "rbl_replanner.h"
 #include "ciri.h"
 
@@ -63,6 +65,7 @@ struct RBLParams {
   double                                z_min;
   double                                z_max;
   double                                boundary_threshold;
+  double                                boundary_threshold_speed;
   bool                                  use_garmin_alt                = false;
   bool                                  only_2d                       = false;
   double                                z_ref                         = 1.0;
@@ -122,6 +125,8 @@ private:
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;
   std::shared_ptr<CIRI>                                     ciri_solver_;
+  std::future<std::vector<Eigen::Vector3d>>                 replanner_future_;
+  std::mutex                                                replanner_mutex_;
 
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
   void voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, double voxel_size);
