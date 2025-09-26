@@ -522,7 +522,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // direction_vec[0] = cos(p_ref.heading);
   // direction_vec[1] = sin(p_ref.heading);
   // direction_vec[2] = 0;
-  int segments = 50;
+  int segments = 10;
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
@@ -538,8 +538,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     Eigen::Vector3d seed_b = c1 + i * direction_vec * (dist_agent_c1/segments);
     // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
     result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
-
-   plane_data = ciri_solver_->getPlaneData();
+    plane_data = ciri_solver_->getPlaneData();
 
     // if (plane_data.size() > 50) {
     //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
@@ -549,7 +548,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     if (result) {
       break;
     } else {
-      // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+      std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
     }
   }
 
@@ -739,7 +738,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //
     min_distance = params_.radius - (agent_pos - centroid).norm();
   }
 
-  std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << std::endl;
+  // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) + std::pow((centroid[2] - ), 2));
   
   if (min_distance < params_.boundary_threshold && beta < 1.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
