@@ -5,210 +5,210 @@ CIRI::CIRI(const ciriParams& params) : params_(params)// //{
   sphere_template_ = Ellipsoid(Eigen::Matrix3f::Identity(), params.inflation * Eigen::Vector3f(1, 1, 1), Eigen::Vector3f(0, 0, 0));
 }// //}
 
-// bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd, const Eigen::Matrix3Xf& pc, const Eigen::Vector3f& a, const Eigen::Vector3f& b) // //{
-// // bd -> boundary, each row (n_x, n_y, n_z, d) which forms constraint n_xx + n_yy + n_zz + d <= 0. Should be boundary of the map? 
-// // pc -> point cloud of obstacles
-// // a -> seed for ellipsoid (agent pos)
-// // b -> sedd for ellipsoid (waypoint)
-// {
-//   const Eigen::Vector4f ah(a(0), a(1), a(2), 1.0);
-//   const Eigen::Vector4f bh(b(0), b(1), b(2), 1.0);
+bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd, const Eigen::Matrix3Xf& pc, const Eigen::Vector3f& a, const Eigen::Vector3f& b) // //{
+// bd -> boundary, each row (n_x, n_y, n_z, d) which forms constraint n_xx + n_yy + n_zz + d <= 0. Should be boundary of the map? 
+// pc -> point cloud of obstacles
+// a -> seed for ellipsoid (agent pos)
+// b -> sedd for ellipsoid (waypoint)
+{
+  const Eigen::Vector4f ah(a(0), a(1), a(2), 1.0);
+  const Eigen::Vector4f bh(b(0), b(1), b(2), 1.0);
 
-//   if ((bd * ah).maxCoeff() > params_.epsilon || (bd * bh).maxCoeff() > params_.epsilon) {
-//     std::cout << "[CIRI]: Seeds points for ellipsoid lies outside the boundary region. Unable to construct polyhedron." << std::endl;
-//     return false;
-//   }
+  if ((bd * ah).maxCoeff() > params_.epsilon || (bd * bh).maxCoeff() > params_.epsilon) {
+    std::cout << "[CIRI]: Seeds points for ellipsoid lies outside the boundary region. Unable to construct polyhedron." << std::endl;
+    return false;
+  }
 
-//   /// Maximum M boundary constraints and N point constraints
-//   const int M = bd.rows();
-//   const int N = pc.cols();
+  /// Maximum M boundary constraints and N point constraints
+  const int M = bd.rows();
+  const int N = pc.cols();
 
-//   Ellipsoid E(Eigen::Matrix3f::Identity(), (a + b) / 2);
+  Ellipsoid E(Eigen::Matrix3f::Identity(), (a + b) / 2);
 
-//   if ((a - b).norm() > 0.1) {
-//     /// use line seed
-//     findEllipsoid(pc, a, b, E);
-//   }
+  if ((a - b).norm() > 0.1) {
+    /// use line seed
+    findEllipsoid(pc, a, b, E);
+  }
 
-//   std::vector<Eigen::Vector4f> planes;
-//   Eigen::Matrix<float, Eigen::Dynamic, 4> hPoly;
+  std::vector<Eigen::Vector4f> planes;
+  Eigen::Matrix<float, Eigen::Dynamic, 4> hPoly;
 
-//   Eigen::Vector3f infeasible_pt_w;
+  Eigen::Vector3f infeasible_pt_w;
 
-//   for (int loop = 0; loop < iter_num_; ++loop) {
-//     // Initialize the boundary in ellipsoid frame
-//     const Eigen::Vector3f fwd_a = E.toEllipsoidFrame(a);
-//     const Eigen::Vector3f fwd_b = E.toEllipsoidFrame(b);
-//     const Eigen::MatrixX4f bd_e = E.toEllipsoidFrame(bd);
-//     const Eigen::VectorXf distDs = bd_e.rightCols<1>().cwiseAbs().cwiseQuotient(bd_e.leftCols<3>().rowwise().norm());
-//     const Eigen::Matrix3Xf pc_e = E.toEllipsoidFrame(pc);
-//     Eigen::VectorXf distRs = pc_e.colwise().norm();
+  for (int loop = 0; loop < iter_num_; ++loop) {
+    // Initialize the boundary in ellipsoid frame
+    const Eigen::Vector3f fwd_a = E.toEllipsoidFrame(a);
+    const Eigen::Vector3f fwd_b = E.toEllipsoidFrame(b);
+    const Eigen::MatrixX4f bd_e = E.toEllipsoidFrame(bd);
+    const Eigen::VectorXf distDs = bd_e.rightCols<1>().cwiseAbs().cwiseQuotient(bd_e.leftCols<3>().rowwise().norm());
+    const Eigen::Matrix3Xf pc_e = E.toEllipsoidFrame(pc);
+    Eigen::VectorXf distRs = pc_e.colwise().norm();
 
-//     Eigen::Matrix<uint8_t, -1, 1> bdFlags = Eigen::Matrix<uint8_t, -1, 1>::Constant(M, 1);
-//     Eigen::Matrix<uint8_t, -1, 1> pcFlags = Eigen::Matrix<uint8_t, -1, 1>::Constant(N, 1);
+    Eigen::Matrix<uint8_t, -1, 1> bdFlags = Eigen::Matrix<uint8_t, -1, 1>::Constant(M, 1);
+    Eigen::Matrix<uint8_t, -1, 1> pcFlags = Eigen::Matrix<uint8_t, -1, 1>::Constant(N, 1);
 
-//     bool completed = false;
-//     int bdMinId, pcMinId;
-//     double minSqrD = distDs.minCoeff(&bdMinId);
-//     double minSqrR = distRs.minCoeff(&pcMinId);
+    bool completed = false;
+    int bdMinId, pcMinId;
+    double minSqrD = distDs.minCoeff(&bdMinId);
+    double minSqrR = distRs.minCoeff(&pcMinId);
 
-//     Eigen::Vector4f temp_tangent, temp_plane_w;
-//     const Eigen::Matrix3f C_inv = E.C().inverse();
+    Eigen::Vector4f temp_tangent, temp_plane_w;
+    const Eigen::Matrix3f C_inv = E.C().inverse();
 
-//     planes.clear();
-//     planes.reserve(30);
-//     Eigen::Vector3f tmp_nn_pt;
-//     Eigen::Vector4f plan_before_ab;
+    planes.clear();
+    planes.reserve(30);
+    Eigen::Vector3f tmp_nn_pt;
+    Eigen::Vector4f plan_before_ab;
 
-//     for (int i = 0; !completed && i < (M + N); ++i) {
-//       if (minSqrD < minSqrR) {
-//         /// Case [Bd closer than ob]  enable the boundary constrain.
-//         Eigen::Vector4f p_e = bd_e.row(bdMinId);
-//         temp_plane_w = E.toWorldFrame(p_e);
-//         bdFlags(bdMinId) = 0;
-//       }
-//       else {
-//         /// Case [Ob closer than Bd] enable the obstacle point constarin.
-//         ///     Compute the tangent plane of sphere
-//         ///
-//         const auto & pt_w = pc.col(pcMinId);
-//         const auto dis = distancePointToSegment(pt_w,a,b);
-//         if(dis < params_.inflation - 1e-2) {
-//           infeasible_pt_w = pt_w;
-//           std::cout << "[CIRI]: WARNING! The problem is not feasible, the min dis to obstacle is only: "<< dis << std::endl;
-//           return false;
-//           // cout<<" -- [CIRI] dis: "<<dis<<endl;
-//           // cout<<" -- [CIRI] robot_r: "<<params_.robot_r<<endl;
-//           // cout<<" -- [CIRI] pcMin: "<<pt_w.transpose()<<endl;
-//           // cout<<" -- [CIRI] a: "<<a.transpose()<<endl;
-//           // cout<<" -- [CIRI] b: "<<b.transpose()<<endl;
-//         }
+    for (int i = 0; !completed && i < (M + N); ++i) {
+      if (minSqrD < minSqrR) {
+        /// Case [Bd closer than ob]  enable the boundary constrain.
+        Eigen::Vector4f p_e = bd_e.row(bdMinId);
+        temp_plane_w = E.toWorldFrame(p_e);
+        bdFlags(bdMinId) = 0;
+      }
+      else {
+        /// Case [Ob closer than Bd] enable the obstacle point constarin.
+        ///     Compute the tangent plane of sphere
+        ///
+        const auto & pt_w = pc.col(pcMinId);
+        const auto dis = distancePointToSegment(pt_w,a,b);
+        if(dis < params_.inflation - 1e-2) {
+          infeasible_pt_w = pt_w;
+          std::cout << "[CIRI]: WARNING! The problem is not feasible, the min dis to obstacle is only: "<< dis << std::endl;
+          return false;
+          // cout<<" -- [CIRI] dis: "<<dis<<endl;
+          // cout<<" -- [CIRI] robot_r: "<<params_.robot_r<<endl;
+          // cout<<" -- [CIRI] pcMin: "<<pt_w.transpose()<<endl;
+          // cout<<" -- [CIRI] a: "<<a.transpose()<<endl;
+          // cout<<" -- [CIRI] b: "<<b.transpose()<<endl;
+        }
 
-//         if (params_.inflation < params_.epsilon) {
-//           const Eigen::Vector3f& pt_e = pc_e.col(pcMinId);
-//           temp_tangent(3) = -distRs(pcMinId);
-//           temp_tangent.head(3) = pt_e.transpose() / distRs(pcMinId);
+        if (params_.inflation < params_.epsilon) {
+          const Eigen::Vector3f& pt_e = pc_e.col(pcMinId);
+          temp_tangent(3) = -distRs(pcMinId);
+          temp_tangent.head(3) = pt_e.transpose() / distRs(pcMinId);
 
-//           if (temp_tangent.head(3).dot(fwd_a) + temp_tangent(3) > params_.epsilon) {
-//             const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_a;
-//             temp_tangent.head(3) = fwd_a - (delta.dot(fwd_a) / delta.squaredNorm()) * delta;
-//             distRs(pcMinId) = temp_tangent.head(3).norm();
-//             temp_tangent(3) = -distRs(pcMinId);
-//             temp_tangent.head(3) /= distRs(pcMinId);
-//           }
-//           if (temp_tangent.head(3).dot(fwd_b) + temp_tangent(3) > params_.epsilon) {
-//             const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_b;
-//             temp_tangent.head(3) = fwd_b - (delta.dot(fwd_b) / delta.squaredNorm()) * delta;
-//             distRs(pcMinId) = temp_tangent.head(3).norm();
-//             temp_tangent(3) = -distRs(pcMinId);
-//             temp_tangent.head(3) /= distRs(pcMinId);
-//           }
-//           if (temp_tangent.head(3).dot(fwd_b) + temp_tangent(3) > params_.epsilon) {
-//             const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_b;
-//             temp_tangent.head(3) = fwd_b - (delta.dot(fwd_b) / delta.squaredNorm()) * delta;
-//             distRs(pcMinId) = temp_tangent.head(3).norm();
-//             temp_tangent(3) = -distRs(pcMinId);
-//             temp_tangent.head(3) /= distRs(pcMinId);
-//           }
-//           temp_plane_w = E.toWorldFrame(temp_tangent);
-//         }
-//         else {
-//           /// Case [Ob closer than Bd] enable the obstacle point constarin.
-//           const Eigen::Vector3f &pt_e = pc_e.col(pcMinId);
-//           const Eigen::Vector3f &pt_w = pc.col(pcMinId);
-//           Ellipsoid E_pe(C_inv * sphere_template_.C(), pt_e);
-//           Eigen::Vector3f close_pt_e;
-//           E_pe.pointDistaceToEllipsoid(Eigen::Vector3f(0, 0, 0), close_pt_e);
-//           Eigen::Vector3f c_pt_w = E.toWorldFrame(close_pt_e);
-//           temp_plane_w.head(3) = (pt_w - c_pt_w).normalized();
-//           temp_plane_w(3) = -temp_plane_w.head(3).dot(c_pt_w);
+          if (temp_tangent.head(3).dot(fwd_a) + temp_tangent(3) > params_.epsilon) {
+            const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_a;
+            temp_tangent.head(3) = fwd_a - (delta.dot(fwd_a) / delta.squaredNorm()) * delta;
+            distRs(pcMinId) = temp_tangent.head(3).norm();
+            temp_tangent(3) = -distRs(pcMinId);
+            temp_tangent.head(3) /= distRs(pcMinId);
+          }
+          if (temp_tangent.head(3).dot(fwd_b) + temp_tangent(3) > params_.epsilon) {
+            const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_b;
+            temp_tangent.head(3) = fwd_b - (delta.dot(fwd_b) / delta.squaredNorm()) * delta;
+            distRs(pcMinId) = temp_tangent.head(3).norm();
+            temp_tangent(3) = -distRs(pcMinId);
+            temp_tangent.head(3) /= distRs(pcMinId);
+          }
+          if (temp_tangent.head(3).dot(fwd_b) + temp_tangent(3) > params_.epsilon) {
+            const Eigen::Vector3f delta = pc_e.col(pcMinId) - fwd_b;
+            temp_tangent.head(3) = fwd_b - (delta.dot(fwd_b) / delta.squaredNorm()) * delta;
+            distRs(pcMinId) = temp_tangent.head(3).norm();
+            temp_tangent(3) = -distRs(pcMinId);
+            temp_tangent.head(3) /= distRs(pcMinId);
+          }
+          temp_plane_w = E.toWorldFrame(temp_tangent);
+        }
+        else {
+          /// Case [Ob closer than Bd] enable the obstacle point constarin.
+          const Eigen::Vector3f &pt_e = pc_e.col(pcMinId);
+          const Eigen::Vector3f &pt_w = pc.col(pcMinId);
+          Ellipsoid E_pe(C_inv * sphere_template_.C(), pt_e);
+          Eigen::Vector3f close_pt_e;
+          E_pe.pointDistaceToEllipsoid(Eigen::Vector3f(0, 0, 0), close_pt_e);
+          Eigen::Vector3f c_pt_w = E.toWorldFrame(close_pt_e);
+          temp_plane_w.head(3) = (pt_w - c_pt_w).normalized();
+          temp_plane_w(3) = -temp_plane_w.head(3).dot(c_pt_w);
 
-//           /// Cut line with sphere A and B,
-//           if (temp_plane_w.head(3).dot(a) + temp_plane_w(3) > -params_.epsilon) {
-//               // Case the plan make seed out, the plane should be modified in world frame
-//               findTangentPlaneOfSphere(pt_w, params_.inflation, a, E.d(), temp_plane_w);
-//           } else if (temp_plane_w.head(3).dot(b) + temp_plane_w(3) > -params_.epsilon) {
-//               // Case the plan make seed out, the plane should be modified in world frame
-//               findTangentPlaneOfSphere(pt_w, params_.inflation, b, E.d(), temp_plane_w);
-//           }
-//         }
-//         pcFlags(pcMinId) = 0;
-//         tmp_nn_pt = pc.col(pcMinId);
-//       }
-//       // update pcMinId and bdMinId
-//       completed = true;
-//       minSqrD = INFINITY;
-//       for (int j = 0; j < M; ++j) {
-//         if (bdFlags(j)) {
-//           completed = false;
-//           if (minSqrD > distDs(j)) {
-//             bdMinId = j;
-//             minSqrD = distDs(j);
-//           }
-//         }
-//       }
-//       minSqrR = INFINITY;
-//       for (int j = 0; j < N; ++j) {
-//         if (pcFlags(j)) {
-//           if ((temp_plane_w.head(3).dot(pc.col(j)) + temp_plane_w(3)) > params_.inflation - params_.epsilon) {
-//             pcFlags(j) = 0;
-//           }
-//           else {
-//             completed = false;
-//             if (minSqrR > distRs(j)) {
-//               pcMinId = j;
-//               minSqrR = distRs(j);
-//             }
-//           }
-//         }
-//       }
-//       planes.push_back(temp_plane_w);
-//       if (planes.size() > 50){
-//         std::cout << "[CIRI]: ERROR! plane count exceeded limit" << std::endl;
-//         return false;
-//       }
-//     }    
+          /// Cut line with sphere A and B,
+          if (temp_plane_w.head(3).dot(a) + temp_plane_w(3) > -params_.epsilon) {
+              // Case the plan make seed out, the plane should be modified in world frame
+              findTangentPlaneOfSphere(pt_w, params_.inflation, a, E.d(), temp_plane_w);
+          } else if (temp_plane_w.head(3).dot(b) + temp_plane_w(3) > -params_.epsilon) {
+              // Case the plan make seed out, the plane should be modified in world frame
+              findTangentPlaneOfSphere(pt_w, params_.inflation, b, E.d(), temp_plane_w);
+          }
+        }
+        pcFlags(pcMinId) = 0;
+        tmp_nn_pt = pc.col(pcMinId);
+      }
+      // update pcMinId and bdMinId
+      completed = true;
+      minSqrD = INFINITY;
+      for (int j = 0; j < M; ++j) {
+        if (bdFlags(j)) {
+          completed = false;
+          if (minSqrD > distDs(j)) {
+            bdMinId = j;
+            minSqrD = distDs(j);
+          }
+        }
+      }
+      minSqrR = INFINITY;
+      for (int j = 0; j < N; ++j) {
+        if (pcFlags(j)) {
+          if ((temp_plane_w.head(3).dot(pc.col(j)) + temp_plane_w(3)) > params_.inflation - params_.epsilon) {
+            pcFlags(j) = 0;
+          }
+          else {
+            completed = false;
+            if (minSqrR > distRs(j)) {
+              pcMinId = j;
+              minSqrR = distRs(j);
+            }
+          }
+        }
+      }
+      planes.push_back(temp_plane_w);
+      if (planes.size() > 50){
+        std::cout << "[CIRI]: ERROR! plane count exceeded limit" << std::endl;
+        return false;
+      }
+    }    
 
-//     hPoly.resize(planes.size(), 4);
-//     for (size_t i = 0; i < planes.size(); ++i) {
-//       hPoly.row(i) = planes[i];
-//     }
+    hPoly.resize(planes.size(), 4);
+    for (size_t i = 0; i < planes.size(); ++i) {
+      hPoly.row(i) = planes[i];
+    }
 
-//     if (loop == iter_num_ - 1) {
-//       break;
-//     }
+    if (loop == iter_num_ - 1) {
+      break;
+    }
 
-//     if(hPoly.array().isNaN().any()) {
-//       std::cout << "[CIRI]: ERROR! maxVolInsEllipsoid failed." << std::endl;
-//       return false;
-//     }
+    if(hPoly.array().isNaN().any()) {
+      std::cout << "[CIRI]: ERROR! maxVolInsEllipsoid failed." << std::endl;
+      return false;
+    }
 
-//     // if (!MVIE::maxVolInsEllipsoid(hPoly, E)) {
-//     //   return false;
-//     // }
-//   }
-//   // if (std::isnan(hPoly.sum())) {
-//   //   cout << YELLOW << " -- [CIRI] ERROR! There is nan in generated planes." << RESET << endl;
-//   //   cout << a.transpose() << endl;
-//   //   cout << b.transpose() << endl;
-//   //   ros_ptr_->vizCiriSeedLine(a, b,params_.robot_r);
-//   //   ros_ptr_->vizCiriEllipsoid(E);
-//   //   return FAILED;
-//   // }
-//   // Eigen::Vector3f inner;
-//   // if (!geometry_utils::findInterior(hPoly, inner)) {
-//   //   cout<<RED<<" -- [CIRI] The polytope is empty."<<RESET<<endl;
-//   //   ros_ptr_->vizCiriSeedLine(a, b,params_.robot_r);
-//   //   ros_ptr_->vizCiriEllipsoid(E);
-//   //   return FAILED;
-//   // }
-//   // optimized_polytope_.Reset();
-//   // optimized_polytope_.SetPlanes(hPoly);
-//   // optimized_polytope_.SetSeedLine(std::make_pair(a, b));
-//   // optimized_polytope_.SetEllipsoid(E);
-//   convertToPlaneData(hPoly, plane_data_);
-//   return true;  
-// }// //}
+    // if (!MVIE::maxVolInsEllipsoid(hPoly, E)) {
+    //   return false;
+    // }
+  }
+  // if (std::isnan(hPoly.sum())) {
+  //   cout << YELLOW << " -- [CIRI] ERROR! There is nan in generated planes." << RESET << endl;
+  //   cout << a.transpose() << endl;
+  //   cout << b.transpose() << endl;
+  //   ros_ptr_->vizCiriSeedLine(a, b,params_.robot_r);
+  //   ros_ptr_->vizCiriEllipsoid(E);
+  //   return FAILED;
+  // }
+  // Eigen::Vector3f inner;
+  // if (!geometry_utils::findInterior(hPoly, inner)) {
+  //   cout<<RED<<" -- [CIRI] The polytope is empty."<<RESET<<endl;
+  //   ros_ptr_->vizCiriSeedLine(a, b,params_.robot_r);
+  //   ros_ptr_->vizCiriEllipsoid(E);
+  //   return FAILED;
+  // }
+  // optimized_polytope_.Reset();
+  // optimized_polytope_.SetPlanes(hPoly);
+  // optimized_polytope_.SetSeedLine(std::make_pair(a, b));
+  // optimized_polytope_.SetEllipsoid(E);
+  convertToPlaneData(hPoly, plane_data_);
+  return true;  
+}// //}
 
 void CIRI::findTangentPlaneOfSphere(const Eigen::Vector3f& center, const double& r,// //{
                                     const Eigen::Vector3f& pass_point,
