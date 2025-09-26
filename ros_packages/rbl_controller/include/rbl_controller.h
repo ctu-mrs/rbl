@@ -109,6 +109,7 @@ private:
   Eigen::Vector3d                                           goal_; //final goal where the uav will converge
   Eigen::Vector3d                                           destination_; //rotated current goal/waypoint
   Eigen::Vector3d                                           waypoint_; //replanner waypoint
+  Eigen::Vector3d                                           waypoint_fixed_distance_; //replanner waypoint
   Eigen::Vector3d                                           agent_pos_; 
   Eigen::Vector3d                                           agent_vel_; 
   Eigen::Vector3d                                           rpy_; 
@@ -151,12 +152,13 @@ private:
   void convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos);
   void closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& voxel_center, const double& voxel_size);
   void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, const Eigen::Vector3d& c1);
-  void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, double& beta);
-  void computeScalarValue(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, double beta);
+  void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, Eigen::Vector3d& goal, double& beta);
+  void computeScalarValue(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, const Eigen::Vector3d &goal, double beta);
   void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 
                   const Eigen::Vector3d goal, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& c1, const Eigen::Vector3d& c2, const Eigen::Vector3d& c1_no_rot,
                   const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
   Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
+  Eigen::Vector3d determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
   void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
   mrs_msgs::Reference pRefAgent(const Eigen::Vector3d& agent_pos, const double yaw);
   double determineYaw(const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
