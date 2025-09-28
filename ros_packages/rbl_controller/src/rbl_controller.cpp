@@ -923,7 +923,7 @@ void RBLController::applyRules(double&                beta,// //{
     destination[1]   = current_j_y + distance * sin(new_angle);
   }
 }// //}
-//not used for now
+
 Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,// //{ 
                                                  const Eigen::Vector3d& agent_pos,
                                                  const Eigen::Vector3d& goal)

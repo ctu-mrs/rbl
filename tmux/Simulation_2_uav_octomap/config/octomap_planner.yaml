@@ -1,9 +1,0 @@
-safe_obstacle_distance:
-  default: 0.7 # [m]
-
-euclidean_distance_cutoff: 0.7 # [m]
-
-unknown_is_occupied: false # if false, planning through unknown space is enabled
-
-subt_planner:
-  use: true

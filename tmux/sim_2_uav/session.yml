@@ -44,8 +44,8 @@ windows:
   - goto:
       layout: tiled
       panes:
-        - 'history -s rosservice call /$UAV_NAME/rbl_controller/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
-        - 'history -s rosservice call /$UAV_NAME/rbl_controller/goto \"goal: \[0.0, 60.0, 2.0, 0.0\]\"'
+        - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/rbl_controller/goto 
+        - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/rbl_controller/goto
 
   - gazebo:
       layout: tiled
@@ -59,12 +59,12 @@ windows:
   - losos:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_losos_server losos.launch
+        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_losos_server losos.launch world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml
           config_pcl_filter_rs_down:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_down_filter.yaml
-        - export UAV_NAME=uav2; waitForHw; roslaunch mrs_losos_server losos.launch
+        - export UAV_NAME=uav2; waitForHw; roslaunch mrs_losos_server losos.launch world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml
@@ -83,7 +83,7 @@ windows:
   - rviz:
       layout: tiled
       panes:
-        - waitForControl; rosrun rviz rviz -d rviz_config.rviz
+        - waitForControl; rosrun rviz rviz -d rviz_config1.rviz
         - waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
         - waitForTime; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch rviz_topic_name:='/move_base_simple/goal' reference_service_name:="/$UAV_NAME/octomap_planner/reference"
   - layout:

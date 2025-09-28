@@ -100,7 +100,6 @@ public:
 
 private:
   RBLParams                                                 params_;
-
   bool                                                      flag_threshold;
   double                                                    radius_sensing_;
   double                                                    altitude_;
