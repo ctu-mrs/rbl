@@ -9,6 +9,15 @@ mrs_uav_managers:
       # "ground_truth",
     ]
 
+  # control_manager:
+
+    # # list of names of dynamically loaded trackers
+    # trackers : "MpcController"
+   
+
+    # # list of names of dynamically loaded controllers
+    # controllers :  "MpcController"
+    
     initial_state_estimator: "gps_garmin" # will be used as the first state estimator
     agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
 

@@ -46,7 +46,7 @@ windows:
   - losos:
       layout: tiled
       panes:
-        - 'waitForHw; roslaunch mrs_losos_server losos.launch
+        - 'waitForHw; roslaunch mrs_losos_server losos.launch world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml

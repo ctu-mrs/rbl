@@ -165,8 +165,8 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
       return p_ref;
     }
 
-    waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
     waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+    waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
     destination_ = waypoint_;
   }
 
@@ -490,7 +490,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        const Eigen::Vector3d&                           waypoint,
                                        const std::vector<Eigen::Vector3d>&              neighbors,
                                        std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                                       const Eigen::Vector3d&                           c1)
+                                       const Eigen::Vector3d&                           c1,
+                                       Eigen::Vector3d&                                 seed_b)
 { 
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
@@ -517,27 +518,27 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
          0,  0, -1,  (agent_pos.z() - params_.radius - 1.0); 
 
   double dist_agent_c1 = (c1 - agent_pos).norm();
-  Eigen::Vector3d direction_vec = (agent_pos - c1)/dist_agent_c1;
+  // Eigen::Vector3d direction_vec = (agent_pos - c1)/dist_agent_c1;
   // Eigen::Vector3d direction_vec;
   // direction_vec[0] = cos(p_ref.heading);
   // direction_vec[1] = sin(p_ref.heading);
   // direction_vec[2] = 0;
-  int segments = 10;
+  int segments = 30;
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  Eigen::Vector3d seed_b;
-  seed_b[0] = c1[0]; 
-  seed_b[1] = c1[1];
-  seed_b[2] = c1[2];
+  // Eigen::Vector3d seed_b;
+  seed_b_ = seed_b_ + 2 *params_.dt * ((c1 - seed_b_)/(c1 - seed_b_).norm()); 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   // std::cout << "[RBLController]: Distance between agent and seed: " << (seed_b - agent_pos).norm() << std::endl;
+  double dist_agent_seed = (seed_b_ - agent_pos).norm();
+  Eigen::Vector3d direction_vec = (agent_pos - seed_b_)/dist_agent_seed;
 
 //   for (int i = 1; i < segments; ++i) {
-  for (int i = 0; i < segments; ++i) {
-    Eigen::Vector3d seed_b = c1 + i * direction_vec * (dist_agent_c1/segments);
+  for (int i = 0; i <= segments; ++i) {
+    seed_b_ = seed_b_ + i * direction_vec * (dist_agent_seed/segments);
     // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
-    result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+    result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b_.cast<float>());
     plane_data = ciri_solver_->getPlaneData();
 
     // if (plane_data.size() > 50) {
@@ -669,7 +670,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, c1);
+      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, c1, seed_b_);
       if (!success || cell_A.size()==0) {
         std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
@@ -925,8 +926,8 @@ void RBLController::applyRules(double&                beta,// //{
 }// //}
 
 Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,// //{ 
-                                                 const Eigen::Vector3d& agent_pos,
-                                                 const Eigen::Vector3d& goal)
+                                                              const Eigen::Vector3d& agent_pos,
+                                                              const Eigen::Vector3d& goal)
 {
   double min_dist_sq = std::numeric_limits<double>::max();
   int closest_point_index = -1;
@@ -981,10 +982,11 @@ Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<
   // If no intersection found, fall back to goal
   return goal;
 }// //}
-
+ 
 Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector3d>& path, // //{
                                                  const Eigen::Vector3d& agent_pos,
-                                                 const Eigen::Vector3d& goal)
+                                                 const Eigen::Vector3d& goal,
+                                                 Eigen::Vector3d& waypoint)
 {
   double min_dist_sq = std::numeric_limits<double>::max();
   int closest_point_index = -1;
@@ -1008,7 +1010,7 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   Eigen::Vector3d direction_vector = (next_point - agent_pos) / (next_point - agent_pos).norm();
   double dist_agent_next_point = (next_point - agent_pos).norm();
   // std::cout << "[RBLController]: Distance agent to next point on path: " << dist_agent_next_point << std::endl;
-  Eigen::Vector3d waypoint;
+  // Eigen::Vector3d waypoint;
   // if (params_.ciri) {
   //   waypoint = next_point;
   // } else {
@@ -1019,12 +1021,13 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
   double tmp_min = std::min(params_.radius, dist_agent_next_point);
   if (dist_agent_goal > params_.radius) {
-    waypoint = agent_pos + direction_vector * std::max(tmp_min,params_.radius);
+    // waypoint = agent_pos + direction_vector * std::max(tmp_min,params_.radius);
+    waypoint = waypoint + 2 * params_.dt * (agent_pos + direction_vector * std::max(tmp_min,params_.radius) - waypoint)/(agent_pos + direction_vector * std::max(tmp_min,params_.radius) - waypoint).norm();
   } else {
       // waypoint = agent_pos + direction_vector * std::max(tmp_min, dist_agent_goal);
-      waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
+      // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
+      waypoint = waypoint + 2 *params_.dt * (agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint)/(agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint).norm();
     }
-  
   
   return waypoint;
   // return next_point;
