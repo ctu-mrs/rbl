@@ -164,7 +164,7 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd, const Eigen::Matrix3X
       }
       planes.push_back(temp_plane_w);
       if (planes.size() > 50){
-        std::cout << "[CIRI]: WARNING! plane count exceeded limit" << std::endl;
+        // std::cout << "[CIRI]: WARNING! plane count exceeded limit" << std::endl;
         return false;
       }
     }    

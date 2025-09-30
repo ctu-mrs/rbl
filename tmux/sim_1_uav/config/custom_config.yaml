@@ -11,12 +11,12 @@ mrs_uav_managers:
 
   # control_manager:
 
-    # # list of names of dynamically loaded trackers
-    # trackers : "MpcController"
+  #   # list of names of dynamically loaded trackers
+  #   trackers : "MpcController"
    
 
-    # # list of names of dynamically loaded controllers
-    # controllers :  "MpcController"
+  #   # list of names of dynamically loaded controllers
+  #   controllers :  "MpcController"
     
     initial_state_estimator: "gps_garmin" # will be used as the first state estimator
     agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
@@ -26,12 +26,12 @@ mrs_uav_managers:
     takeoff:
 
       after_takeoff:
-        controller: "Se3Controller"
+        controller: "MpcController"
 
   constraint_manager:
 
     default_constraints:
-      gps_baro: "medium"
+      gps_baro: "fast"
 
 mrs_uav_trajectory_generation:
 

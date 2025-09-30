@@ -19,12 +19,12 @@ rbl_controller:
   d5: 0.5
   d6: 1.0
   d7: 0.2
-  radius: 10.0
+  radius: 5.0
   betaD: 0.5
-  beta_min: 0.02
+  beta_min: 0.1
   dt: 0.1
   step_size: 0.4
-  encumbrance: 0.3
+  encumbrance: 0.5
   use_z_rule: false
   cwvd_obs: 0.9
   cwvd_rob: 0.9

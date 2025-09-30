@@ -114,7 +114,7 @@ private:
   Eigen::Vector3d                                           agent_pos_; 
   Eigen::Vector3d                                           agent_vel_; 
   Eigen::Vector3d                                           rpy_; 
-  Eigen::Vector3d                                           c1_;
+  Eigen::Vector3d                                           c1_= Eigen::Vector3d::Zero();
   Eigen::Vector3d                                           c2_;
   Eigen::Vector3d                                           c1_no_rot_;
   std::vector<Eigen::Vector3d>                              neighbors_pos_;
@@ -149,11 +149,11 @@ private:
                           const Eigen::Vector3d&                           waypoint,
                           const std::vector<Eigen::Vector3d>&              neighbors,
                           std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                          const Eigen::Vector3d&                           c1,
+                          Eigen::Vector3d&                                 c1,
                           Eigen::Vector3d&                                 seed_b);
   void convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos);
   void closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& voxel_center, const double& voxel_size);
-  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, const Eigen::Vector3d& c1);
+  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, Eigen::Vector3d& c1, Eigen::Vector3d& seed_b);
   void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, Eigen::Vector3d& goal, double& beta, bool flag_threshold);
   void computeScalarValue(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, const Eigen::Vector3d &goal, double beta);
   void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 
