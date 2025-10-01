@@ -59,12 +59,14 @@ windows:
   - losos:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_losos_server losos.launch world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
+        - export UAV_NAME=uav1; waitForHw; roslaunch mrs_losos_server losos.launch custom_config:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_server/config/default1.yaml
+          lidar_3d_topic_0_in:="/uav1/pcl_filter_ouster/points_processed"
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml
           config_pcl_filter_rs_down:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_down_filter.yaml
-        - export UAV_NAME=uav2; waitForHw; roslaunch mrs_losos_server losos.launch world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
+        - export UAV_NAME=uav2; waitForHw; roslaunch mrs_losos_server losos.launch custom_config:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_server/config/default2.yaml world_frame:="$UAV_NAME/world_origin" robot_frame:="$UAV_NAME/fcu"
+          lidar_3d_topic_0_in:="/uav2/pcl_filter_ouster/points_processed"
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_ouster:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/ouster_filter_mapping.yaml
           config_pcl_filter_rs_front:=../../../mrs_losos_mapping_planning/ros_packages/mrs_losos_mapping_planning/tmux/gazebo_example/config/rs_front_filter.yaml
