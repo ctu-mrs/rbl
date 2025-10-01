@@ -6,7 +6,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
   beta_ = params_.beta_min;
   if (params.replanner) {
     ReplannerParams replanner_params;
-    replanner_params.encumbrance = params.encumbrance;
+    replanner_params.encumbrance = params.encumbrance+0.1;
     replanner_params.voxel_size = params.voxel_size;
     replanner_params.map_width = 30.0;
     replanner_params.map_height = 10.0;
@@ -1056,7 +1056,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 3) { //+-90 deg
+    if (std::abs(difference) < M_PI / 4) { //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
