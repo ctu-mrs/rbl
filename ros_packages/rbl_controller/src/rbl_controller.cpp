@@ -1,3 +1,4 @@
+
 #include "rbl_controller.h"
 
 RBLController::RBLController(const RBLParams& params) : params_(params)// //{
@@ -44,6 +45,11 @@ void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_p
 {
   neighbors_pos_ = list_points;
 }// //}
+
+void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)
+{
+  neighbors_estimates_ = estimates;
+}
 
 void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)// //{
 {
@@ -172,9 +178,14 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
 
   // Partitioning logic
   cell_A_.clear();
+  sensed_cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_,
+  createAndPartitionCellA(cell_A_, sensed_cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, rpy_, waypoint_,
                           neighbors_pos_, no_ground_cloud, altitude_, c1_, seed_b_);
+
+  if (params_.move_centroid_to_sensed_cell) {
+    c1_ = movePointToCell(c1_, sensed_cell_A_);
+  }
 
   std::vector<Eigen::Vector3d> emptyVec;
   if (params_.replanner) {
@@ -227,6 +238,11 @@ std::vector<Eigen::Vector3d> RBLController::getCellA()// //{
 {
   return cell_A_;
 }// //}
+
+std::vector<Eigen::Vector3d> RBLController::getSensedCellA()
+{
+  return sensed_cell_A_;
+}
 
 std::vector<Eigen::Vector3d> RBLController::getInflatedMap()// //{
 {
@@ -385,23 +401,23 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   plane_points.clear();
 
   // check other agents
-  for (const auto& neighbor : neighbors) {
-    double          Delta_i_j = 2 * params_.encumbrance;
-    Eigen::Vector3d tilde_p_i = Delta_i_j * (neighbor - agent_pos) / ((neighbor - agent_pos).norm()) + agent_pos;
-    Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
+  // for (const auto& neighbor : neighbors) {
+  //   double          Delta_i_j = 2 * params_.encumbrance;
+  //   Eigen::Vector3d tilde_p_i = Delta_i_j * (neighbor - agent_pos) / ((neighbor - agent_pos).norm()) + agent_pos;
+  //   Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
 
-    Eigen::Vector3d plane_norm, plane_point;
-    if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) {
-      plane_norm  = tilde_p_j - tilde_p_i;
-      plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
-    }
-    else {
-      plane_norm  = tilde_p_i - tilde_p_j;
-      plane_point = tilde_p_j;
-    }
-    plane_normals.push_back(plane_norm);
-    plane_points.push_back(plane_point);
-  }
+  //   Eigen::Vector3d plane_norm, plane_point;
+  //   if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) {
+  //     plane_norm  = tilde_p_j - tilde_p_i;
+  //     plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
+  //   }
+  //   else {
+  //     plane_norm  = tilde_p_i - tilde_p_j;
+  //     plane_point = tilde_p_j;
+  //   }
+  //   plane_normals.push_back(plane_norm);
+  //   plane_points.push_back(plane_point);
+  // }
 
   pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
 
@@ -654,17 +670,19 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,// //{
 }// //}
 
 void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,// //{
+                                            std::vector<Eigen::Vector3d>&                    sensed_cell_A,
                                             std::vector<Eigen::Vector3d>&                    cell_S,
                                             std::vector<Eigen::Vector3d>&                    plane_normals,
                                             std::vector<Eigen::Vector3d>&                    plane_points,
                                             const Eigen::Vector3d&                           agent_pos,
+                                            const Eigen::Vector3d&                           rpy,
                                             const Eigen::Vector3d&                           waypoint,
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
                                             std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                             const double&                                    altitude,
                                             Eigen::Vector3d&                                 c1,
                                             Eigen::Vector3d&                                 seed_b)
-  {
+{
   if (params_.only_2d) {  // 2D case
     cell_S = getpointsInsideCircle(agent_pos, params_.radius, params_.step_size);
   }
@@ -686,7 +704,82 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
   else {
     cell_A = cell_S;
   }
+  sensed_cell_A = computeActivelySensedCell(cell_A, agent_pos, rpy);
 }// //}
+
+std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy) 
+{
+  std::vector<Eigen::Vector3d> sensed_cell = cell_A;
+  double lidar_tilt_rad = params_.lidar_tilt * M_PI / 180.0;
+  double lidar_fov_rad = params_.lidar_fov * M_PI / 180.0;
+  Eigen::Vector3d lidar_pos = agent_pos;
+  Eigen::Matrix3d R_rpy = Rx(rpy[0]) * Ry(rpy[1]) * Rz(rpy[2]); 
+
+  Eigen::Vector3d norm = Ry(lidar_tilt_rad) * Eigen::Vector3d(0,0,1);
+  norm = R_rpy * norm;
+
+  Eigen::Vector3d norm_upper = Ry(lidar_tilt_rad-lidar_fov_rad) * Eigen::Vector3d(0,0,1);
+  norm_upper = R_rpy * norm_upper;
+
+  sensed_cell.erase(
+    std::remove_if(sensed_cell.begin(), sensed_cell.end(), [&](const Eigen::Vector3d& point) {
+      double res = norm.dot(point - lidar_pos);
+      double res_upper = norm_upper.dot(point - lidar_pos);
+      return res < 0 || res_upper > 0;
+    }),
+    sensed_cell.end()
+  );
+  return sensed_cell;
+}
+
+Eigen::Matrix3d RBLController::Rx(double angle) 
+{
+  Eigen::Matrix3d Rx;
+  Rx << 1, 0, 0,
+     0, std::cos(angle), -std::sin(angle),
+     0, std::sin(angle), std::cos(angle);
+  return Rx;
+}
+
+Eigen::Matrix3d RBLController::Ry(double angle) 
+{
+  Eigen::Matrix3d Ry;
+  Ry << std::cos(angle), 0, std::sin(angle),
+        0, 1, 0,
+        -std::sin(angle), 0, std::cos(angle);
+  return Ry;
+}
+
+Eigen::Matrix3d RBLController::Rz(double angle) 
+{
+  Eigen::Matrix3d Rz;
+  Rz << std::cos(angle), -std::sin(angle), 0,
+        std::sin(angle), std::cos(angle), 0,
+        0, 0, 1;
+  return Rz;
+}
+
+Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell) 
+{
+  if (cell.empty()) {
+    return point; 
+  }
+
+  Eigen::Vector3d closest_point = cell[0];
+  
+  double min_dist_sq = (point - cell[0]).squaredNorm();
+
+  for (size_t i = 1; i < cell.size(); ++i) {
+    double current_dist_sq = (point - cell[i]).squaredNorm();
+
+    if (current_dist_sq < min_dist_sq) {
+      min_dist_sq = current_dist_sq;
+      closest_point = cell[i];
+    }
+  }
+  return closest_point;
+}
+
 
 void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //{
                                     Eigen::Vector3d&              agent_pos,
@@ -1056,7 +1149,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 3) { //+-90 deg
+    if (std::abs(difference) < M_PI / 3) { //+-60 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];

@@ -66,6 +66,9 @@ struct RBLParams {
   double                                z_max;
   double                                boundary_threshold;
   double                                boundary_threshold_speed;
+  double                                lidar_tilt;
+  double                                lidar_fov;
+  bool                                  move_centroid_to_sensed_cell;
   bool                                  use_garmin_alt                = false;
   bool                                  only_2d                       = false;
   double                                z_ref                         = 1.0;
@@ -82,6 +85,7 @@ public:
   void setCurrentPosition(const Eigen::Vector3d& point);
   void setCurrentVelocity(const Eigen::Vector3d& point);
   void setGroupPositions(const std::vector<Eigen::Vector3d>& list_points);
+  void setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates);
   void setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points);
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
@@ -94,6 +98,7 @@ public:
   Eigen::Vector3d                               getCurrentVelocity();
   Eigen::Vector3d                               getCentroid();
   std::vector<Eigen::Vector3d>                  getCellA();
+  std::vector<Eigen::Vector3d>                  getSensedCellA();
   std::vector<Eigen::Vector3d>                  getInflatedMap();
   std::vector<Eigen::Vector3d>                  getPath();
   pcl::PointCloud<pcl::PointXYZ>                getPCL();
@@ -117,8 +122,10 @@ private:
   Eigen::Vector3d                                           c1_= Eigen::Vector3d::Zero();
   Eigen::Vector3d                                           c2_;
   Eigen::Vector3d                                           c1_no_rot_;
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates_; //[pos, vel]
   std::vector<Eigen::Vector3d>                              neighbors_pos_;
   std::vector<Eigen::Vector3d>                              cell_A_;
+  std::vector<Eigen::Vector3d>                              sensed_cell_A_;
   std::vector<Eigen::Vector3d>                              cell_S_;
   std::vector<Eigen::Vector3d>                              plane_normals_;
   std::vector<Eigen::Vector3d>                              plane_points_;
@@ -153,7 +160,12 @@ private:
                           Eigen::Vector3d&                                 seed_b);
   void convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos);
   void closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& voxel_center, const double& voxel_size);
-  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, Eigen::Vector3d& c1, Eigen::Vector3d& seed_b);
+  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& sensed_cell_A_, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, Eigen::Vector3d& c1, Eigen::Vector3d& seed_b);
+  std::vector<Eigen::Vector3d> computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy);
+  Eigen::Matrix3d Rx(double angle);
+  Eigen::Matrix3d Ry(double angle);
+  Eigen::Matrix3d Rz(double angle);
+  Eigen::Vector3d movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell);
   void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, Eigen::Vector3d& goal, double& beta, bool flag_threshold);
   void computeScalarValue(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, const Eigen::Vector3d &goal, double beta);
   void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 

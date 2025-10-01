@@ -33,4 +33,7 @@ rbl_controller:
   limited_fov: true
   ciri: true
   boundary_threshold: 0.5
+  lidar_tilt: 20.0 # [deg]
+  lidar_fov: 59.0 #[deg]
+  move_centroid_to_sensed_cell: true
   voxel_size: 0.4
