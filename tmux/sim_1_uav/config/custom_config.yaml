@@ -25,9 +25,17 @@ mrs_uav_managers:
 
     takeoff:
 
-      after_takeoff:
-        controller: "MpcController"
+      rate: 10 # [Hz]
 
+      during_takeoff:
+        controller: "MpcController"
+        tracker: "LandoffTracker"
+
+      after_takeoff:
+        controller: "Se3Controller"
+        tracker: "MpcTracker"
+
+      takeoff_height: 1.5
   constraint_manager:
 
     default_constraints:

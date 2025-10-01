@@ -527,8 +527,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<< seed_b[1]<<" , "<< seed_b[2] << std::endl;
-  std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
+  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<< seed_b[1]<<" , "<< seed_b[2] << std::endl;
+  // std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
   // Eigen::Vector3d seed_b;
     Eigen::Vector3d v = c1 - seed_b;
     double n = v.norm();
@@ -1026,7 +1026,7 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   double tmp_min = std::min(params_.radius, dist_agent_next_point);
   if (dist_agent_goal > params_.radius) {
     // waypoint = agent_pos + direction_vector * std::max(tmp_min,params_.radius);
-    waypoint = waypoint + 2 * params_.dt * (agent_pos + direction_vector * std::max(tmp_min,params_.radius) - waypoint)/(agent_pos + direction_vector * std::max(tmp_min,params_.radius) - waypoint).norm();
+    waypoint = waypoint + 2 * params_.dt * (agent_pos + direction_vector * std::max(tmp_min,params_.radius/2) - waypoint)/(agent_pos + direction_vector * std::max(tmp_min,params_.radius/2) - waypoint).norm();
   } else {
       // waypoint = agent_pos + direction_vector * std::max(tmp_min, dist_agent_goal);
       // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
