@@ -183,9 +183,6 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   createAndPartitionCellA(cell_A_, sensed_cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, rpy_, waypoint_,
                           neighbors_pos_, no_ground_cloud, altitude_, c1_, seed_b_);
 
-  if (params_.move_centroid_to_sensed_cell) {
-    c1_ = movePointToCell(c1_, sensed_cell_A_);
-  }
 
   std::vector<Eigen::Vector3d> emptyVec;
   if (params_.replanner) {
@@ -202,6 +199,9 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_,
                params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6,
                params_.d7, params_.betaD, params_.beta_min, params_.dt);
+  }
+  if (params_.move_centroid_to_sensed_cell) {
+    c1_ = movePointToCell(c1_, sensed_cell_A_);
   }
 
   determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, rpy_, path_);
@@ -707,7 +707,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
   sensed_cell_A = computeActivelySensedCell(cell_A, agent_pos, rpy);
 }// //}
 
-std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy) 
+std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy) // //{
 {
   std::vector<Eigen::Vector3d> sensed_cell = cell_A;
   double lidar_tilt_rad = params_.lidar_tilt * M_PI / 180.0;
@@ -730,36 +730,36 @@ std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vecto
     sensed_cell.end()
   );
   return sensed_cell;
-}
+}// //}
 
-Eigen::Matrix3d RBLController::Rx(double angle) 
+Eigen::Matrix3d RBLController::Rx(double angle) // //{
 {
   Eigen::Matrix3d Rx;
   Rx << 1, 0, 0,
      0, std::cos(angle), -std::sin(angle),
      0, std::sin(angle), std::cos(angle);
   return Rx;
-}
+}// //}
 
-Eigen::Matrix3d RBLController::Ry(double angle) 
+Eigen::Matrix3d RBLController::Ry(double angle) // //{
 {
   Eigen::Matrix3d Ry;
   Ry << std::cos(angle), 0, std::sin(angle),
         0, 1, 0,
         -std::sin(angle), 0, std::cos(angle);
   return Ry;
-}
+}// //}
 
-Eigen::Matrix3d RBLController::Rz(double angle) 
+Eigen::Matrix3d RBLController::Rz(double angle) // //{
 {
   Eigen::Matrix3d Rz;
   Rz << std::cos(angle), -std::sin(angle), 0,
         std::sin(angle), std::cos(angle), 0,
         0, 0, 1;
   return Rz;
-}
+}// //}
 
-Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell) 
+Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell) // //{
 {
   if (cell.empty()) {
     return point; 
@@ -778,8 +778,7 @@ Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d& point, con
     }
   }
   return closest_point;
-}
-
+}// //}
 
 void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //{
                                     Eigen::Vector3d&              agent_pos,
