@@ -86,6 +86,7 @@ public:
   mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
   mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
   mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2> sh_pcl_;
+  mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped> sh_neighbors_estimates_;
 
   std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
 
@@ -141,6 +142,9 @@ void WrapperRosRBL::onInit()// //{
   param_loader.loadParam("rbl_controller/ciri", rbl_params_.ciri);
   param_loader.loadParam("rbl_controller/boundary_threshold", rbl_params_.boundary_threshold);
   param_loader.loadParam("rbl_controller/boundary_threshold_speed", rbl_params_.boundary_threshold_speed);
+  param_loader.loadParam("rbl_controller/lidar_tilt", rbl_params_.lidar_tilt);
+  param_loader.loadParam("rbl_controller/lidar_fov", rbl_params_.lidar_fov);
+  param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);  
   param_loader.loadParam("rbl_controller/voxel_size", rbl_params_.voxel_size);
 
   if (!param_loader.loadedSuccessfully()) {
@@ -183,6 +187,7 @@ void WrapperRosRBL::onInit()// //{
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
   sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
   sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
+  sh_neighbors_estimates_ = mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped>(shopts, "neighbor_estimates_in");
 
   tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
   tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
@@ -332,6 +337,24 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       rbl_controller_->setPCL(msg);
     }
 
+    // if (sh_neighbors_estimates_.newMsg()) {
+    //   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;
+    //   auto msg_estimates = sh_neighbors_estimates_.getMsg();
+
+    //   mrs_msgs::PoseWithCovarianceArrayStamped = sh_neighbors_estimates_.getMsg();
+
+    //   for (mrs_msgs::PoseWithCovarianceIdentified& estimate: msg_estimates) {
+    //     estimate.pose is = pose_to_msg(pos, vel);
+
+    //     Eigen::Vector3d pos(estimate.pose.position.x, estimate.pose.position.y, estimate.pose.position.z);
+
+    //     Eigen::Vector3d vel;
+
+    //     neighbors_estimates.push_back(std::pair<pos,vel>);
+    //   }
+    //   rbl_controller_->setNeighborsEstimates(neighbors_estimates);
+    // }
+
     auto ret = rbl_controller_->getNextRef();
     if (!ret) {
       ROS_ERROR_STREAM("[WrapperRosRBL]: Could not get next valid ref");
@@ -360,6 +383,7 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)/
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2*rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
+    pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
     pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }

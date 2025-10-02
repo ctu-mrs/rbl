@@ -69,6 +69,9 @@
                    to="mavros/distance_sensor/garmin" />
             <remap from="~pcl_in"
                    to="losos_server/current_submap_pc" />
+            <remap from="~neighbor_estimates_in"
+                   to="filter_reflective_uavs/estimates" />
+                   
 
             <!-- Service servers -->
             <remap from="~control_activation_in"

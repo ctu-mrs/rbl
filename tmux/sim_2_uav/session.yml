@@ -43,14 +43,24 @@ windows:
         - export UAV_NAME=uav2; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
   - goto:
       layout: tiled
+      synchronize: after
       panes:
-        - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/rbl_controller/goto 
-        - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/rbl_controller/goto
-
+        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[2.0, 60.0, 2.0, 0.0\]\"'
+        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[-2.0, 60.0, 2.0, 0.0\]\"'
+  # - goto:
+  #     layout: tiled
+  #     panes:
+  #       - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/rbl_controller/goto 
+  #       - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/rbl_controller/goto
+  - filter_ref_uav:
+      layout: tiled
+      panes: 
+        - export UAV_NAME=uav1; waitForTime; roslaunch filter_reflective_uavs filter_reflective_uavs.launch 
+        - export UAV_NAME=uav2; waitForTime; roslaunch filter_reflective_uavs filter_reflective_uavs.launch 
   - gazebo:
       layout: tiled
       panes:
-        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch world_name:=grass_plane gui:=false
+        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch world_name:=forest gui:=false
         - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 --$UAV_TYPE --enable-rangefinder --enable-ouster model:=OS0-128 use_gpu:=True"
         - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "2 --$UAV_TYPE --enable-rangefinder --enable-ouster model:=OS0-128 use_gpu:=True"
         - export UAV_NAME=uav1; waitForControl; gz camera -c gzclient_camera -f $UAV_NAME; history -s gz camera -c gzclient_camera -f $UAV_NAME
