@@ -67,9 +67,9 @@ mrs_uav_managers:
         snap: 40.0        # [rad/s^4]
 
       angular_speed:
-        roll: 120 #60.0  # [rad/s]
-        pitch: 120 #60.0 # [rad/s]
-        yaw: 30.0 #10.0   # [rad/s]
+        roll: 220 #60.0  # [rad/s]
+        pitch: 220 #60.0 # [rad/s]
+        yaw: 100.0 #10.0   # [rad/s]
 
       tilt: 60.0 # [deg]
 

@@ -7,14 +7,14 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
   beta_ = params_.beta_min;
   if (params.replanner) {
     ReplannerParams replanner_params;
-    replanner_params.encumbrance = params.encumbrance+0.1;
+    replanner_params.encumbrance = params.encumbrance;
     replanner_params.voxel_size = params.voxel_size;
     replanner_params.map_width = 30.0;
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = 0.0;
-    replanner_params.replanner_vox_size = 0.2;
+    replanner_params.replanner_vox_size = 0.4;
     replanner_params.replanner_freq = 0.5; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
@@ -200,11 +200,14 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
                params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6,
                params_.d7, params_.betaD, params_.beta_min, params_.dt);
   }
+  Eigen::Vector3d c1_full_cell = c1_; 
   if (params_.move_centroid_to_sensed_cell) {
     c1_ = movePointToCell(c1_, sensed_cell_A_);
-  }
+    
 
-  determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, rpy_, path_);
+  }
+  // if c1_ is very close to uav.
+  determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, c1_full_cell, rpy_, path_);
 
   return p_ref;
 }// //}
@@ -1134,6 +1137,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
                                      const Eigen::Vector3d&         waypoint,
                                      const Eigen::Vector3d&         goal,
                                      const Eigen::Vector3d&         c1,
+                                    const Eigen::Vector3d&          c1_full,
                                      const Eigen::Vector3d&         rpy,
                                      const std::vector<Eigen::Vector3d>& path)
 {
@@ -1156,6 +1160,12 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
       p_ref.position.x = agent_pos[0];
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
+    }
+
+    if ((c1 - c1_full).norm() > 0.5) {
+      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
+    }else {
+      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
     }
     p_ref.heading = desired_heading;
 
