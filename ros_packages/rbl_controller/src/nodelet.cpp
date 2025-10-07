@@ -22,6 +22,10 @@
 #include <Eigen/Eigenvalues>
 #include <cmath>
 #include <string>
+#include <rbl_controller/PoseVelocityArray.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Vector3.h>
+
 #include "rbl_controller.h"
 
 class WrapperRosRBL : public nodelet::Nodelet// //{
@@ -86,7 +90,8 @@ public:
   mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
   mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
   mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2> sh_pcl_;
-  mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped> sh_neighbors_estimates_;
+  // mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped> sh_neighbors_estimates_;
+  mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray> sh_neighbors_estimates_;
 
   std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
 
@@ -146,6 +151,7 @@ void WrapperRosRBL::onInit()// //{
   param_loader.loadParam("rbl_controller/lidar_fov", rbl_params_.lidar_fov);
   param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);  
   param_loader.loadParam("rbl_controller/voxel_size", rbl_params_.voxel_size);
+  param_loader.loadParam("rbl_controller/add_estimates_as_voxels", rbl_params_.add_estimates_as_voxels);
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -187,7 +193,7 @@ void WrapperRosRBL::onInit()// //{
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
   sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
   sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
-  sh_neighbors_estimates_ = mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped>(shopts, "neighbor_estimates_in");
+  sh_neighbors_estimates_ = mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray>(shopts, "neighbor_estimates_in");
 
   tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
   tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
@@ -337,23 +343,24 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       rbl_controller_->setPCL(msg);
     }
 
-    // if (sh_neighbors_estimates_.newMsg()) {
-    //   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;
-    //   auto msg_estimates = sh_neighbors_estimates_.getMsg();
+    if (sh_neighbors_estimates_.newMsg()) {
+      std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;
+      auto msg_estimates = sh_neighbors_estimates_.getMsg();
 
-    //   mrs_msgs::PoseWithCovarianceArrayStamped = sh_neighbors_estimates_.getMsg();
+      for (size_t i = 0; i < msg_estimates->poses.size(); i++) {
+        const auto& pose = msg_estimates->poses[i];
+        const auto& vel  = msg_estimates->velocities[i];
 
-    //   for (mrs_msgs::PoseWithCovarianceIdentified& estimate: msg_estimates) {
-    //     estimate.pose is = pose_to_msg(pos, vel);
+        Eigen::Vector3d pos(pose.position.x,
+                            pose.position.y,
+                            pose.position.z);
 
-    //     Eigen::Vector3d pos(estimate.pose.position.x, estimate.pose.position.y, estimate.pose.position.z);
+        Eigen::Vector3d vel_vec(vel.x, vel.y, vel.z);
 
-    //     Eigen::Vector3d vel;
-
-    //     neighbors_estimates.push_back(std::pair<pos,vel>);
-    //   }
-    //   rbl_controller_->setNeighborsEstimates(neighbors_estimates);
-    // }
+        neighbors_estimates.emplace_back(pos, vel_vec);
+      }
+      rbl_controller_->setNeighborsEstimates(neighbors_estimates);
+    }
 
     auto ret = rbl_controller_->getNextRef();
     if (!ret) {

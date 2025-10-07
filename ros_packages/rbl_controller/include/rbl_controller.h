@@ -77,6 +77,7 @@ struct RBLParams {
   bool                                  replanner                     = false; //if true the alg also needs garmin alt - ground truth. For replanner map does not map bellow uav at the start;
   bool                                  limited_fov                   = true;
   bool                                  ciri                          = false;
+  bool                                  add_estimates_as_voxels       = true;
 };
 
 class RBLController {
@@ -138,6 +139,10 @@ private:
   std::mutex                                                replanner_mutex_;
 
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
+  void addEstimatesAsVoxelsToPcl( std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
+                                  const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& neighbors_estimates, 
+                                  const double                                                    voxel_size, 
+                                  const double                                                    encumbrance);
   void voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, double voxel_size);
   std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center, const double& radius, const double& step_size);
   void pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere, const Eigen::Vector3d& center, const double& radius, const double& step_size, const double& altitude);
