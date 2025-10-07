@@ -23,6 +23,7 @@
   <depend>pcl_conversions</depend>
   <depend>pcl_msgs</depend>
   <depend>message_runtime</depend>
+  <build_depend>message_generation</build_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

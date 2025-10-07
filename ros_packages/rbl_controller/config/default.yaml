@@ -37,3 +37,4 @@ rbl_controller:
   lidar_fov: 59.0 #[deg]
   move_centroid_to_sensed_cell: true
   voxel_size: 0.4
+  add_estimates_as_voxels: true

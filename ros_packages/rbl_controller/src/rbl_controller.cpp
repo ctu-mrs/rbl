@@ -48,6 +48,11 @@ void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_p
 
 void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)
 {
+  std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
+  for (int i = 0; i < estimates.size(); i++) {
+    Eigen::Vector3d pos = estimates[i].first;
+    std::cout << "[RBLController]: Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
+  }
   neighbors_estimates_ = estimates;
 }
 
@@ -143,6 +148,10 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   if (!no_ground_cloud) {
     return std::nullopt;
   }
+  if (params_.add_estimates_as_voxels && params_.use_map) {
+    addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
+  }
+
 
   if (params_.replanner) {
     // Trigger replanner asynchronously
@@ -296,6 +305,38 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getGroundCleanClo
 
   return std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_no_ground_cloud);
 }// //}
+
+void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
+                                              const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& neighbors_estimates, 
+                                              const double                                                    voxel_size, 
+                                              const double                                                    encumbrance)
+{
+  const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
+
+  for (const auto& estimate_pair : neighbors_estimates) {
+    const Eigen::Vector3d& position = estimate_pair.first;
+    
+    const int center_nx = std::floor(position.x() / voxel_size);
+    const int center_ny = std::floor(position.y() / voxel_size);
+    const int center_nz = std::floor(position.z() / voxel_size);
+    
+    for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
+      for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
+        for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
+          int current_nx = center_nx + dx;
+          int current_ny = center_ny + dy;
+          int current_nz = center_nz + dz;
+
+          double voxel_center_x = (current_nx + 0.5) * voxel_size;
+          double voxel_center_y = (current_ny + 0.5) * voxel_size;
+          double voxel_center_z = (current_nz + 0.5) * voxel_size;
+          pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
+          cloud->push_back(p);
+        }
+      }
+    }
+  }
+}
 
 void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,// //{
                                 double                                           voxel_size)
@@ -1235,73 +1276,6 @@ double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const Eigen
     return current_yaw + interpolated_delta_yaw;
   }
 }// //}
-
-// double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy)//{
-// {
-//   const double max_yaw_change = M_PI / 6.0; 
-//   double current_yaw = rpy[2];
-//   double min_dist_sq = std::numeric_limits<double>::max();
-//   int closest_point_index = -1;
-
-//   for (size_t i = 0; i < path.size(); ++i) {
-//     double dist_sq = (path[i] - agent_pos).squaredNorm();
-//     if (dist_sq < min_dist_sq) {
-//       min_dist_sq = dist_sq;
-//       closest_point_index = i;
-//     }
-//   }
-
-//   Eigen::Vector3d closest_point = path[closest_point_index];
-
-//   if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
-//     return current_yaw; 
-//   }
-
-//   const double look_ahead_dist_sq = 5.0 * 5.0; 
-
-//   Eigen::Vector3d target_point = path[closest_point_index];
-//   double accumulated_dist_sq = 0.0;
-//   double yaw_diff_max = 0.0;
-//   double yaw_diff_min = 0.0;
-
-//   bool yaw_diff_max_first = false;
-//   bool yaw_diff_min_first = false;
-
-//   for (size_t i = closest_point_index + 1; i < path.size(); ++i) {
-//     accumulated_dist_sq += (path[i] - path[i-1]).squaredNorm();
-//     Eigen::Vector3d direction_vector = path[i] - agent_pos;
-//     double yaw_to_point = std::atan2(direction_vector.y(), direction_vector.x());
-//     double yaw_diff = yaw_to_point - current_yaw;
-//     yaw_diff_max = std::max(yaw_diff_max, yaw_diff);
-//     yaw_diff_min = std::min(yaw_diff_min, yaw_diff);
-
-//     if (yaw_diff_max>max_yaw_change && !yaw_diff_min_first) {
-//       yaw_diff_max_first = true;
-//     }
-
-//     if (-yaw_diff_min<-max_yaw_change && !yaw_diff_max_first) {
-//       yaw_diff_min_first = true;
-//     }
-
-//     if (accumulated_dist_sq > look_ahead_dist_sq || (i == path.size()-1)) {
-//       break;
-//     }
-//   }
-
-//   double final_yaw;
-//   if (yaw_diff_max_first) {
-//     final_yaw = current_yaw + yaw_diff_max;
-//   } else if (yaw_diff_min_first) {
-//     final_yaw = current_yaw + yaw_diff_min;
-//   } else { //final goal
-//     Eigen::Vector3d direction_vector = path.back() - agent_pos;
-//     final_yaw = std::atan2(direction_vector.y(), direction_vector.x());
-//   }
-
-//   final_yaw = normalizeAngle(final_yaw);
-
-//   return final_yaw;
-// }//}
 
 double RBLController::normalizeAngle(double angle)// //{
 {
