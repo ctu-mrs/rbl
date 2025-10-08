@@ -740,6 +740,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
       if (!success || cell_A.size()==0) {
         std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
+        seed_b = agent_pos;
       }
     } else {
       partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
@@ -1193,7 +1194,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 4) { //+-90 deg
+    if (std::abs(difference) < M_PI / 5) { //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
