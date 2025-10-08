@@ -72,7 +72,7 @@ struct RBLParams {
   bool                                  use_garmin_alt                = false;
   bool                                  only_2d                       = false;
   double                                z_ref                         = 1.0;
-  bool                                  use_map                       = false;
+  bool                                  use_map                       = true;
   double                                voxel_size                    = 0.4; //discretization for faster processing of obstacles for raw pcl and also needs to be set if map is used
   bool                                  replanner                     = false; //if true the alg also needs garmin alt - ground truth. For replanner map does not map bellow uav at the start;
   bool                                  limited_fov                   = true;
@@ -98,9 +98,11 @@ public:
   Eigen::Vector3d                               getCurrentPosition();
   Eigen::Vector3d                               getCurrentVelocity();
   Eigen::Vector3d                               getCentroid();
+  // Eigen::Vector3d                               getSeedB();
   std::vector<Eigen::Vector3d>                  getCellA();
   std::vector<Eigen::Vector3d>                  getSensedCellA();
   std::vector<Eigen::Vector3d>                  getInflatedMap();
+  std::vector<Eigen::Vector3d>                  getInjectionOfMap();
   std::vector<Eigen::Vector3d>                  getPath();
   pcl::PointCloud<pcl::PointXYZ>                getPCL();
 
@@ -131,6 +133,7 @@ private:
   std::vector<Eigen::Vector3d>                              plane_normals_;
   std::vector<Eigen::Vector3d>                              plane_points_;
   std::vector<Eigen::Vector3d>                              inflated_map_;
+  std::vector<Eigen::Vector3d>                              injected_points_map_;
   std::vector<Eigen::Vector3d>                              path_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;

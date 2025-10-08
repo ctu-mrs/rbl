@@ -51,7 +51,9 @@ void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vec
   std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
   for (int i = 0; i < estimates.size(); i++) {
     Eigen::Vector3d pos = estimates[i].first;
-    std::cout << "[RBLController]: Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
+    Eigen::Vector3d vel = estimates[i].second;
+    std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
+    std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ", " << vel.z() << "]" << std::endl;
   }
   neighbors_estimates_ = estimates;
 }
@@ -148,7 +150,9 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   if (!no_ground_cloud) {
     return std::nullopt;
   }
+  std::cout << "[RBLController]: Before if" << std::endl;
   if (params_.add_estimates_as_voxels && params_.use_map) {
+    std::cout << "[RBLController]: Adding estimates to cloud." << std::endl;
     addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
   }
 
@@ -246,6 +250,11 @@ Eigen::Vector3d RBLController::getCentroid()// //{
   return c1_;
 }// //}
 
+// Eigen::Vector3d RBLController::getSeedB()// //{
+// {
+//   return seed_b_;
+// }// //}
+
 std::vector<Eigen::Vector3d> RBLController::getCellA()// //{
 {
   return cell_A_;
@@ -260,6 +269,11 @@ std::vector<Eigen::Vector3d> RBLController::getInflatedMap()// //{
 {
   return inflated_map_;
 }// //}
+
+std::vector<Eigen::Vector3d> RBLController::getInjectionOfMap() 
+{
+  return injected_points_map_;
+}
 
 std::vector<Eigen::Vector3d> RBLController::getPath()// //{
 {
@@ -312,6 +326,7 @@ void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pc
                                               const double                                                    encumbrance)
 {
   const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
+  injected_points_map_.clear();
 
   for (const auto& estimate_pair : neighbors_estimates) {
     const Eigen::Vector3d& position = estimate_pair.first;
@@ -332,10 +347,13 @@ void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pc
           double voxel_center_z = (current_nz + 0.5) * voxel_size;
           pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
           cloud->push_back(p);
+          Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
+          injected_points_map_.push_back(point);
         }
       }
     }
   }
+  std::cout << "[RBLController]: Injected points: " << injected_points_map_.size() << std::endl;
 }
 
 void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,// //{
