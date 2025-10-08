@@ -76,7 +76,7 @@ public:
                                                            const double           scale,
                                                            const std::string&     frame);
   ros::Publisher                            pub_viz_centroid_;
-  // ros::Publisher                            pub_viz_seed_B_;  
+  ros::Publisher                            pub_viz_seed_B_;  
   visualization_msgs::Marker                getVizCentroid(const Eigen::Vector3d& point,
                                                            const std::string&     frame);
   ros::Publisher                            pub_viz_target_;
@@ -210,7 +210,7 @@ void WrapperRosRBL::onInit()// //{
 
   pub_viz_position_      = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
   pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
-  // pub_viz_seed_B_        = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
+  pub_viz_seed_B_        = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
   pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
   pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
   pub_viz_inflated_map_  = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
@@ -394,7 +394,7 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)/
     pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2*rbl_params_.encumbrance, _frame_));
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2*rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
-    // pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
+    pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
     pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));

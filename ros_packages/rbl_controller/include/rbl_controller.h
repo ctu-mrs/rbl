@@ -98,7 +98,7 @@ public:
   Eigen::Vector3d                               getCurrentPosition();
   Eigen::Vector3d                               getCurrentVelocity();
   Eigen::Vector3d                               getCentroid();
-  // Eigen::Vector3d                               getSeedB();
+  Eigen::Vector3d                               getSeedB();
   std::vector<Eigen::Vector3d>                  getCellA();
   std::vector<Eigen::Vector3d>                  getSensedCellA();
   std::vector<Eigen::Vector3d>                  getInflatedMap();

@@ -248,10 +248,10 @@ Eigen::Vector3d RBLController::getCentroid()// //{
   return c1_;
 }// //}
 
-// Eigen::Vector3d RBLController::getSeedB()// //{
-// {
-//   return seed_b_;
-// }// //}
+Eigen::Vector3d RBLController::getSeedB()// //{
+{
+  return seed_b_;
+}// //}
 
 std::vector<Eigen::Vector3d> RBLController::getCellA()// //{
 {
