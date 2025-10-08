@@ -150,13 +150,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   if (!no_ground_cloud) {
     return std::nullopt;
   }
-  std::cout << "[RBLController]: Before if" << std::endl;
-  if (params_.add_estimates_as_voxels && params_.use_map) {
-    std::cout << "[RBLController]: Adding estimates to cloud." << std::endl;
-    addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-  }
-
-
+  
   if (params_.replanner) {
     // Trigger replanner asynchronously
     if (rbl_replanner_->replanTimer()) {
@@ -187,6 +181,12 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
     waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
     destination_ = waypoint_;
+  }
+
+  std::cout << "[RBLController]: Before if" << std::endl;
+  if (params_.add_estimates_as_voxels && params_.use_map) {
+    std::cout << "[RBLController]: Adding estimates to cloud." << std::endl;
+    addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
   }
 
   // Partitioning logic
