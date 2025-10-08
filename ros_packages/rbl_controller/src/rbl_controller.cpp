@@ -184,7 +184,9 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   }
 
   if (params_.add_estimates_as_voxels && params_.use_map) {
-    addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
+    // addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
+    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
+    
   }
 
   // Partitioning logic
