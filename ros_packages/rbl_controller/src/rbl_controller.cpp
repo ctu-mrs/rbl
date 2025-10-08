@@ -183,9 +183,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     destination_ = waypoint_;
   }
 
-  std::cout << "[RBLController]: Before if" << std::endl;
   if (params_.add_estimates_as_voxels && params_.use_map) {
-    std::cout << "[RBLController]: Adding estimates to cloud." << std::endl;
     addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
   }
 
@@ -353,7 +351,6 @@ void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pc
       }
     }
   }
-  std::cout << "[RBLController]: Injected points: " << injected_points_map_.size() << std::endl;
 }
 
 void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,// //{
