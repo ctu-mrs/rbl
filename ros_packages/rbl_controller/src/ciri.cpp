@@ -75,7 +75,7 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd, const Eigen::Matrix3X
         const auto dis = distancePointToSegment(pt_w,a,b);
         if(dis < params_.inflation - 1e-2) {
           infeasible_pt_w = pt_w;
-          // std::cout << "[CIRI]: WARNING! The problem is not feasible, the min dis to obstacle is only: "<< dis << std::endl;
+          std::cout << "[CIRI]: WARNING! The problem is not feasible, the min dis to obstacle is only: "<< dis << std::endl;
           return false;
           // cout<<" -- [CIRI] dis: "<<dis<<endl;
           // cout<<" -- [CIRI] robot_r: "<<params_.robot_r<<endl;
@@ -164,7 +164,7 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd, const Eigen::Matrix3X
       }
       planes.push_back(temp_plane_w);
       if (planes.size() > 50){
-        // std::cout << "[CIRI]: WARNING! plane count exceeded limit" << std::endl;
+        std::cout << "[CIRI]: WARNING! plane count exceeded limit" << std::endl;
         return false;
       }
     }    

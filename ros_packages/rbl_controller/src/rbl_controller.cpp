@@ -85,7 +85,6 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)// //{
   rpy_ = rpy;
 }// //}
 
-
 bool RBLController::inputsHealthy(const Eigen::Vector3d&                                            agent_pos, 
                                   const Eigen::Vector3d&                                            agent_vel, 
                                   const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
