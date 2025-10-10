@@ -1,0 +1,30 @@
+digraph G {
+"uav1/fcu" -> "uav1/fcu/props"[label="Broadcaster: /uav1/tf_published_props_link\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"common_origin" -> "uav1/fcu"[label="Broadcaster: /tf_connector\nAverage rate: 18.551 Hz\nMost recent transform: 1740421535.388 ( 0.020 sec old)\nBuffer length: 3.450 sec\n"];
+"uav1/fcu" -> "uav1/rtk_antenna"[label="Broadcaster: /uav1/fcu_to_rtk_antenna\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"uav1/fixed_origin" -> "uav1/local_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"uav1/fcu" -> "uav1/fixed_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.354 Hz\nMost recent transform: 1740421535.328 ( 0.080 sec old)\nBuffer length: 3.390 sec\n"];
+"uav1/fcu" -> "uav1/fcu/arms"[label="Broadcaster: /uav1/tf_published_arms_link\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"uav1/fcu" -> "uav1/fcu/arms_red"[label="Broadcaster: /uav1/tf_published_arms_red_link\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"uav1/fcu" -> "uav1/fcu/uav_marker"[label="Broadcaster: /uav1/tf_published_uav_marker_link\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1740421535.408 sec old)\nBuffer length: 0.000 sec\n"];
+"uav1/fcu" -> "uav1/garmin"[label="Broadcaster: /multirotor_simulator\nAverage rate: 100.287 Hz\nMost recent transform: 1740421535.398 ( 0.010 sec old)\nBuffer length: 3.490 sec\n"];
+"uav1/fcu" -> "uav1/fcu_untilted"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 99.713 Hz\nMost recent transform: 1740421535.398 ( 0.010 sec old)\nBuffer length: 3.490 sec\n"];
+"uav1/fcu_untilted" -> "uav1/amsl_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 51.156 Hz\nMost recent transform: 1740421535.378 ( 0.030 sec old)\nBuffer length: 3.460 sec\n"];
+"uav1/fcu" -> "uav1/gps_baro_origin_att_only"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.290 Hz\nMost recent transform: 1740421535.388 ( 0.020 sec old)\nBuffer length: 3.450 sec\n"];
+"uav1/fcu" -> "uav1/gps_baro_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.290 Hz\nMost recent transform: 1740421535.388 ( 0.020 sec old)\nBuffer length: 3.450 sec\n"];
+"uav1/fcu" -> "uav1/utm_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.290 Hz\nMost recent transform: 1740421535.388 ( 0.020 sec old)\nBuffer length: 3.450 sec\n"];
+"uav1/fcu" -> "uav1/world_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.290 Hz\nMost recent transform: 1740421535.388 ( 0.020 sec old)\nBuffer length: 3.450 sec\n"];
+"common_origin" -> "simulator_origin"[label="Broadcaster: /tf_connector\nAverage rate: 8.235 Hz\nMost recent transform: 1740421535.348 ( 0.060 sec old)\nBuffer length: 3.400 sec\n"];
+"uav1/fcu" -> "uav1/stable_origin"[label="Broadcaster: /uav1/uav1_nodelet_manager\nAverage rate: 20.354 Hz\nMost recent transform: 1740421535.328 ( 0.080 sec old)\nBuffer length: 3.390 sec\n"];
+"base_link" -> "tree1"[label="Broadcaster: /tree1_tf\nAverage rate: 9.610 Hz\nMost recent transform: 1740421535.438 ( -0.030 sec old)\nBuffer length: 3.330 sec\n"];
+"base_link" -> "tree3"[label="Broadcaster: /tree3_tf\nAverage rate: 9.610 Hz\nMost recent transform: 1740421535.438 ( -0.030 sec old)\nBuffer length: 3.330 sec\n"];
+"base_link" -> "tree2"[label="Broadcaster: /tree2_tf\nAverage rate: 9.610 Hz\nMost recent transform: 1740421535.438 ( -0.030 sec old)\nBuffer length: 3.330 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1740421535.408"[ shape=plaintext ] ;
+ }->"common_origin";
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1740421535.408"[ shape=plaintext ] ;
+ }->"base_link";
+}

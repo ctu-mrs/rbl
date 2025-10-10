@@ -13,7 +13,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
-    replanner_params.inflation_bonus = 0.0;
+    replanner_params.inflation_bonus = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.4;
     replanner_params.replanner_freq = 0.5; //[Hz]
 
@@ -48,12 +48,12 @@ void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_p
 
 void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)
 {
-  std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
+  // std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
   for (int i = 0; i < estimates.size(); i++) {
     Eigen::Vector3d pos = estimates[i].first;
     Eigen::Vector3d vel = estimates[i].second;
-    std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
-    std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ", " << vel.z() << "]" << std::endl;
+    // std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
+    // std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ", " << vel.z() << "]" << std::endl;
   }
   neighbors_estimates_ = estimates;
 }
@@ -85,66 +85,98 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)// //{
   rpy_ = rpy;
 }// //}
 
-// std::optional<mrs_msgs::Reference> RBLController::getNextRef()// //{
-// {
-//   mrs_msgs::Reference p_ref;
 
-//   auto no_ground_cloud = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+bool RBLController::inputsHealthy(const Eigen::Vector3d&                                            agent_pos, 
+                                  const Eigen::Vector3d&                                            agent_vel, 
+                                  const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
+                                  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
+                                  Eigen::Vector3d&                                                  goal, 
+                                  double&                                                           altitude, 
+                                  Eigen::Vector3d&                                                  rpy)
+{
+  bool healthy = true;
 
-//   if (!no_ground_cloud) {
-//     return std::nullopt;
-//   }
+  auto validVector = [](const Eigen::Vector3d& v) -> bool {
+    return v.allFinite();
+  };
 
-//   if (params_.replanner) {
-//     if (rbl_replanner_->replanTimer()) {
-//       rbl_replanner_->setAltitude(altitude_);
-//       rbl_replanner_->setCurrentPosition(agent_pos_);
-//       rbl_replanner_->setGoal(goal_);
-//       rbl_replanner_->setPCL(cloud_);
-//       path_ = rbl_replanner_->plan();
-//       inflated_map_ = rbl_replanner_->getInflatedCloud();
-//     }
-//     if (path_.size() == 0) {
-//       p_ref = pRefAgent(agent_pos_, rpy_[2]);
-//       return p_ref;
-//     }
-//     waypoint_ = determineWaypoint(path_, agent_pos_, goal_);
-//     destination_ = waypoint_;
-//   }
+  // Helper to rate-limit messages
+  static std::map<std::string, std::chrono::steady_clock::time_point> last_print;
+  auto now = std::chrono::steady_clock::now();
+  auto printLimited = [&](const std::string& key, const std::string& msg) {
+    constexpr double interval = 1.0; // seconds
+    auto it = last_print.find(key);
+    if (it == last_print.end() ||
+        std::chrono::duration<double>(now - it->second).count() > interval) {
+      std::cerr << msg << std::endl;
+      last_print[key] = now;
+    }
+  };
 
-//   cell_A_.clear();
-//   cell_S_.clear();
-//   createAndPartitionCellA(cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, waypoint_, neighbors_pos_, no_ground_cloud, altitude_, c1_);
+  // Checks
+  if (!validVector(agent_pos)) {
+    printLimited("agent_pos", "[RBLController]: Invalid agent_pos (NaN/Inf): " + std::to_string(agent_pos.x()) + ", " + std::to_string(agent_pos.y()) + ", " + std::to_string(agent_pos.z()));
+    healthy = false;
+  }
 
-//   std::vector<Eigen::Vector3d> emptyVec;
+  if (!validVector(agent_vel)) {
+    printLimited("agent_vel", "[RBLController]: Invalid agent_vel (NaN/Inf)");
+    healthy = false;
+  }
 
-//   if (params_.replanner) {
-//     computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
-//     computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, beta_);
-//     computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, waypoint_, beta_);
-//     applyRules(beta_, th_, ph_, destination_, waypoint_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
-//   } else {
-//     computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, beta_);
-//     computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, beta_);
-//     computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, goal_, beta_);
-//     applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_, params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6, params_.d7, params_.betaD, params_.beta_min, params_.dt);
-//   }
-  
-//   // std::cout << "[RBLController]: Altitude: " << altitude_ << std::endl;
-//   // std::cout << "[RBLController]: Agent posisiton  x: " << agent_pos_.x() << ", y: " << agent_pos_.y() << ", z: " << agent_pos_.z() << std::endl; 
-//   // std::cout << "[RBLController]: Destination  x: " << destination_.x() << ", y: " << destination_.y() << ", z: " << destination_.z() << std::endl; 
-//   // std::cout << "[RBLController]: Waypoint  x: " << waypoint_.x() << ", y: " << waypoint_.y() << ", z: " << waypoint_.z() << std::endl; 
-//   // std::cout << "[RBLController]: Goal  x: " << goal_.x() << ", y: " << goal_.y() << ", z: " << goal_.z() << std::endl; 
-//   // std::cout << "[RBLController]: Centroid c1 x: " << c1_.x() << ", y: " << c1_.y() << ", z: " << c1_.z() << std::endl;
+  if (!validVector(goal)) {
+    printLimited("goal", "[RBLController]: Invalid goal (NaN/Inf)");
+    healthy = false;
+  }
 
-//   determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, rpy_, path_);
-  
-//   return p_ref;
-// }// //}
+  if (!validVector(rpy)) {
+    printLimited("rpy", "[RBLController]: Invalid rpy (NaN/Inf)");
+    healthy = false;
+  }
+
+  if (!std::isfinite(altitude) || altitude < 0.0) {
+    printLimited("altitude", "[RBLController]: Invalid altitude (non-finite or negative)");
+    healthy = false;
+  }
+
+  for (size_t i = 0; i < neighbors_estimates.size(); ++i) {
+    const auto& [pos, vel] = neighbors_estimates[i];
+    if (!validVector(pos)) {
+      printLimited("neighbor_pos", "[RBLController]: One or more neighbors have invalid positions");
+      healthy = false;
+      break;
+    }
+    if (!validVector(vel)) {
+      printLimited("neighbor_vel", "[RBLController]: One or more neighbors have invalid velocities");
+      healthy = false;
+      break;
+    }
+  }
+
+  if (!cloud) {
+    printLimited("cloud_null", "[RBLController]: Point cloud pointer is null");
+    healthy = false;
+  } else if (cloud->empty()) {
+    printLimited("cloud_empty", "[RBLController]: Point cloud is empty");
+    healthy = false;
+  }
+
+  if (!healthy) {
+    printLimited("summary", "[RBLController]: One or more input checks failed!");
+  }    
+
+  return healthy;
+}
 
 std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
 {
   mrs_msgs::Reference p_ref;
+
+  if (!inputsHealthy(agent_pos_, agent_vel_, neighbors_estimates_, cloud_, goal_, altitude_, rpy_)) {
+    std::cout << "[RBLController]: Inputs are not ok. Cannot return next reference" <<std::endl;
+    return std::nullopt;
+  }
+
 
   auto no_ground_cloud = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
   if (!no_ground_cloud) {
@@ -185,8 +217,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
 
   if (params_.add_estimates_as_voxels && params_.use_map) {
     // addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-    
+    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);    
   }
 
   // Partitioning logic

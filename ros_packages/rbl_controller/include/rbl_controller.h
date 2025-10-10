@@ -38,12 +38,15 @@
 #include <random>
 #include <deque>
 #include <utility>
+#include <memory>
 #include <chrono>
 #include <optional>
 #include <mutex>
 #include <future>
 #include "rbl_replanner.h"
 #include "ciri.h"
+
+
 
 struct RBLParams {
   double                                step_size;
@@ -78,6 +81,7 @@ struct RBLParams {
   bool                                  limited_fov                   = true;
   bool                                  ciri                          = false;
   bool                                  add_estimates_as_voxels       = true;
+  double                                inflation_bonus               = 0.0;
 };
 
 class RBLController {
@@ -91,6 +95,15 @@ public:
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
+
+
+bool inputsHealthy( const Eigen::Vector3d&                                            agent_pos, 
+                    const Eigen::Vector3d&                                            agent_vel, 
+                    const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
+                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
+                    Eigen::Vector3d&                                                  goal, 
+                    double&                                                           altitude, 
+                    Eigen::Vector3d&                                                  rpy);
 
   std::optional<mrs_msgs::Reference>            getNextRef();
   Eigen::Vector3d                               getGoal(); 
