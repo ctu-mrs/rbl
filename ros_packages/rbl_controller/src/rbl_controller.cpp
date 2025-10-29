@@ -46,7 +46,7 @@ void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_p
   neighbors_pos_ = list_points;
 }// //}
 
-void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)
+void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)// //{
 {
   // std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
   for (int i = 0; i < estimates.size(); i++) {
@@ -56,7 +56,7 @@ void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vec
     // std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ", " << vel.z() << "]" << std::endl;
   }
   neighbors_estimates_ = estimates;
-}
+}// //}
 
 void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)// //{
 {
@@ -85,7 +85,7 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)// //{
   rpy_ = rpy;
 }// //}
 
-bool RBLController::inputsHealthy(const Eigen::Vector3d&                                            agent_pos, 
+bool RBLController::inputsHealthy(const Eigen::Vector3d&                                            agent_pos, // //{
                                   const Eigen::Vector3d&                                            agent_vel, 
                                   const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
                                   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
@@ -165,7 +165,7 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
   }    
 
   return healthy;
-}
+}// //}
 
 std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
 {
