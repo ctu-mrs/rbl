@@ -13,6 +13,8 @@ connections:
   - root_frame_id: "simulator_origin"
     equal_frame_id: "simulator_origin"
 
+  - root_frame_id: "world"
+    equal_frame_id: "world"
  
   # you can add further connections here:
   # - root_frame_id: "another_root"

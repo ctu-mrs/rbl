@@ -5,7 +5,7 @@ socket_name: mrs
 attach: false
 tmux_options: -f /etc/ctu-mrs/tmux.conf
 # you can modify these
-pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=x500; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml
+pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=x500; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml; export MAP_LENGTH=40.0; export MAP_WIDTH=40.0; export MAP_HEIGHT=10.0
 startup_window: rbl_controller
 windows:
   - roscore:
@@ -24,18 +24,6 @@ windows:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_core core.launch
-  # - uvdar:
-  #     layout: tiled
-  #     panes:
-  #       - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
-  # - lidar:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForControl; roslaunch laserscan_clusters example.launch
-  # - replanner:
-  #     layout: tiled
-  #     panes:
-  #       - export UAV_NAME=uav1; waitForControl; roslaunch replanner example.launch
   - rbl_controller:
       layout: tiled
       panes:
@@ -64,7 +52,7 @@ windows:
   - rviz:
       layout: tiled
       panes:
-        - waitForControl; rosrun rviz rviz -d ./rviz_config.rviz
+        - waitForControl; rosrun rviz rviz -d ./ego_planner.rviz
   - layout:
       layout: tiled
       panes:
@@ -72,4 +60,8 @@ windows:
   - map_generator:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForRos; roslaunch map_generator map_generator.launch
+        - export UAV_NAME=uav1; waitForRos; roslaunch map_generator map_generator.launch map_frame:=$UAV_NAME/world_origin map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT
+  - uav_ego_planner:
+      layout: tiled
+      panes:
+        - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0
