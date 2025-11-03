@@ -32,25 +32,15 @@ ground:
 
 uav_names: [
   "uav1",
-  "uav2",
-  "uav3",
-  "uav4",
-  "uav5",
-  "uav6",
-  "uav7",
-  "uav8",
-  "uav9",
-  "uav10",
 ]
-
 
 uav1:
   type: "x500"
   spawn:
-    x: 10.0 #10
+    x: 20.0 #10
     y: 0.0 #0
-    z: 2.0
-    heading: 0.0
+    z: 1.5
+    heading: 3.14
 
 uav2:
   type: "x500"
