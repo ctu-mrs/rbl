@@ -1251,7 +1251,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
       p_ref.position.z = agent_pos[2];
     }
 
-    if ((c1 - c1_full).norm() > 0.5) {
+    if ((c1 - c1_full).norm() < 0.5) {
       desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
     }else {
       desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
