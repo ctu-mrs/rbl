@@ -41,4 +41,4 @@ rbl_controller:
   add_estimates_as_voxels: true
 
 replanner:
-  inflation_bonus: 0.2
+  inflation_bonus: 0.35
