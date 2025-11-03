@@ -68,7 +68,7 @@
             <remap from="~alt_in"
                    to="mavros/distance_sensor/garmin" />
             <remap from="~pcl_in"
-                   to="losos_server/current_submap_pc" />
+                   to="/map_generator/global_cloud" />
             <remap from="~neighbor_estimates_in"
                    to="filter_reflective_uavs/pose_velocity_array" />
                    

@@ -1,0 +1,98 @@
+mrs_uav_managers:
+
+  estimation_manager:
+
+    # loaded state estimator plugins
+    state_estimators: [
+      "gps_garmin",
+      # "gps_baro",
+      # "ground_truth",
+    ]
+
+  # control_manager:
+
+  #   # list of names of dynamically loaded trackers
+  #   trackers : "MpcController"
+   
+
+  #   # list of names of dynamically loaded controllers
+  #   controllers :  "MpcController"
+    
+    initial_state_estimator: "gps_garmin" # will be used as the first state estimator
+    agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
+
+  uav_manager:
+
+    takeoff:
+
+      rate: 10 # [Hz]
+
+      during_takeoff:
+        controller: "MpcController"
+        tracker: "LandoffTracker"
+
+      after_takeoff:
+        controller: "Se3Controller"
+        tracker: "MpcTracker"
+
+      takeoff_height: 1.5
+  constraint_manager:
+
+    fast:
+
+      horizontal:
+        speed: 8.0        # [m/s]
+        acceleration: 12.0 #4.0 # [m/s^2]
+        jerk: 60.0        # [m/s^3]
+        snap: 60.0        # [m/s^4]
+
+      vertical:
+
+        ascending:
+          speed: 8.0 #4.0        # [m/s]
+          acceleration: 4.0 #2.0 # [m/s^2]
+          jerk: 60.0        # [m/s^3]
+          snap: 60.0        # [m/s^4]
+
+        descending:
+          speed: 4.0        # [m/s]
+          acceleration: 4.0 #2.0 # [m/s^2]
+          jerk: 60.0        # [m/s^3]
+          snap: 60.0        # [m/s^4]
+
+      heading:
+        speed: 4.0 #2.0        # [rad/s]
+        acceleration: 4.0 #2.0 # [rad/s^2]
+        jerk: 40.0        # [rad/s^3]
+        snap: 40.0        # [rad/s^4]
+
+      angular_speed:
+        roll: 220 #60.0  # [rad/s]
+        pitch: 220 #60.0 # [rad/s]
+        yaw: 100.0 #10.0   # [rad/s]
+
+      tilt: 60.0 # [deg]
+
+    default_constraints:
+      gps_baro: "fast"
+
+mrs_uav_trajectory_generation:
+
+  # execution time limiter
+  max_time: 0.5 # [s]
+
+  # check and fix the max deviation between the input path and the output trajectory
+  # by subsampling the original path with more waypoints
+  check_trajectory_deviation:
+    max_deviation: 0.20 # [m]
+
+  # allows to neglect waypoints in the original path if the new path
+  # does not violate max distance from the original path.
+  # This makes for similar but sparser paths, which are easier for the
+  # trajectory generator to work with.
+  path_straightener:
+    enabled: true
+    max_deviation: 0.20 # [m]
+
+
+
