@@ -2,8 +2,15 @@
 #define RBL_REPLANNER_H
 
 #include <Eigen/Dense>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/common/common.h>
 
 #include <iostream>
 #include <cmath>
@@ -85,6 +92,7 @@ struct ReplannerParams {
   double                                                    replanner_freq;
   double                                                    eps                   = 0.001;
   double                                                    inflation_bonus       = 0.1;
+  double                                                    visibility            = 0.1;
   double                                                    replanner_vox_size    = 0.1; 
 };
 
@@ -96,6 +104,7 @@ public:
   void setAltitude(const double& alt);
   void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
 
+
   std::vector<Eigen::Vector3d> getInflatedCloud();
 
   std::vector<Eigen::Vector3d> plan();
@@ -105,6 +114,7 @@ private:
   ReplannerParams                                           params_;
   double                                                    voxel_size_;
   double                                                    inflation_;
+  double                                                    visibility_;
   double                                                    replanner_period_;
   int                                                       inflation_coeff_;
   double                                                    altitude_;

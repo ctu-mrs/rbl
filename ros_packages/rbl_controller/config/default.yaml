@@ -42,3 +42,4 @@ rbl_controller:
 
 replanner:
   inflation_bonus: 0.35
+  visibility: 7.0

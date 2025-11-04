@@ -5,6 +5,7 @@ RBLReplanner::RBLReplanner(const ReplannerParams& params) : params_(params)// //
   std::cout << "[RBLReplanner]: Replanner initialization" << std::endl;
   voxel_size_ = roundToNextMultiple(params.voxel_size, params.replanner_vox_size);
   inflation_ = roundToNextMultiple(params.encumbrance + params.inflation_bonus, params.replanner_vox_size);
+  visibility_ = params.visibility;
   // std::cout << "[RBLReplanner]: voxel_size_: " << voxel_size_ << ", inflation_: " << inflation_ << std::endl;
   inflation_coeff_ = std::ceil((inflation_) / params.replanner_vox_size) - 1;
   std::cout << "Inflation coef: " << inflation_coeff_ << std::endl;
@@ -50,6 +51,7 @@ void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&
 {
   cloud_ = cloud;
 }// //}
+
 
 std::vector<Eigen::Vector3d> RBLReplanner::getInflatedCloud()// //{
 {

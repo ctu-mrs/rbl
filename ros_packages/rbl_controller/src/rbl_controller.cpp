@@ -9,6 +9,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
     ReplannerParams replanner_params;
     replanner_params.encumbrance = params.encumbrance;
     replanner_params.voxel_size = params.voxel_size;
+    replanner_params.visibility= params.visibility;
     replanner_params.map_width = 30.0;
     replanner_params.map_height = 10.0;
     replanner_params.weight_safety = 1.0;
@@ -60,12 +61,26 @@ void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vec
 
 void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)// //{
 {
+
+  pcl::PointCloud<pcl::PointXYZ> temp_cloud;
   if (list_points) {
-    pcl::PointCloud<pcl::PointXYZ> temp_cloud;
     pcl::fromROSMsg(*list_points, temp_cloud);
+      // Check if the cloud is empty
+    if (!list_points || temp_cloud.empty() ){
+    // Add a far-away dummy point
+     // std::cout<<"[RBLController]: PointCloud is empty adding point dummy" << std::endl;
+     temp_cloud.push_back(pcl::PointXYZ(99999.0f, 99999.0f, 99999.0f));
+     std::cout << temp_cloud.size() << std::endl;
+    }
     cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
+
   }
+  cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
+
 }// //}
+
+
+
 
 void RBLController::setGoal(const Eigen::Vector3d& point)// //{
 {

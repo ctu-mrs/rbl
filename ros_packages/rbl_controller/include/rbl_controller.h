@@ -23,6 +23,8 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/common/common.h>
 #include <filesystem>
 #include <boost/make_shared.hpp>
 #include <queue>
@@ -82,6 +84,7 @@ struct RBLParams {
   bool                                  ciri                          = false;
   bool                                  add_estimates_as_voxels       = true;
   double                                inflation_bonus               = 0.0;
+  double                                visibility                    = 0.0;
 };
 
 class RBLController {
