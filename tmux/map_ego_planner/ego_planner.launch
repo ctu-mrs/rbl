@@ -21,7 +21,7 @@
     <arg name="target2_x" default="0.0"/>
     <arg name="target2_y" default="0.0"/>
     <arg name="target2_z" default="0.0"/>
-    <arg name="target3_x" defaul4="0.0"/>
+    <arg name="target3_x" default="0.0"/>
     <arg name="target3_y" default="0.0"/>
     <arg name="target3_z" default="0.0"/>
     <arg name="target4_x" default="0.0"/>
