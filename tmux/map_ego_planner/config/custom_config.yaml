@@ -41,7 +41,7 @@ mrs_uav_managers:
     fast:
 
       horizontal:
-        speed: 8.0        # [m/s]
+        speed: 4.0        # [m/s]
         acceleration: 12.0 #4.0 # [m/s^2]
         jerk: 60.0        # [m/s^3]
         snap: 60.0        # [m/s^4]
@@ -50,6 +50,7 @@ mrs_uav_managers:
 
         ascending:
           speed: 8.0 #4.0        # [m/s]
+          speed: 4.0 #4.0        # [m/s]
           acceleration: 4.0 #2.0 # [m/s^2]
           jerk: 60.0        # [m/s^3]
           snap: 60.0        # [m/s^4]
@@ -67,9 +68,9 @@ mrs_uav_managers:
         snap: 40.0        # [rad/s^4]
 
       angular_speed:
-        roll: 220 #60.0  # [rad/s]
-        pitch: 220 #60.0 # [rad/s]
-        yaw: 100.0 #10.0   # [rad/s]
+        roll: 60 #60.0  # [rad/s]
+        pitch: 60 #60.0 # [rad/s]
+        yaw: 10.0 #10.0   # [rad/s]
 
       tilt: 60.0 # [deg]
 

@@ -1,6 +1,6 @@
 simulation_rate: 100.0
 clock_rate: 100.0
-realtime_factor: 1.0
+realtime_factor: 0.5
 
 iterate_without_input: true
 

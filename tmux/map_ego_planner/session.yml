@@ -27,8 +27,18 @@ windows:
   - rbl_controller:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForControl; roslaunch controller.launch control_frame:=$UAV_NAME/world_origin custom_config:=./config/rbl_controller.yaml  map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0 odom_topic:=$UAV_NAME/estimation_manager/odom_main
+        - export UAV_NAME=uav1; waitForControl; roslaunch controller.launch control_frame:=$UAV_NAME/world_origin custom_config:=./config/rbl_controller.yaml odom_topic:=$UAV_NAME/estimation_manager/odom_main map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT 
+
         # - waitForRos; roslaunch controller.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0
+        #
+  - map_generator:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForRos; roslaunch map_generator map_generator.launch map_frame:=$UAV_NAME/world_origin map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT 
+  - uav_ego_planner:
+      layout: tiled
+      panes:
+        - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT 
   - goto:
       layout: tiled
       panes:
@@ -58,11 +68,3 @@ windows:
       layout: tiled
       panes:
         - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
-  - map_generator:
-      layout: tiled
-      panes:
-        - export UAV_NAME=uav1; waitForRos; roslaunch map_generator map_generator.launch map_frame:=$UAV_NAME/world_origin map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT
-  - uav_ego_planner:
-      layout: tiled
-      panes:
-        - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0

@@ -6,6 +6,7 @@
     <arg name="RUN_TYPE"
          default="simulation" />
 
+    <arg name="drone_id" default="1"/>
     <arg name="custom_config"
          default="" />
     <arg name="control_frame"
@@ -69,6 +70,8 @@
                    to="mavros/distance_sensor/garmin" />
             <remap from="~pcl_in"
                    to="/map_generator/global_cloud" />
+            <!-- <remap from="~pcl_in" -->
+            <!--   to="/drone_$(arg drone_id)_pcl_render_node/cloud" /> -->
             <remap from="~neighbor_estimates_in"
                    to="filter_reflective_uavs/pose_velocity_array" />
                    
@@ -86,7 +89,93 @@
                    to="control_manager/reference" />
         </node>
     </group>
+      
+      <!-- <remap from="~pcl_in" -->
+      <!--   to="/drone_$(arg drone_id)_pcl_render_node/cloud" /> -->
 
+    <node pkg="local_sensing_node" type="pcl_render_node" name="drone_$(arg drone_id)_pcl_render_node" output="screen">
+        <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" />
+      
+        <param name="sensing_horizon" value="5.0" />
+        <param name="sensing_rate" value="30.0"/>
+        <param name="frame_id" value="uav1/world_origin" />
+        <param name="estimation_rate" value="30.0"/>
 
+        <arg name="map_size_x" default="35" />
+        <arg name="map_size_y" default="15" />
+        <arg name="map_size_z" default="4" />
+        <remap from="~global_map" to="/map_generator/global_cloud"/>
+        <!-- <remap from="~global_map" to="drone_$(arg drone_id)_pcl_render_node/cloud"/> -->
+        <remap from="~odometry" to="/uav1/estimation_manager/odom_main"/>
+        <remap from="~pcl_render_node/cloud" to="/drone_$(arg drone_id)_pcl_render_node/cloud"/>
+    </node>
+
+    <!-- <arg name="drone_id" default="0"/> -->
+    <!-- <arg name="map_size_x"/> -->
+    <!-- <arg name="map_size_y"/> -->
+    <!-- <arg name="map_size_z"/> -->
+    <!-- <arg name="init_x" default="$(eval map_size_x / 2.0)" /> -->
+    <!-- <arg name="init_y" default="0.0" /> -->
+    <!-- <arg name="init_z" default="0.0" /> -->
+    <!-- <arg name="flight_type" default="1"/> -->
+    <!-- <arg name="vel_max" default="1.5" /> -->
+    <!-- <arg name="acc_max" default="6.0" /> -->
+    <!-- <arg name="jerk_max" default="20.0" /> -->
+    <!-- <arg name="point_num" default="1"/> -->
+    <!-- <arg name="target0_x" default="0.0"/> -->
+    <!-- <arg name="target0_y" default="0.0"/> -->
+    <!-- <arg name="target0_z" default="0.0"/> -->
+    <!-- <arg name="target1_x" default="0.0"/> -->
+    <!-- <arg name="target1_y" default="0.0"/> -->
+    <!-- <arg name="target1_z" default="0.0"/> -->
+    <!-- <arg name="target2_x" default="0.0"/> -->
+    <!-- <arg name="target2_y" default="0.0"/> -->
+    <!-- <arg name="target2_z" default="0.0"/> -->
+    <!-- <arg name="target3_x" default="0.0"/> -->
+    <!-- <arg name="target3_y" default="0.0"/> -->
+    <!-- <arg name="target3_z" default="0.0"/> -->
+    <!-- <arg name="target4_x" default="0.0"/> -->
+    <!-- <arg name="target4_y" default="0.0"/> -->
+    <!-- <arg name="target4_z" default="0.0"/> -->
+
+    <!-- <arg name="c_num"/> -->
+    <!-- <arg name="p_num"/> -->
+    <!-- <arg name="min_dist"/> -->
+    <!-- <arg name="odometry_topic"/> -->
+
+    <!-- <node pkg="poscmd_2_odom" name="drone_$(arg drone_id)_poscmd_2_odom" type="poscmd_2_odom" output="screen"> -->
+    <!--     <!-1- <param name="init_x" value="$(arg init_x_)"/> -1-> -->
+    <!--     <!-1- <param name="init_y" value="$(arg init_y_)"/> -1-> -->
+    <!--     <!-1- <param name="init_z" value="$(arg init_z_)"/> -1-> -->
+    <!--     <remap from="~command" to="/uav1/control_manager/reference"/> -->
+    <!--     <remap from="~odometry" to="/uav1/estimation_manager/odom_main"/> -->
+    <!-- </node> -->
+
+    <node pkg="odom_visualization" name="drone_$(arg drone_id)_odom_visualization" type="odom_visualization" output="screen">
+      <remap from="~odom" to="/uav1/estimation_manager/odom_main"/>
+        <param name="color/a" value="1.0"/>
+        <param name="color/r" value="0.0"/>
+        <param name="color/g" value="0.0"/>
+        <param name="color/b" value="0.0"/>
+        <param name="covariance_scale" value="100.0"/>
+        <param name="robot_scale" value="0.35"/>
+        <param name="tf45" value="false"/>
+        <param name="drone_id" value="$(arg drone_id)"/>
+    </node>
+
+    <!-- <node pkg="local_sensing_node" type="pcl_render_node" name="drone_$(arg drone_id)_pcl_render_node" output="screen"> -->
+    <!--     <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" /> -->
+    <!--     <param name="sensing_horizon" value="5.0" /> -->
+    <!--     <param name="sensing_rate" value="30.0"/> -->
+    <!--     <param name="estimation_rate" value="30.0"/> -->
+    <!--     <param name="map/x_size" value="$(arg map_size_x)"/> -->
+    <!--     <param name="map/y_size" value="$(arg map_size_y)"/> -->
+    <!--     <param name="map/z_size" value="$(arg map_size_z)"/> -->
+    <!--     <remap from="~global_map" to="/map_generator/global_cloud"/> -->
+    <!--     <remap from="~odometry" to="/uav1/estimation_manager/odom_main"/> -->
+    <!--     <remap from="~pcl_render_node/cloud" to="/drone_$(arg drone_id)_pcl_render_node/cloud"/> -->
+    <!-- </node> -->
+
+    
 </launch>
     

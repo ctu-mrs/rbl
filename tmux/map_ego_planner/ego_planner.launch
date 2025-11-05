@@ -1,16 +1,16 @@
 <launch>
     <!-- size of map, change the size inflate x, y, z according to your application -->
     <arg name="drone_id" default="0"/>
-    <arg name="map_size_x"/>
-    <arg name="map_size_y"/>
-    <arg name="map_size_z"/>
+    <arg name="map_size_x" default="35" />
+    <arg name="map_size_y" default="15" />
+    <arg name="map_size_z" default="4" />
     <arg name="init_x" default="$(eval map_size_x / 2.0)" />
     <arg name="init_y" default="0.0" />
     <arg name="init_z" default="0.0" />
     <arg name="flight_type" default="1"/>
-    <arg name="vel_max" default="1.5" />
-    <arg name="acc_max" default="6.0" />
-    <arg name="jerk_max" default="20.0" />
+    <arg name="vel_max" default="4.0" />
+    <arg name="acc_max" default="12.0" />
+    <arg name="jerk_max" default="60.0" />
     <arg name="point_num" default="1"/>
     <arg name="target0_x" default="0.0"/>
     <arg name="target0_y" default="0.0"/>
@@ -21,7 +21,7 @@
     <arg name="target2_x" default="0.0"/>
     <arg name="target2_y" default="0.0"/>
     <arg name="target2_z" default="0.0"/>
-    <arg name="target3_x" default="0.0"/>
+    <arg name="target3_x" defaul4="0.0"/>
     <arg name="target3_y" default="0.0"/>
     <arg name="target3_z" default="0.0"/>
     <arg name="target4_x" default="0.0"/>
@@ -94,6 +94,7 @@
         <arg name="init_y_" value="$(arg init_y)"/>
         <arg name="init_z_" value="$(arg init_z)"/>
         <arg name="odometry_topic" value="$(arg odom_topic)" />
+        <param name="frame_id" value="simulator_origin" />
     </include>
 </launch>
     
