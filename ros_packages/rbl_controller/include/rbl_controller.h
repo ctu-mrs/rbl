@@ -72,7 +72,7 @@ struct RBLParams {
   double                                lidar_tilt;
   double                                lidar_fov;
   bool                                  move_centroid_to_sensed_cell;
-  bool                                  use_garmin_alt                = false;
+  bool                                  use_garmin_alt;
   bool                                  only_2d                       = false;
   double                                z_ref                         = 1.0;
   bool                                  use_map                       = true;

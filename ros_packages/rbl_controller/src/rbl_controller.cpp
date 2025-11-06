@@ -444,9 +444,14 @@ void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,// /
   double x_center = center[0];
   double y_center = center[1];
   double z_center = center[2];
-
-  double r_low  = std::min(radius, std::max(altitude - params_.z_min, 0.));
-  double r_high = std::min(radius, params_.z_max - altitude);
+  double r_low, r_high;
+  if (params_.use_garmin_alt) {
+    r_low  = std::min(radius, std::max(altitude - params_.z_min, 0.));
+    r_high = std::min(radius, params_.z_max - altitude);
+  } else {
+    r_low  = std::min(radius, std::max(z_center - params_.z_min, 0.));
+    r_high = std::min(radius, params_.z_max - z_center);
+  }
 
   int x_min = static_cast<int>((x_center - radius) / step_size);
   int x_max = static_cast<int>((x_center + radius) / step_size);

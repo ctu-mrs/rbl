@@ -29,7 +29,7 @@ rbl_controller:
   cwvd_obs: 0.90
   cwvd_rob: 0.90
   use_map: true
-  use_garmin_alt: true
+  use_garmin_alt: false
   replanner: true
   limited_fov: true
   ciri: true
@@ -39,6 +39,8 @@ rbl_controller:
   move_centroid_to_sensed_cell: true
   voxel_size: 0.4
   add_estimates_as_voxels: true
+  n_uavs: 10
 
 replanner:
   inflation_bonus: 0.2
+
