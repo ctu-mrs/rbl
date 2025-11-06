@@ -12,32 +12,32 @@ rbl_controller:
   z_min: 0.0
   z_max: 7.0
   z_ref: 2.0
-  d1: 2.5
-  d2: 2.5
-  d3: 2.5
-  d4: 2.5
+  d1: 1.5
+  d2: 1.5
+  d3: 1.5
+  d4: 1.5
   d5: 0.5
   d6: 1.0
   d7: 0.2
-  radius: 5.0
-  betaD: 0.5
+  radius: 4.0
+  betaD: 0.4
   beta_min: 0.1
   dt: 0.1
-  step_size: 0.15
-  encumbrance: 0.20
+  step_size: 0.2
+  encumbrance: 0.30
   use_z_rule: false
-  cwvd_obs: 0.9
-  cwvd_rob: 0.9
+  cwvd_obs: 1.0
+  cwvd_rob: 1.0
   use_garmin_alt: false
   replanner: true 
-  limited_fov: true
+  limited_fov: false
   ciri: true
-  boundary_threshold: 0.1
-  boundary_threshold_speed: 1.5
-  lidar_tilt: 45.0 # [deg]
-  lidar_fov: 180.0 #[deg]
+  boundary_threshold: 0.2
+  boundary_threshold_speed: 0.3
+  lidar_tilt: 0.0 # [deg]
+  lidar_fov: 360.0 #[deg]
   move_centroid_to_sensed_cell: true
-  voxel_size: 0.01
+  voxel_size: 0.1
 
 replanner:
-  inflation_bonus: 0.1
+  inflation_bonus: 0.0

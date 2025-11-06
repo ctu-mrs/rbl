@@ -39,6 +39,7 @@ rbl_controller:
   move_centroid_to_sensed_cell: true
   voxel_size: 0.4
   add_estimates_as_voxels: true
+  pcl_init: false
 
 replanner:
   inflation_bonus: 0.35

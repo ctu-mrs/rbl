@@ -5,18 +5,19 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
 {
   radius_sensing_ = params_.radius / params_.cwvd_obs + sqrt((params_.voxel_size / 2) * (params_.voxel_size / 2));
   beta_ = params_.beta_min;
+  pcl_init_ = params_.pcl_init;
   if (params.replanner) {
     ReplannerParams replanner_params;
     replanner_params.encumbrance = params.encumbrance;
     replanner_params.voxel_size = params.voxel_size;
     replanner_params.visibility= params.visibility;
-    replanner_params.map_width = 10.0;
+    replanner_params.map_width = 15.0;
     replanner_params.map_height = 7.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.1;
-    replanner_params.replanner_freq = 1.0; //[Hz]
+    replanner_params.replanner_freq = 0.5; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -61,7 +62,7 @@ void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vec
 
 void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)// //{
 {
-
+  
   pcl::PointCloud<pcl::PointXYZ> temp_cloud;
   if (list_points) {
     pcl::fromROSMsg(*list_points, temp_cloud);
@@ -70,7 +71,6 @@ void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points
     // Add a far-away dummy point
      // std::cout<<"[RBLController]: PointCloud is empty adding point dummy" << std::endl;
      temp_cloud.push_back(pcl::PointXYZ(99999.0f, 99999.0f, 99999.0f));
-     std::cout << temp_cloud.size() << std::endl;
     }
     cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
 
@@ -192,19 +192,72 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   }
 
 
-  auto no_ground_cloud = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+  // auto no_ground_cloud = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+  auto no_ground_cloud = cloud_;
   if (!no_ground_cloud) {
     return std::nullopt;
   }
   
+  // if (params_.replanner) {
+  //   // Trigger replanner asynchronously
+  //   if (rbl_replanner_->replanTimer()) {
+  //     replanner_future_ = std::async(std::launch::async, [this]() {
+  //       rbl_replanner_->setAltitude(altitude_);
+  //       rbl_replanner_->setCurrentPosition(agent_pos_);
+  //       rbl_replanner_->setGoal(goal_);
+  //       if (!pcl_init_) {
+  //         rbl_replanner_->setPCL(cloud_); 
+  //         pcl_init_=true;
+  //       }
+  //       auto new_path = rbl_replanner_->plan();
+  //       std::lock_guard<std::mutex> lock(replanner_mutex_);
+  //       inflated_map_ = rbl_replanner_->getInflatedCloud();
+  //       return new_path;
+  //     });
+  //   }
+
+  //   // Check if replanner finished and update path_
+  //   if (replanner_future_.valid() &&
+  //       replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+  //     std::lock_guard<std::mutex> lock(replanner_mutex_);
+  //     path_ = replanner_future_.get();
+  //   }
+
+  //   if (path_.empty()) {
+  //     p_ref = pRefAgent(agent_pos_, rpy_[2]);
+  //     return p_ref;
+  //   }
+
+  //   waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+  //   waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+  //   destination_ = waypoint_;
+  // }
+
+  // Inside your main loop:
   if (params_.replanner) {
-    // Trigger replanner asynchronously
-    if (rbl_replanner_->replanTimer()) {
+
+    // 1. Trigger replanning only if not already running
+    if ((!replanner_future_.valid() ||
+         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+        && rbl_replanner_->replanTimer()) {
+
+      // If the last replanning finished, retrieve result (if ready)
+      if (replanner_future_.valid() &&
+          replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        std::lock_guard<std::mutex> lock(replanner_mutex_);
+        path_ = replanner_future_.get();  // safely update last path
+      }
+
+      // Now start a *new* replanning task asynchronously
       replanner_future_ = std::async(std::launch::async, [this]() {
         rbl_replanner_->setAltitude(altitude_);
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
-        rbl_replanner_->setPCL(cloud_);
+        if (!pcl_init_) {
+          rbl_replanner_->setPCL(cloud_);
+          pcl_init_ = true;
+        }
+
         auto new_path = rbl_replanner_->plan();
         std::lock_guard<std::mutex> lock(replanner_mutex_);
         inflated_map_ = rbl_replanner_->getInflatedCloud();
@@ -212,21 +265,22 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
       });
     }
 
-    // Check if replanner finished and update path_
+    // 2. If replanning is still running, don’t block — use old path
     if (replanner_future_.valid() &&
         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
       std::lock_guard<std::mutex> lock(replanner_mutex_);
       path_ = replanner_future_.get();
     }
 
+    // 3. Continue control using the latest known path (non-blocking)
     if (path_.empty()) {
-      p_ref = pRefAgent(agent_pos_, rpy_[2]);
-      return p_ref;
+      p_ref = pRefAgent(goal_, rpy_[2]);
+    } else {
+      waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+      waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+      destination_ = waypoint_;
+      p_ref = pRefAgent(destination_, rpy_[2]);
     }
-
-    waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
-    waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
-    destination_ = waypoint_;
   }
 
   if (params_.add_estimates_as_voxels && params_.use_map) {
@@ -1256,7 +1310,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 3) { //+-90 deg
+    if (std::abs(difference) < M_PI / 4){ //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];

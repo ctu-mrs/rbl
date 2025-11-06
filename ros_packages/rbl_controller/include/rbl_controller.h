@@ -57,6 +57,7 @@ struct RBLParams {
   double                                dt;
   double                                beta_min;
   double                                betaD;
+  bool                                  pcl_init;
   double                                d1;
   double                                d2;
   double                                d3;
@@ -128,6 +129,7 @@ private:
   double                                                    radius_sensing_;
   double                                                    altitude_;
   double                                                    beta_;
+  double                                                    pcl_init_;
   double                                                    ph_; //vertical
   double                                                    th_; //azimuthal
   Eigen::Vector3d                                           goal_; //final goal where the uav will converge

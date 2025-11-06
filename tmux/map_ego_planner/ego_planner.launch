@@ -4,12 +4,12 @@
     <arg name="map_size_x" default="35" />
     <arg name="map_size_y" default="15" />
     <arg name="map_size_z" default="4" />
-    <arg name="init_x" default="$(eval map_size_x / 2.0)" />
+    <arg name="init_x" default="$(eval map_size_x / 2.0 )" />
     <arg name="init_y" default="0.0" />
     <arg name="init_z" default="0.0" />
     <arg name="flight_type" default="1"/>
     <arg name="vel_max" default="4.0" />
-    <arg name="acc_max" default="12.0" />
+    <arg name="acc_max" default="8.0" />
     <arg name="jerk_max" default="60.0" />
     <arg name="point_num" default="1"/>
     <arg name="target0_x" default="0.0"/>
@@ -56,7 +56,7 @@
         <arg name="max_acc" value="$(arg acc_max)" />
         <arg name="max_jer" value="$(arg jerk_max)" />
         <!--always set to 1.5 times grater than sensing horizen-->
-        <arg name="planning_horizon" value="7.5" />
+        <arg name="planning_horizon" value="10.0" />
         <arg name="use_multitopology_trajs" value="false" />
         <!-- 1: use 2D Nav Goal to select goal  -->
         <!-- 2: use global waypoints below  -->
@@ -84,6 +84,7 @@
         <remap from="~planning/trajectory" to="drone_$(arg drone_id)_planning/trajectory"/>
         <param name="traj_server/time_forward" value="1.0" type="double"/>
     </node>
+
     <!-- use simulator -->
     <include file="$(find ego_planner)/launch/include/simulator.xml">
         <arg name="drone_id" value="$(arg drone_id)"/>

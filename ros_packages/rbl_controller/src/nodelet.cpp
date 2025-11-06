@@ -31,6 +31,7 @@
 class WrapperRosRBL : public nodelet::Nodelet// //{
 {
 public:
+  bool pcl_loaded_ = false;
   virtual void onInit();
   bool         is_initialized_ = false;
   bool         is_activated_   = false;
@@ -139,6 +140,7 @@ void WrapperRosRBL::onInit()// //{
   param_loader.loadParam("rbl_controller/step_size", rbl_params_.step_size);
   param_loader.loadParam("rbl_controller/betaD", rbl_params_.betaD);
   param_loader.loadParam("rbl_controller/beta_min", rbl_params_.beta_min);
+  param_loader.loadParam("rbl_controller/pcl_init", rbl_params_.pcl_init);
   param_loader.loadParam("rbl_controller/use_z_rule", rbl_params_.use_z_rule);
   param_loader.loadParam("rbl_controller/dt", rbl_params_.dt);
   param_loader.loadParam("rbl_controller/cwvd_rob", rbl_params_.cwvd_rob);
@@ -341,13 +343,23 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       rbl_controller_->setGroupPositions(tmp_odoms);
     }
 
-    if (sh_pcl_.newMsg()) {
+    // if (sh_pcl_.newMsg()) {
+    //   auto msg = sh_pcl_.getMsg();
+    //   if (msg->header.frame_id != _frame_) {
+    //     ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
+    //     return;
+    //   }
+    //   rbl_controller_->setPCL(msg);
+    // }
+
+    if (!pcl_loaded_ && sh_pcl_.newMsg()) {
       auto msg = sh_pcl_.getMsg();
       if (msg->header.frame_id != _frame_) {
         ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
         return;
       }
       rbl_controller_->setPCL(msg);
+      pcl_loaded_ = true;
     }
 
     if (sh_neighbors_estimates_.newMsg()) {

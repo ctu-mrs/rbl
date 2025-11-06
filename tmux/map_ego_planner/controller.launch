@@ -71,7 +71,10 @@
             <remap from="~pcl_in"
                    to="/map_generator/global_cloud" />
             <!-- <remap from="~pcl_in" -->
-            <!--   to="/drone_$(arg drone_id)_pcl_render_node/cloud" /> -->
+            <!--        to="/pcl_render_node/cloud" /> -->
+
+<!--             <remap from="~pcl_in" -->
+<!--               to="/drone_$(arg drone_id)_pcl_render_node/cloud" /> -->
             <remap from="~neighbor_estimates_in"
                    to="filter_reflective_uavs/pose_velocity_array" />
                    
@@ -90,8 +93,6 @@
         </node>
     </group>
       
-      <!-- <remap from="~pcl_in" -->
-      <!--   to="/drone_$(arg drone_id)_pcl_render_node/cloud" /> -->
 
     <node pkg="local_sensing_node" type="pcl_render_node" name="drone_$(arg drone_id)_pcl_render_node" output="screen">
         <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" />
@@ -150,6 +151,25 @@
     <!--     <remap from="~command" to="/uav1/control_manager/reference"/> -->
     <!--     <remap from="~odometry" to="/uav1/estimation_manager/odom_main"/> -->
     <!-- </node> -->
+    <!-- trajectory server -->
+    <!-- <node pkg="ego_planner" name="drone_$(arg drone_id)_traj_server" type="traj_server" output="screen"> -->
+    <!--     <remap from="position_cmd" to="drone_$(arg drone_id)_planning/pos_cmd"/> -->
+    <!--     <remap from="~planning/trajectory" to="drone_$(arg drone_id)_planning/trajectory"/> -->
+    <!--     <param name="traj_server/time_forward" value="1.0" type="double"/> -->
+    <!-- </node> -->
+
+    <!-- use simulator -->
+    <!-- <include file="$(find ego_planner)/launch/include/simulator.xml"> -->
+    <!--     <arg name="drone_id" value="$(arg drone_id)"/> -->
+    <!--     <arg name="map_size_x_" value="$(arg map_size_x)"/> -->
+    <!--     <arg name="map_size_y_" value="$(arg map_size_y)"/> -->
+    <!--     <arg name="map_size_z_" value="$(arg map_size_z)"/> -->
+    <!--     <arg name="init_x_" value="$(arg init_x)"/> -->
+    <!--     <arg name="init_y_" value="$(arg init_y)"/> -->
+    <!--     <arg name="init_z_" value="$(arg init_z)"/> -->
+    <!--     <arg name="odometry_topic" value="/uav1/estimation_manager/odom_main" /> -->
+    <!--     <param name="frame_id" value="/uav1/world_origin" /> -->
+    <!-- </include> -->
 
     <node pkg="odom_visualization" name="drone_$(arg drone_id)_odom_visualization" type="odom_visualization" output="screen">
       <remap from="~odom" to="/uav1/estimation_manager/odom_main"/>
@@ -163,18 +183,6 @@
         <param name="drone_id" value="$(arg drone_id)"/>
     </node>
 
-    <!-- <node pkg="local_sensing_node" type="pcl_render_node" name="drone_$(arg drone_id)_pcl_render_node" output="screen"> -->
-    <!--     <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" /> -->
-    <!--     <param name="sensing_horizon" value="5.0" /> -->
-    <!--     <param name="sensing_rate" value="30.0"/> -->
-    <!--     <param name="estimation_rate" value="30.0"/> -->
-    <!--     <param name="map/x_size" value="$(arg map_size_x)"/> -->
-    <!--     <param name="map/y_size" value="$(arg map_size_y)"/> -->
-    <!--     <param name="map/z_size" value="$(arg map_size_z)"/> -->
-    <!--     <remap from="~global_map" to="/map_generator/global_cloud"/> -->
-    <!--     <remap from="~odometry" to="/uav1/estimation_manager/odom_main"/> -->
-    <!--     <remap from="~pcl_render_node/cloud" to="/drone_$(arg drone_id)_pcl_render_node/cloud"/> -->
-    <!-- </node> -->
 
     
 </launch>
