@@ -210,7 +210,7 @@ Visualization Manager:
       Displays:
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav1/rbl_controller/position_our
+          Marker Topic: /uav1/rbl_controller/viz/position
           Name: UAV1
           Namespaces:
             {}
@@ -218,7 +218,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav2/rbl_controller/position_our
+          Marker Topic: /uav2/rbl_controller/viz/position
           Name: UAV2
           Namespaces:
             {}
@@ -226,7 +226,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav3/rbl_controller/position_our
+          Marker Topic: /uav3/rbl_controller/viz/position
           Name: UAV3
           Namespaces:
             {}
@@ -234,7 +234,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav4/rbl_controller/position_our
+          Marker Topic: /uav4/rbl_controller/viz/position
           Name: UAV4
           Namespaces:
             {}
@@ -242,7 +242,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav5/rbl_controller/position_our
+          Marker Topic: /uav5/rbl_controller/viz/position
           Name: UAV5
           Namespaces:
             {}
@@ -250,7 +250,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav6/rbl_controller/position_our
+          Marker Topic: /uav6/rbl_controller/viz/position
           Name: UAV6
           Namespaces:
             {}
@@ -258,7 +258,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav7/rbl_controller/position_our
+          Marker Topic: /uav7/rbl_controller/viz/position
           Name: UAV7
           Namespaces:
             {}
@@ -266,7 +266,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav8/rbl_controller/position_our
+          Marker Topic: /uav8/rbl_controller/viz/position
           Name: UAV8
           Namespaces:
             {}
@@ -274,7 +274,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav9/rbl_controller/position_our
+          Marker Topic: /uav9/rbl_controller/viz/position
           Name: UAV9
           Namespaces:
             {}
@@ -282,7 +282,7 @@ Visualization Manager:
           Value: true
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /uav10/rbl_controller/position_our
+          Marker Topic: /uav10/rbl_controller/viz/position
           Name: UAV10
           Namespaces:
             {}

@@ -1,112 +1,111 @@
-
 #include "rbl_controller.h"
 
-RBLController::RBLController(const RBLParams& params) : params_(params)// //{
+RBLController::RBLController(const RBLParams& params) : params_(params)  // //{
 {
   radius_sensing_ = params_.radius / params_.cwvd_obs + sqrt((params_.voxel_size / 2) * (params_.voxel_size / 2));
-  beta_ = params_.beta_min;
+  beta_           = params_.beta_min;
   if (params.replanner) {
     ReplannerParams replanner_params;
-    replanner_params.encumbrance = params.encumbrance;
-    replanner_params.voxel_size = params.voxel_size;
-    replanner_params.map_width = 30.0;
-    replanner_params.map_height = 10.0;
-    replanner_params.weight_safety = 1.0;
-    replanner_params.weight_deviation = 100.0;
-    replanner_params.inflation_bonus = params.inflation_bonus;
+    replanner_params.encumbrance        = params.encumbrance;
+    replanner_params.voxel_size         = params.voxel_size;
+    replanner_params.map_width          = 30.0;
+    replanner_params.map_height         = 10.0;
+    replanner_params.weight_safety      = 1.0;
+    replanner_params.weight_deviation   = 100.0;
+    replanner_params.inflation_bonus    = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.4;
-    replanner_params.replanner_freq = 0.5; //[Hz]
+    replanner_params.replanner_freq     = 0.5;  //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
 
   if (params.ciri) {
-    ciriParams  ciri_params;
-    ciri_params.epsilon = 1e-6;
-    ciri_params.inflation = params.encumbrance + params.voxel_size/2;
-    ciri_solver_ = std::make_shared<CIRI>(ciri_params);
+    ciriParams ciri_params;
+    ciri_params.epsilon   = 1e-6;
+    ciri_params.inflation = params.encumbrance + params.voxel_size / 2;
+    ciri_solver_          = std::make_shared<CIRI>(ciri_params);
   }
-}// //}
+}  // //}
 
-void RBLController::setCurrentPosition(const Eigen::Vector3d& point)// //{
+void RBLController::setCurrentPosition(const Eigen::Vector3d& point)  // //{
 {
   agent_pos_ = point;
   if (!params_.use_garmin_alt) {
     altitude_ = agent_pos_.z();
   }
-}// //}
+}  // //}
 
-void RBLController::setCurrentVelocity(const Eigen::Vector3d& point)// //{
+void RBLController::setCurrentVelocity(const Eigen::Vector3d& point)  // //{
 {
   agent_vel_ = point;
-}// //}
+}  // //}
 
-void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_points)// //{
+void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_points)  // //{
 {
   neighbors_pos_ = list_points;
-}// //}
+}  // //}
 
-void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates)
+void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d,
+                                                                      Eigen::Vector3d>>& estimates)
 {
   // std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
   for (int i = 0; i < estimates.size(); i++) {
     Eigen::Vector3d pos = estimates[i].first;
     Eigen::Vector3d vel = estimates[i].second;
-    // std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() << "]" << std::endl;
-    // std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ", " << vel.z() << "]" << std::endl;
+    // std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() <<
+    // "]" << std::endl; std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ",
+    // " << vel.z() << "]" << std::endl;
   }
   neighbors_estimates_ = estimates;
 }
 
-void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)// //{
+void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)  // //{
 {
   if (list_points) {
     pcl::PointCloud<pcl::PointXYZ> temp_cloud;
     pcl::fromROSMsg(*list_points, temp_cloud);
     cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
   }
-}// //}
+}  // //}
 
-void RBLController::setGoal(const Eigen::Vector3d& point)// //{
+void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
 {
   goal_        = point;
   destination_ = point;
   ph_          = 0.0;
   th_          = 0.0;
-}// //}
+}  // //}
 
-void RBLController::setAltitude(const double& alt)// //{
+void RBLController::setAltitude(const double& alt)  // //{
 {
   altitude_ = alt;
-}// //}
+}  // //}
 
-void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)// //{
+void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)  // //{
 {
   rpy_ = rpy;
-}// //}
+}  // //}
 
-bool RBLController::inputsHealthy(const Eigen::Vector3d&                                            agent_pos, 
-                                  const Eigen::Vector3d&                                            agent_vel, 
-                                  const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
-                                  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
-                                  Eigen::Vector3d&                                                  goal, 
-                                  double&                                                           altitude, 
-                                  Eigen::Vector3d&                                                  rpy)
+bool RBLController::inputsHealthy(const Eigen::Vector3d&                           agent_pos,
+                                  const Eigen::Vector3d&                           agent_vel,
+                                  const std::vector<std::pair<Eigen::Vector3d,
+                                                              Eigen::Vector3d>>&   neighbors_estimates,
+                                  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                  Eigen::Vector3d&                                 goal,
+                                  double&                                          altitude,
+                                  Eigen::Vector3d&                                 rpy)
 {
   bool healthy = true;
 
-  auto validVector = [](const Eigen::Vector3d& v) -> bool {
-    return v.allFinite();
-  };
+  auto validVector = [](const Eigen::Vector3d& v) -> bool { return v.allFinite(); };
 
   // Helper to rate-limit messages
   static std::map<std::string, std::chrono::steady_clock::time_point> last_print;
-  auto now = std::chrono::steady_clock::now();
+  auto                                                                now = std::chrono::steady_clock::now();
   auto printLimited = [&](const std::string& key, const std::string& msg) {
-    constexpr double interval = 1.0; // seconds
-    auto it = last_print.find(key);
-    if (it == last_print.end() ||
-        std::chrono::duration<double>(now - it->second).count() > interval) {
+    constexpr double interval = 1.0;  // seconds
+    auto             it       = last_print.find(key);
+    if (it == last_print.end() || std::chrono::duration<double>(now - it->second).count() > interval) {
       std::cerr << msg << std::endl;
       last_print[key] = now;
     }
@@ -114,7 +113,9 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
 
   // Checks
   if (!validVector(agent_pos)) {
-    printLimited("agent_pos", "[RBLController]: Invalid agent_pos (NaN/Inf): " + std::to_string(agent_pos.x()) + ", " + std::to_string(agent_pos.y()) + ", " + std::to_string(agent_pos.z()));
+    printLimited("agent_pos",
+                 "[RBLController]: Invalid agent_pos (NaN/Inf): " + std::to_string(agent_pos.x()) + ", " +
+                     std::to_string(agent_pos.y()) + ", " + std::to_string(agent_pos.z()));
     healthy = false;
   }
 
@@ -155,24 +156,25 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
   if (!cloud) {
     printLimited("cloud_null", "[RBLController]: Point cloud pointer is null");
     healthy = false;
-  } else if (cloud->empty()) {
+  }
+  else if (cloud->empty()) {
     printLimited("cloud_empty", "[RBLController]: Point cloud is empty");
     healthy = false;
   }
 
   if (!healthy) {
     printLimited("summary", "[RBLController]: One or more input checks failed!");
-  }    
+  }
 
   return healthy;
 }
 
-std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
+std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
 {
   mrs_msgs::Reference p_ref;
 
   if (!inputsHealthy(agent_pos_, agent_vel_, neighbors_estimates_, cloud_, goal_, altitude_, rpy_)) {
-    std::cout << "[RBLController]: Inputs are not ok. Cannot return next reference" <<std::endl;
+    std::cout << "[RBLController]: Inputs are not ok. Cannot return next reference" << std::endl;
     return std::nullopt;
   }
 
@@ -181,7 +183,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   if (!no_ground_cloud) {
     return std::nullopt;
   }
-  
+
   if (params_.replanner) {
     // Trigger replanner asynchronously
     if (rbl_replanner_->replanTimer()) {
@@ -190,7 +192,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
         rbl_replanner_->setPCL(cloud_);
-        auto new_path = rbl_replanner_->plan();
+        auto                        new_path = rbl_replanner_->plan();
         std::lock_guard<std::mutex> lock(replanner_mutex_);
         inflated_map_ = rbl_replanner_->getInflatedCloud();
         return new_path;
@@ -210,112 +212,209 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     }
 
     waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
-    waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
-    destination_ = waypoint_;
+    waypoint_                = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+    destination_             = waypoint_;
   }
 
   if (params_.add_estimates_as_voxels && params_.use_map) {
     // addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);    
+    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
   }
 
   // Partitioning logic
   cell_A_.clear();
   sensed_cell_A_.clear();
   cell_S_.clear();
-  createAndPartitionCellA(cell_A_, sensed_cell_A_, cell_S_, plane_normals_, plane_points_, agent_pos_, rpy_, waypoint_,
-                          neighbors_pos_, no_ground_cloud, altitude_, c1_, seed_b_);
+  createAndPartitionCellA(cell_A_,
+                          sensed_cell_A_,
+                          cell_S_,
+                          plane_normals_,
+                          plane_points_,
+                          agent_pos_,
+                          rpy_,
+                          waypoint_,
+                          neighbors_pos_,
+                          no_ground_cloud,
+                          altitude_,
+                          c1_,
+                          seed_b_);
 
 
   std::vector<Eigen::Vector3d> emptyVec;
   if (params_.replanner) {
-    computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, waypoint_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    applyRules(beta_, th_, ph_, destination_, waypoint_, agent_pos_, c1_, c2_, c1_no_rot_,
-               params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6,
-               params_.d7, params_.betaD, params_.beta_min, params_.dt);
-  } else {
-    computeCentroid(c1_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, destination_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    computeCentroid(c2_, agent_pos_, agent_vel_, cell_S_, emptyVec, emptyVec, destination_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    computeCentroid(c1_no_rot_, agent_pos_, agent_vel_, cell_A_, plane_normals_, plane_points_, goal_, waypoint_fixed_distance_ , beta_, flag_threshold);
-    applyRules(beta_, th_, ph_, destination_, goal_, agent_pos_, c1_, c2_, c1_no_rot_,
-               params_.d1, params_.d2, params_.d3, params_.d4, params_.d5, params_.d6,
-               params_.d7, params_.betaD, params_.beta_min, params_.dt);
+    computeCentroid(c1_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_A_,
+                    plane_normals_,
+                    plane_points_,
+                    destination_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    computeCentroid(c2_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_S_,
+                    emptyVec,
+                    emptyVec,
+                    destination_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    computeCentroid(c1_no_rot_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_A_,
+                    plane_normals_,
+                    plane_points_,
+                    waypoint_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    applyRules(beta_,
+               th_,
+               ph_,
+               destination_,
+               waypoint_,
+               agent_pos_,
+               c1_,
+               c2_,
+               c1_no_rot_,
+               params_.d1,
+               params_.d2,
+               params_.d3,
+               params_.d4,
+               params_.d5,
+               params_.d6,
+               params_.d7,
+               params_.betaD,
+               params_.beta_min,
+               params_.dt);
   }
-  Eigen::Vector3d c1_full_cell = c1_; 
+  else {
+    computeCentroid(c1_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_A_,
+                    plane_normals_,
+                    plane_points_,
+                    destination_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    computeCentroid(c2_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_S_,
+                    emptyVec,
+                    emptyVec,
+                    destination_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    computeCentroid(c1_no_rot_,
+                    agent_pos_,
+                    agent_vel_,
+                    cell_A_,
+                    plane_normals_,
+                    plane_points_,
+                    goal_,
+                    waypoint_fixed_distance_,
+                    beta_,
+                    flag_threshold);
+    applyRules(beta_,
+               th_,
+               ph_,
+               destination_,
+               goal_,
+               agent_pos_,
+               c1_,
+               c2_,
+               c1_no_rot_,
+               params_.d1,
+               params_.d2,
+               params_.d3,
+               params_.d4,
+               params_.d5,
+               params_.d6,
+               params_.d7,
+               params_.betaD,
+               params_.beta_min,
+               params_.dt);
+  }
+  Eigen::Vector3d c1_full_cell = c1_;
   if (params_.move_centroid_to_sensed_cell) {
     c1_ = movePointToCell(c1_, sensed_cell_A_);
-    
-
   }
   // if c1_ is very close to uav.
   determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, c1_full_cell, rpy_, path_);
 
   return p_ref;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getGoal()// //{
+Eigen::Vector3d RBLController::getGoal()  // //{
 {
   return goal_;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getWaypoint()// //{
+Eigen::Vector3d RBLController::getWaypoint()  // //{
 {
   return waypoint_;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getCurrentPosition()// //{
+Eigen::Vector3d RBLController::getCurrentPosition()  // //{
 {
   return agent_pos_;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getCurrentVelocity()// //{
+Eigen::Vector3d RBLController::getCurrentVelocity()  // //{
 {
   return agent_vel_;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getCentroid()// //{
+Eigen::Vector3d RBLController::getCentroid()  // //{
 {
   return c1_;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::getSeedB()// //{
+Eigen::Vector3d RBLController::getSeedB()  // //{
 {
   return seed_b_;
-}// //}
+}  // //}
 
-std::vector<Eigen::Vector3d> RBLController::getCellA()// //{
+std::vector<Eigen::Vector3d> RBLController::getCellA()  // //{
 {
   return cell_A_;
-}// //}
+}  // //}
 
 std::vector<Eigen::Vector3d> RBLController::getSensedCellA()
 {
   return sensed_cell_A_;
 }
 
-std::vector<Eigen::Vector3d> RBLController::getInflatedMap()// //{
+std::vector<Eigen::Vector3d> RBLController::getInflatedMap()  // //{
 {
   return inflated_map_;
-}// //}
+}  // //}
 
-std::vector<Eigen::Vector3d> RBLController::getInjectionOfMap() 
+std::vector<Eigen::Vector3d> RBLController::getInjectionOfMap()
 {
   return injected_points_map_;
 }
 
-std::vector<Eigen::Vector3d> RBLController::getPath()// //{
+std::vector<Eigen::Vector3d> RBLController::getPath()  // //{
 {
   if (params_.replanner) {
     return path_;
   }
   return {};
-}// //}
+}  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,// //{
-                                                                                   const Eigen::Vector3d&                           agent_pos,
-                                                                                   const double&                                    altitude)
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
+RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+                                   const Eigen::Vector3d&                           agent_pos,
+                                   const double&                                    altitude)
 {
 
   if (cloud->size() <= 0) {
@@ -328,7 +427,8 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getGroundCleanClo
   }
 
   // if (params_.replanner) {
-  //   std::cout << "[RBLController]: Adding an artificial ground plan to the PointCloud at this height: " << agent_pos.z() - altitude << std::endl; //TODO uncoment
+  //   std::cout << "[RBLController]: Adding an artificial ground plan to the PointCloud at this height: " <<
+  //   agent_pos.z() - altitude << std::endl; //TODO uncoment
 
   //   Eigen::Vector3d patch_seed(agent_pos.x(), agent_pos.y(), agent_pos.z() - altitude);
   //   auto            ground_patch = getpointsInsideCircle(patch_seed, 3.0, params_.voxel_size);
@@ -348,23 +448,24 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getGroundCleanClo
   }
 
   return std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_no_ground_cloud);
-}// //}
+}  // //}
 
-void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
-                                              const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& neighbors_estimates, 
-                                              const double                                                    voxel_size, 
-                                              const double                                                    encumbrance)
+void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                              const std::vector<std::pair<Eigen::Vector3d,
+                                                                          Eigen::Vector3d>>&   neighbors_estimates,
+                                              const double                                     voxel_size,
+                                              const double                                     encumbrance)
 {
   const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
   injected_points_map_.clear();
 
   for (const auto& estimate_pair : neighbors_estimates) {
     const Eigen::Vector3d& position = estimate_pair.first;
-    
+
     const int center_nx = std::floor(position.x() / voxel_size);
     const int center_ny = std::floor(position.y() / voxel_size);
     const int center_nz = std::floor(position.z() / voxel_size);
-    
+
     for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
       for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
         for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
@@ -372,9 +473,9 @@ void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pc
           int current_ny = center_ny + dy;
           int current_nz = center_nz + dz;
 
-          double voxel_center_x = (current_nx + 0.5) * voxel_size;
-          double voxel_center_y = (current_ny + 0.5) * voxel_size;
-          double voxel_center_z = (current_nz + 0.5) * voxel_size;
+          double        voxel_center_x = (current_nx + 0.5) * voxel_size;
+          double        voxel_center_y = (current_ny + 0.5) * voxel_size;
+          double        voxel_center_z = (current_nz + 0.5) * voxel_size;
           pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
           cloud->push_back(p);
           Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
@@ -385,7 +486,7 @@ void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pc
   }
 }
 
-void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,// //{
+void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
                                 double                                           voxel_size)
 {
   // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
@@ -399,9 +500,9 @@ void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&
   sor.filter(*boost_voxelized_cloud);
 
   cloud = std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>(boost_voxelized_cloud.get(), [boost_voxelized_cloud](...) {});
-}// //}
+}  // //}
 
-std::vector<Eigen::Vector3d> RBLController::getpointsInsideCircle(const Eigen::Vector3d& center,// //{
+std::vector<Eigen::Vector3d> RBLController::getpointsInsideCircle(const Eigen::Vector3d& center,  // //{
                                                                   const double&          radius,
                                                                   const double&          step_size)
 {
@@ -433,9 +534,9 @@ std::vector<Eigen::Vector3d> RBLController::getpointsInsideCircle(const Eigen::V
   }
 
   return points;
-}// //}
+}  // //}
 
-void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,// //{
+void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,  // //{
                                        const Eigen::Vector3d&        center,
                                        const double&                 radius,
                                        const double&                 step_size,
@@ -448,7 +549,8 @@ void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,// /
   if (params_.use_garmin_alt) {
     r_low  = std::min(radius, std::max(altitude - params_.z_min, 0.));
     r_high = std::min(radius, params_.z_max - altitude);
-  } else {
+  }
+  else {
     r_low  = std::min(radius, std::max(z_center - params_.z_min, 0.));
     r_high = std::min(radius, params_.z_max - z_center);
   }
@@ -479,9 +581,9 @@ void RBLController::pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere,// /
       }
     }
   }
-}// //}
+}  // //}
 
-void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,// //{
+void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,  // //{
                                    std::vector<Eigen::Vector3d>&                    cell_S,
                                    std::vector<Eigen::Vector3d>&                    plane_normals,
                                    std::vector<Eigen::Vector3d>&                    plane_points,
@@ -592,9 +694,9 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
       cell_A.push_back(cell_S[i]);
     }
   }
-}// //}
+}  // //}
 
-bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,// //{
+bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,  // //{
                                        std::vector<Eigen::Vector3d>&                    cell_S,
                                        std::vector<Eigen::Vector3d>&                    plane_normals,
                                        std::vector<Eigen::Vector3d>&                    plane_points,
@@ -604,30 +706,30 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                        Eigen::Vector3d&                                 c1,
                                        Eigen::Vector3d&                                 seed_b)
-{ 
+{
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
   if (num_points == 0) {
     std::cout << "[RBLController]: Mapping cloud ptr to Eigen::Matrix3Xd not possible, cloud is empty." << std::endl;
     return false;
   }
-  Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(reinterpret_cast<float*>(cloud->points.data()), 3, num_points);
+  Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(
+      reinterpret_cast<float*>(cloud->points.data()),
+      3,
+      num_points);
   const Eigen::Matrix3Xf& pc = pcl_map;
 
-  Eigen::MatrixX4f bd(6, 4); 
+  Eigen::MatrixX4f bd(6, 4);
   // Populate the boundary matrix with plane equations
   // bd <<  1,  0,  0, -(agent_pos.x() + 10),
-  //     -1,  0,  0,  (agent_pos.x() - 10), 
-  //      0,  1,  0, -(agent_pos.y() + 10), 
-  //      0, -1,  0,  (agent_pos.y() - 10), 
-  //      0,  0,  1, -(agent_pos.z() + 10), 
-  //      0,  0, -1,  (agent_pos.z() - 10); 
-  bd <<  1,  0,  0, -(agent_pos.x() + params_.radius + 1.0),
-        -1,  0,  0,  (agent_pos.x() - params_.radius - 1.0), 
-         0,  1,  0, -(agent_pos.y() + params_.radius + 1.0), 
-         0, -1,  0,  (agent_pos.y() - params_.radius - 1.0), 
-         0,  0,  1, -(agent_pos.z() + params_.radius + 1.0), 
-         0,  0, -1,  (agent_pos.z() - params_.radius - 1.0); 
+  //     -1,  0,  0,  (agent_pos.x() - 10),
+  //      0,  1,  0, -(agent_pos.y() + 10),
+  //      0, -1,  0,  (agent_pos.y() - 10),
+  //      0,  0,  1, -(agent_pos.z() + 10),
+  //      0,  0, -1,  (agent_pos.z() - 10);
+  bd << 1, 0, 0, -(agent_pos.x() + params_.radius + 1.0), -1, 0, 0, (agent_pos.x() - params_.radius - 1.0), 0, 1, 0,
+      -(agent_pos.y() + params_.radius + 1.0), 0, -1, 0, (agent_pos.y() - params_.radius - 1.0), 0, 0, 1,
+      -(agent_pos.z() + params_.radius + 1.0), 0, 0, -1, (agent_pos.z() - params_.radius - 1.0);
 
   double dist_agent_c1 = (c1 - agent_pos).norm();
   // Eigen::Vector3d direction_vec = (agent_pos - c1)/dist_agent_c1;
@@ -635,27 +737,27 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // direction_vec[0] = cos(p_ref.heading);
   // direction_vec[1] = sin(p_ref.heading);
   // direction_vec[2] = 0;
-  int segments = 10;
-  bool result = false;
+  int                                                      segments = 10;
+  bool                                                     result   = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<< seed_b[1]<<" , "<< seed_b[2] << std::endl;
-  // std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
-  // Eigen::Vector3d seed_b;
-    Eigen::Vector3d v = c1 - seed_b;
-    double n = v.norm();
-    double eps = 1e-8;
-    seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
+  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<<
+  // seed_b[1]<<" , "<< seed_b[2] << std::endl; std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<<
+  // c1[2] << std::endl; Eigen::Vector3d seed_b;
+  Eigen::Vector3d v   = c1 - seed_b;
+  double          n   = v.norm();
+  double          eps = 1e-8;
+  seed_b              = seed_b + 2 * params_.dt * v / (n + eps);
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
-  double dist_agent_seed = (seed_b - agent_pos).norm();
-  Eigen::Vector3d direction_vec = (agent_pos - seed_b)/dist_agent_seed;
+  double          dist_agent_seed = (seed_b - agent_pos).norm();
+  Eigen::Vector3d direction_vec   = (agent_pos - seed_b) / dist_agent_seed;
 
-//   for (int i = 1; i < segments; ++i) {
+  //   for (int i = 1; i < segments; ++i) {
   for (int i = 0; i < segments; ++i) {
-    seed_b = seed_b + i * direction_vec * (dist_agent_seed/segments);
+    seed_b = seed_b + i * direction_vec * (dist_agent_seed / segments);
     // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
-    result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+    result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
     plane_data = ciri_solver_->getPlaneData();
 
     // if (plane_data.size() > 50) {
@@ -665,14 +767,16 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
     if (result) {
       break;
-    } else {
+    }
+    else {
       // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
     }
   }
 
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
-  } else {
+  }
+  else {
     // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
@@ -684,7 +788,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
   // }
 
-  std::vector<bool>                   remove_mask(cell_S.size(), false);
+  std::vector<bool> remove_mask(cell_S.size(), false);
 
   plane_normals.clear();
   plane_points.clear();
@@ -700,7 +804,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   // #pragma omp parallel for schedule(dynamic, 64)
   for (int i = 0; i < static_cast<int>(cell_S.size()); ++i) {
-    if (remove_mask[i]) continue;
+    if (remove_mask[i])
+      continue;
 
     const Eigen::Vector3d& point         = cell_S[i];
     bool                   should_remove = false;
@@ -713,7 +818,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
       }
     }
 
-    if (should_remove) remove_mask[i] = true;
+    if (should_remove)
+      remove_mask[i] = true;
   }
 
   for (size_t i = 0; i < cell_S.size(); ++i) {
@@ -722,23 +828,27 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     }
   }
   return true;
-}// //}
+}  // //}
 
-void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos)// //{
+void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f,
+                                                                 Eigen::Vector3f>>& plane_data,
+                                     std::vector<Eigen::Vector3d>&                  plane_normals,
+                                     std::vector<Eigen::Vector3d>&                  plane_points,
+                                     const Eigen::Vector3d&                         agent_pos)  // //{
 {
   plane_normals.clear();
   plane_points.clear();
-  
+
   plane_normals.reserve(plane_data.size());
   plane_points.reserve(plane_data.size());
 
   for (const auto& plane_pair : plane_data) {
     // plane_normals.push_back(plane_pair.first.cast<double>());
     // plane_points.push_back(plane_pair.second.cast<double>());
-    Eigen::Vector3d normal_d = plane_pair.first.cast<double>();
-    Eigen::Vector3d point_d = plane_pair.second.cast<double>();
-    Eigen::Vector3d agent_vec = agent_pos - point_d;
-    double dot_product = agent_vec.dot(normal_d);
+    Eigen::Vector3d normal_d    = plane_pair.first.cast<double>();
+    Eigen::Vector3d point_d     = plane_pair.second.cast<double>();
+    Eigen::Vector3d agent_vec   = agent_pos - point_d;
+    double          dot_product = agent_vec.dot(normal_d);
 
     if (dot_product > 0) {
       normal_d = -normal_d;
@@ -746,11 +856,10 @@ void RBLController::convertPlaneData(const std::vector<std::pair<Eigen::Vector3f
 
     plane_normals.push_back(normal_d);
     plane_points.push_back(point_d);
-
   }
-}// //}
+}  // //}
 
-void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,// //{
+void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,  // //{
                                         const Eigen::Vector3d& agent_pos,
                                         const Eigen::Vector3d& voxel_center,
                                         const double&          voxel_size)
@@ -763,9 +872,9 @@ void RBLController::closestPointOnVoxel(Eigen::Vector3d&       point,// //{
   point.x() = std::clamp(agent_pos.x(), min_corner.x(), max_corner.x());
   point.y() = std::clamp(agent_pos.y(), min_corner.y(), max_corner.y());
   point.z() = std::clamp(agent_pos.z(), min_corner.z(), max_corner.z());
-}// //}
+}  // //}
 
-void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,// //{
+void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&                    cell_A,  // //{
                                             std::vector<Eigen::Vector3d>&                    sensed_cell_A,
                                             std::vector<Eigen::Vector3d>&                    cell_S,
                                             std::vector<Eigen::Vector3d>&                    plane_normals,
@@ -788,96 +897,103 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
 
   if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
-      bool success = partitionCellACiri(cell_A, cell_S, plane_normals, plane_points, agent_pos, waypoint, neighbors_pos, cloud, c1, seed_b);
-      if (!success || cell_A.size()==0) {
+      bool success = partitionCellACiri(cell_A,
+                                        cell_S,
+                                        plane_normals,
+                                        plane_points,
+                                        agent_pos,
+                                        waypoint,
+                                        neighbors_pos,
+                                        cloud,
+                                        c1,
+                                        seed_b);
+      if (!success || cell_A.size() == 0) {
         std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
         seed_b = agent_pos;
       }
-    } else {
+    }
+    else {
       partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
-    }    
+    }
   }
   else {
     cell_A = cell_S;
   }
   sensed_cell_A = computeActivelySensedCell(cell_A, agent_pos, rpy);
-}// //}
+}  // //}
 
-std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy) // //{
+std::vector<Eigen::Vector3d> RBLController::computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A,
+                                                                      const Eigen::Vector3d&        agent_pos,
+                                                                      const Eigen::Vector3d&        rpy)  // //{
 {
-  std::vector<Eigen::Vector3d> sensed_cell = cell_A;
-  double lidar_tilt_rad = params_.lidar_tilt * M_PI / 180.0;
-  double lidar_fov_rad = params_.lidar_fov * M_PI / 180.0;
-  Eigen::Vector3d lidar_pos = agent_pos;
-  Eigen::Matrix3d R_rpy = Rx(rpy[0]) * Ry(rpy[1]) * Rz(rpy[2]); 
+  std::vector<Eigen::Vector3d> sensed_cell    = cell_A;
+  double                       lidar_tilt_rad = params_.lidar_tilt * M_PI / 180.0;
+  double                       lidar_fov_rad  = params_.lidar_fov * M_PI / 180.0;
+  Eigen::Vector3d              lidar_pos      = agent_pos;
+  Eigen::Matrix3d              R_rpy          = Rx(rpy[0]) * Ry(rpy[1]) * Rz(rpy[2]);
 
-  Eigen::Vector3d norm = Ry(lidar_tilt_rad) * Eigen::Vector3d(0,0,1);
-  norm = R_rpy * norm;
+  Eigen::Vector3d norm = Ry(lidar_tilt_rad) * Eigen::Vector3d(0, 0, 1);
+  norm                 = R_rpy * norm;
 
-  Eigen::Vector3d norm_upper = Ry(lidar_tilt_rad-lidar_fov_rad) * Eigen::Vector3d(0,0,1);
-  norm_upper = R_rpy * norm_upper;
+  Eigen::Vector3d norm_upper = Ry(lidar_tilt_rad - lidar_fov_rad) * Eigen::Vector3d(0, 0, 1);
+  norm_upper                 = R_rpy * norm_upper;
 
-  sensed_cell.erase(
-    std::remove_if(sensed_cell.begin(), sensed_cell.end(), [&](const Eigen::Vector3d& point) {
-      double res = norm.dot(point - lidar_pos);
-      double res_upper = norm_upper.dot(point - lidar_pos);
-      return res < 0 || res_upper > 0;
-    }),
-    sensed_cell.end()
-  );
+  sensed_cell.erase(std::remove_if(sensed_cell.begin(),
+                                   sensed_cell.end(),
+                                   [&](const Eigen::Vector3d& point) {
+                                     double res       = norm.dot(point - lidar_pos);
+                                     double res_upper = norm_upper.dot(point - lidar_pos);
+                                     return res < 0 || res_upper > 0;
+                                   }),
+                    sensed_cell.end());
   return sensed_cell;
-}// //}
+}  // //}
 
-Eigen::Matrix3d RBLController::Rx(double angle) // //{
+Eigen::Matrix3d RBLController::Rx(double angle)  // //{
 {
   Eigen::Matrix3d Rx;
-  Rx << 1, 0, 0,
-     0, std::cos(angle), -std::sin(angle),
-     0, std::sin(angle), std::cos(angle);
+  Rx << 1, 0, 0, 0, std::cos(angle), -std::sin(angle), 0, std::sin(angle), std::cos(angle);
   return Rx;
-}// //}
+}  // //}
 
-Eigen::Matrix3d RBLController::Ry(double angle) // //{
+Eigen::Matrix3d RBLController::Ry(double angle)  // //{
 {
   Eigen::Matrix3d Ry;
-  Ry << std::cos(angle), 0, std::sin(angle),
-        0, 1, 0,
-        -std::sin(angle), 0, std::cos(angle);
+  Ry << std::cos(angle), 0, std::sin(angle), 0, 1, 0, -std::sin(angle), 0, std::cos(angle);
   return Ry;
-}// //}
+}  // //}
 
-Eigen::Matrix3d RBLController::Rz(double angle) // //{
+Eigen::Matrix3d RBLController::Rz(double angle)  // //{
 {
   Eigen::Matrix3d Rz;
-  Rz << std::cos(angle), -std::sin(angle), 0,
-        std::sin(angle), std::cos(angle), 0,
-        0, 0, 1;
+  Rz << std::cos(angle), -std::sin(angle), 0, std::sin(angle), std::cos(angle), 0, 0, 0, 1;
   return Rz;
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell) // //{
+Eigen::Vector3d RBLController::movePointToCell(const Eigen::Vector3d&              point,
+                                               const std::vector<Eigen::Vector3d>& cell)  // //{
 {
   if (cell.empty()) {
-    return point; 
+    return point;
   }
 
   Eigen::Vector3d closest_point = cell[0];
-  
+
   double min_dist_sq = (point - cell[0]).squaredNorm();
 
   for (size_t i = 1; i < cell.size(); ++i) {
     double current_dist_sq = (point - cell[i]).squaredNorm();
 
     if (current_dist_sq < min_dist_sq) {
-      min_dist_sq = current_dist_sq;
+      min_dist_sq   = current_dist_sq;
       closest_point = cell[i];
     }
   }
   return closest_point;
-}// //}
+}  // //}
 
-void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //{
+void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // //{
                                     Eigen::Vector3d&              agent_pos,
                                     Eigen::Vector3d&              agent_vel,
                                     std::vector<Eigen::Vector3d>& cell,
@@ -911,19 +1027,19 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //
   }
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
 
-  double min_distance = std::numeric_limits<double>::max();
+  double min_distance        = std::numeric_limits<double>::max();
   size_t closest_plane_index = -1;
 
   for (size_t i = 0; i < plane_normals.size(); ++i) {
-    const Eigen::Vector3d& normal = plane_normals[i];
+    const Eigen::Vector3d& normal         = plane_normals[i];
     const Eigen::Vector3d& point_on_plane = plane_points[i];
-    
+
     Eigen::Vector3d normalized_normal = normal.normalized();
-    
+
     double distance = std::abs((centroid - point_on_plane).dot(normalized_normal));
-    
+
     if (distance < min_distance) {
-      min_distance = distance;
+      min_distance        = distance;
       closest_plane_index = i;
     }
   }
@@ -933,27 +1049,38 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,// //
   }
 
   // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << std::endl;
-  // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) + std::pow((centroid[2] - ), 2));
-  
+  // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) +
+  // std::pow((centroid[2] - ), 2));
+
   if (min_distance < params_.boundary_threshold && beta < 1.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
     beta = beta + 0.1;
-    // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " << min_distance << std::endl;
-    computeCentroid(centroid, agent_pos, agent_vel_, cell, plane_normals, plane_points, destination, waypoint_fixed_distance_ , beta, flag_threshold);
+    // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " <<
+    // min_distance << std::endl;
+    computeCentroid(centroid,
+                    agent_pos,
+                    agent_vel_,
+                    cell,
+                    plane_normals,
+                    plane_points,
+                    destination,
+                    waypoint_fixed_distance_,
+                    beta,
+                    flag_threshold);
   }
   // if (beta > 1.5) {
-  //   centroid = agent_pos;  
-  // } 
+  //   centroid = agent_pos;
+  // }
 
 
-}// //}
+}  // //}
 
-void RBLController::computeScalarValue(std::vector<double>&       scalar_values,// //{
-                                         const std::vector<double>& x_test,
-                                         const std::vector<double>& y_test,
-                                         const std::vector<double>& z_test,
-                                         const Eigen::Vector3d&     destination,
-                                         const Eigen::Vector3d&     goal,
-                                         double                     beta)
+void RBLController::computeScalarValue(std::vector<double>&       scalar_values,  // //{
+                                       const std::vector<double>& x_test,
+                                       const std::vector<double>& y_test,
+                                       const std::vector<double>& z_test,
+                                       const Eigen::Vector3d&     destination,
+                                       const Eigen::Vector3d&     goal,
+                                       double                     beta)
 {
   for (size_t i = 0; i < x_test.size(); ++i) {
     double distance = std::sqrt(std::pow((x_test[i] - destination[0]), 2) + std::pow((y_test[i] - destination[1]), 2) +
@@ -962,12 +1089,12 @@ void RBLController::computeScalarValue(std::vector<double>&       scalar_values,
     // double distance_to_goal= std::sqrt(std::pow((x_test[i] - goal[0]), 2) + std::pow((y_test[i] - goal[1]), 2) +
     //                             std::pow((z_test[i] - goal[2]), 2));
 
-    double scalar_value = std::exp(-distance / beta) ;
+    double scalar_value = std::exp(-distance / beta);
     scalar_values.push_back(scalar_value);
   }
-}// //}
+}  // //}
 
-void RBLController::applyRules(double&                beta,// //{
+void RBLController::applyRules(double&                beta,  // //{
                                double&                th,
                                double&                ph,
                                Eigen::Vector3d        destination,
@@ -1071,10 +1198,10 @@ void RBLController::applyRules(double&                beta,// //{
     }
 
 
-    double dx   = goal[0] - current_j_x;
-    double dy   = goal[1] - current_j_y;
-    double dz   = goal[2] - current_j_z;
-    double dist = sqrt(dx * dx + dy * dy + dz * dz);
+    double dx    = goal[0] - current_j_x;
+    double dy    = goal[1] - current_j_y;
+    double dz    = goal[2] - current_j_z;
+    double dist  = sqrt(dx * dx + dy * dy + dz * dz);
     double theta = atan2(dy, dx);    //!! azimuthal angle in xy plane
     double phi   = acos(dz / dist);  // polar angel from the z axis
 
@@ -1116,27 +1243,27 @@ void RBLController::applyRules(double&                beta,// //{
     destination[0]   = current_j_x + distance * cos(new_angle);
     destination[1]   = current_j_y + distance * sin(new_angle);
   }
-}// //}
+}  // //}
 
-Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,// //{ 
-                                                              const Eigen::Vector3d& agent_pos,
-                                                              const Eigen::Vector3d& goal)
+Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,  // //{
+                                                              const Eigen::Vector3d&              agent_pos,
+                                                              const Eigen::Vector3d&              goal)
 {
-  double min_dist_sq = std::numeric_limits<double>::max();
-  int closest_point_index = -1;
+  double min_dist_sq         = std::numeric_limits<double>::max();
+  int    closest_point_index = -1;
 
   // Find closest path point
   for (size_t i = 0; i < path.size(); ++i) {
     double dist_sq = (path[i] - agent_pos).squaredNorm();
     if (dist_sq < min_dist_sq) {
-      min_dist_sq = dist_sq;
+      min_dist_sq         = dist_sq;
       closest_point_index = i;
     }
   }
 
   // If we're at the end, return the goal
   if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
-    return path.back(); 
+    return path.back();
   }
 
   // Circle radius
@@ -1146,22 +1273,22 @@ Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<
   for (size_t i = closest_point_index; i < path.size() - 1; ++i) {
     Eigen::Vector3d p1 = path[i];
     Eigen::Vector3d p2 = path[i + 1];
-    Eigen::Vector3d d = p2 - p1; // segment direction
+    Eigen::Vector3d d  = p2 - p1;  // segment direction
 
     // Quadratic equation for intersection of segment with circle
     Eigen::Vector3d f = p1 - agent_pos;
-    double a = d.dot(d);
-    double b = 2 * f.dot(d);
-    double c = f.dot(f) - r * r;
+    double          a = d.dot(d);
+    double          b = 2 * f.dot(d);
+    double          c = f.dot(f) - r * r;
 
     double discriminant = b * b - 4 * a * c;
     if (discriminant < 0) {
-      continue; // no intersection
+      continue;  // no intersection
     }
 
     discriminant = std::sqrt(discriminant);
-    double t1 = (-b - discriminant) / (2 * a);
-    double t2 = (-b + discriminant) / (2 * a);
+    double t1    = (-b - discriminant) / (2 * a);
+    double t2    = (-b + discriminant) / (2 * a);
 
     // Check if intersections are within the segment
     if (t1 >= 0.0 && t1 <= 1.0) {
@@ -1174,34 +1301,34 @@ Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<
 
   // If no intersection found, fall back to goal
   return goal;
-}// //}
- 
-Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector3d>& path, // //{
-                                                 const Eigen::Vector3d& agent_pos,
-                                                 const Eigen::Vector3d& goal,
-                                                 Eigen::Vector3d& waypoint)
+}  // //}
+
+Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector3d>& path,  // //{
+                                                 const Eigen::Vector3d&              agent_pos,
+                                                 const Eigen::Vector3d&              goal,
+                                                 Eigen::Vector3d&                    waypoint)
 {
-  double min_dist_sq = std::numeric_limits<double>::max();
-  int closest_point_index = -1;
+  double min_dist_sq         = std::numeric_limits<double>::max();
+  int    closest_point_index = -1;
 
   for (size_t i = 0; i < path.size(); ++i) {
     double dist_sq = (path[i] - agent_pos).squaredNorm();
     if (dist_sq < min_dist_sq) {
-      min_dist_sq = dist_sq;
+      min_dist_sq         = dist_sq;
       closest_point_index = i;
     }
   }
 
   if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
-    return path.back(); 
+    return path.back();
   }
 
-  double dist_agent_goal = (goal - agent_pos).norm();
-  Eigen::Vector3d closest_point = path[closest_point_index];
-  Eigen::Vector3d next_point = path[closest_point_index + 1];
+  double          dist_agent_goal = (goal - agent_pos).norm();
+  Eigen::Vector3d closest_point   = path[closest_point_index];
+  Eigen::Vector3d next_point      = path[closest_point_index + 1];
   // Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
-  Eigen::Vector3d direction_vector = (next_point - agent_pos) / (next_point - agent_pos).norm();
-  double dist_agent_next_point = (next_point - agent_pos).norm();
+  Eigen::Vector3d direction_vector      = (next_point - agent_pos) / (next_point - agent_pos).norm();
+  double          dist_agent_next_point = (next_point - agent_pos).norm();
   // std::cout << "[RBLController]: Distance agent to next point on path: " << dist_agent_next_point << std::endl;
   // Eigen::Vector3d waypoint;
   // if (params_.ciri) {
@@ -1210,29 +1337,35 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   //   waypoint = closest_point + direction_vector * std::min(params_.radius, dist_agent_goal);
   // }
   // waypoint = closest_point + a * std::min(params_.radius, dist_agent_goal);
-  
+
   // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
   double tmp_min = std::min(params_.radius, dist_agent_next_point);
   if (dist_agent_goal > params_.radius) {
     // waypoint = agent_pos + direction_vector * std::max(tmp_min,params_.radius);
-    waypoint = waypoint + 2 * params_.dt * (agent_pos + direction_vector * std::max(tmp_min,params_.radius/2) - waypoint)/(agent_pos + direction_vector * std::max(tmp_min,params_.radius/2) - waypoint).norm();
-  } else {
-      // waypoint = agent_pos + direction_vector * std::max(tmp_min, dist_agent_goal);
-      // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
-      waypoint = waypoint + 2 *params_.dt * (agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint)/(agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint).norm();
-    }
-  
+    waypoint = waypoint + 2 * params_.dt *
+                              (agent_pos + direction_vector * std::max(tmp_min, params_.radius / 2) - waypoint) /
+                              (agent_pos + direction_vector * std::max(tmp_min, params_.radius / 2) - waypoint).norm();
+  }
+  else {
+    // waypoint = agent_pos + direction_vector * std::max(tmp_min, dist_agent_goal);
+    // waypoint = agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point);
+    waypoint = waypoint +
+               2 * params_.dt *
+                   (agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint) /
+                   (agent_pos + direction_vector * std::min(params_.radius, dist_agent_next_point) - waypoint).norm();
+  }
+
   return waypoint;
   // return next_point;
-}// //}
+}  // //}
 
-void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
-                                     const Eigen::Vector3d&         agent_pos,
-                                     const Eigen::Vector3d&         waypoint,
-                                     const Eigen::Vector3d&         goal,
-                                     const Eigen::Vector3d&         c1,
-                                    const Eigen::Vector3d&          c1_full,
-                                     const Eigen::Vector3d&         rpy,
+void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref,  // //{
+                                     const Eigen::Vector3d&              agent_pos,
+                                     const Eigen::Vector3d&              waypoint,
+                                     const Eigen::Vector3d&              goal,
+                                     const Eigen::Vector3d&              c1,
+                                     const Eigen::Vector3d&              c1_full,
+                                     const Eigen::Vector3d&              rpy,
                                      const std::vector<Eigen::Vector3d>& path)
 {
   if (params_.limited_fov) {
@@ -1240,32 +1373,35 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     // if (params_.replanner) {
     //   desired_heading = determineYaw(agent_pos, waypoint, path, rpy);
     // } else {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
+    desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
     // }
-     
-    double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
-    double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
-    double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 5) { //+-90 deg
+
+    double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    double diff                = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
+    double difference          = (diff < -M_PI) ? diff + 2 * M_PI : diff;
+    if (std::abs(difference) < M_PI / 5) {  //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
-    } else {
+    }
+    else {
       p_ref.position.x = agent_pos[0];
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
     }
 
     if ((c1 - c1_full).norm() > 0.5) {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
-    }else {
-      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
+      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    }
+    else {
+      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
     }
     p_ref.heading = desired_heading;
 
-    if ((agent_pos - goal).norm() <= 0.2) { //Arived at goal pos
-      p_ref.heading = rpy[2]; //keep the same heading
-    } else {
+    if ((agent_pos - goal).norm() <= 0.2) {  // Arived at goal pos
+      p_ref.heading = rpy[2];                // keep the same heading
+    }
+    else {
       p_ref.heading = desired_heading;
     }
   }
@@ -1274,68 +1410,79 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     p_ref.position.y = c1[1];
     p_ref.position.z = c1[2];
   }
-}// //}
+}  // //}
 
-mrs_msgs::Reference RBLController::pRefAgent(const Eigen::Vector3d& agent_pos, const double yaw)// //{
+mrs_msgs::Reference RBLController::pRefAgent(const Eigen::Vector3d& agent_pos,
+                                             const double           yaw)  // //{
 {
   mrs_msgs::Reference p_ref;
   p_ref.position.x = agent_pos.x();
   p_ref.position.y = agent_pos.y();
   p_ref.position.z = agent_pos.z();
-  p_ref.heading = yaw;
+  p_ref.heading    = yaw;
   return p_ref;
-}// //}
+}  // //}
 
-double RBLController::determineYaw(const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy)// //{
+double RBLController::determineYaw(const Eigen::Vector3d&              agent_pos,
+                                   const Eigen::Vector3d&              waypoint,
+                                   const std::vector<Eigen::Vector3d>& path,
+                                   const Eigen::Vector3d&              rpy)  // //{
 {
   Eigen::Vector3d direction_vector = waypoint - agent_pos;
-  double yaw_to_waypoint = std::atan2(direction_vector.y(), direction_vector.x());
+  double          yaw_to_waypoint  = std::atan2(direction_vector.y(), direction_vector.x());
 
   auto it = std::find(path.begin(), path.end(), waypoint);
   if (it == path.end() || std::next(it) == path.end()) {
     return yaw_to_waypoint;
   }
-  
+
   size_t waypoint_idx = std::distance(path.begin(), it);
 
-  Eigen::Vector3d direction_to_next = path[waypoint_idx + 1] - waypoint;
-  double yaw_to_next_waypoint = std::atan2(direction_to_next.y(), direction_to_next.x());
+  Eigen::Vector3d direction_to_next    = path[waypoint_idx + 1] - waypoint;
+  double          yaw_to_next_waypoint = std::atan2(direction_to_next.y(), direction_to_next.x());
 
   double distance_to_waypoint = direction_vector.norm();
-  double dis_interpolation = 3.0; // [m]
+  double dis_interpolation    = 3.0;  // [m]
 
   if (distance_to_waypoint > dis_interpolation) {
     return yaw_to_waypoint;
-  } else {
-    double current_yaw = rpy.z();
+  }
+  else {
+    double current_yaw           = rpy.z();
     double delta_yaw_to_waypoint = yaw_to_waypoint - current_yaw;
-    double delta_yaw_to_next = yaw_to_next_waypoint - current_yaw;
-    
-    while (delta_yaw_to_waypoint > M_PI) delta_yaw_to_waypoint -= 2 * M_PI;
-    while (delta_yaw_to_waypoint < -M_PI) delta_yaw_to_waypoint += 2 * M_PI;
+    double delta_yaw_to_next     = yaw_to_next_waypoint - current_yaw;
 
-    while (delta_yaw_to_next > M_PI) delta_yaw_to_next -= 2 * M_PI;
-    while (delta_yaw_to_next < -M_PI) delta_yaw_to_next += 2 * M_PI;
+    while (delta_yaw_to_waypoint > M_PI)
+      delta_yaw_to_waypoint -= 2 * M_PI;
+    while (delta_yaw_to_waypoint < -M_PI)
+      delta_yaw_to_waypoint += 2 * M_PI;
 
-    double t = dis_interpolation - distance_to_waypoint;
+    while (delta_yaw_to_next > M_PI)
+      delta_yaw_to_next -= 2 * M_PI;
+    while (delta_yaw_to_next < -M_PI)
+      delta_yaw_to_next += 2 * M_PI;
+
+    double t                      = dis_interpolation - distance_to_waypoint;
     double interpolated_delta_yaw = (1 - t) * delta_yaw_to_waypoint + t * delta_yaw_to_next;
 
-    double max_yaw_change = M_PI / 4.0; // 45 degrees
+    double max_yaw_change = M_PI / 4.0;  // 45 degrees
     if (interpolated_delta_yaw > max_yaw_change) {
       interpolated_delta_yaw = max_yaw_change;
-    } else if (interpolated_delta_yaw < -max_yaw_change) {
+    }
+    else if (interpolated_delta_yaw < -max_yaw_change) {
       interpolated_delta_yaw = -max_yaw_change;
     }
     return current_yaw + interpolated_delta_yaw;
   }
-}// //}
+}  // //}
 
-double RBLController::normalizeAngle(double angle)// //{
+double RBLController::normalizeAngle(double angle)  // //{
 {
   if (angle > M_PI) {
     angle -= 2 * M_PI;
-  } else if (angle < -M_PI) {
+  }
+  else if (angle < -M_PI) {
     angle += 2 * M_PI;
   }
   return angle;
-}// //}
+}  // //}

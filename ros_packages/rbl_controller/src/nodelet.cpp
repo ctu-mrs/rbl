@@ -1,4 +1,6 @@
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Vector3.h>
 #include <mrs_lib/mutex.h>
 #include <mrs_lib/param_loader.h>
 #include <mrs_lib/publisher_handler.h>
@@ -13,6 +15,7 @@
 #include <nodelet/nodelet.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <rbl_controller/PoseVelocityArray.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Range.h>
@@ -22,13 +25,9 @@
 #include <Eigen/Eigenvalues>
 #include <cmath>
 #include <string>
-#include <rbl_controller/PoseVelocityArray.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Vector3.h>
-
 #include "rbl_controller.h"
 
-class WrapperRosRBL : public nodelet::Nodelet// //{
+class WrapperRosRBL : public nodelet::Nodelet  // //{
 {
 public:
   virtual void onInit();
@@ -76,7 +75,7 @@ public:
                                                            const double           scale,
                                                            const std::string&     frame);
   ros::Publisher                            pub_viz_centroid_;
-  ros::Publisher                            pub_viz_seed_B_;  
+  ros::Publisher                            pub_viz_seed_B_;
   visualization_msgs::Marker                getVizCentroid(const Eigen::Vector3d& point,
                                                            const std::string&     frame);
   ros::Publisher                            pub_viz_target_;
@@ -106,10 +105,10 @@ public:
                                    double y,
                                    double z);
 
-  int _n_uavs_;                                   
-};// //}
+  int _n_uavs_;
+};  // //}
 
-void WrapperRosRBL::onInit()// //{
+void WrapperRosRBL::onInit()  // //{
 {
   ros::NodeHandle& nh = getPrivateNodeHandle();
   NODELET_DEBUG("Initializing nodelet...");
@@ -154,12 +153,14 @@ void WrapperRosRBL::onInit()// //{
   param_loader.loadParam("rbl_controller/boundary_threshold_speed", rbl_params_.boundary_threshold_speed);
   param_loader.loadParam("rbl_controller/lidar_tilt", rbl_params_.lidar_tilt);
   param_loader.loadParam("rbl_controller/lidar_fov", rbl_params_.lidar_fov);
-  param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);  
+  param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);
   param_loader.loadParam("rbl_controller/voxel_size", rbl_params_.voxel_size);
   param_loader.loadParam("rbl_controller/add_estimates_as_voxels", rbl_params_.add_estimates_as_voxels);
   param_loader.loadParam("rbl_controller/n_uavs", _n_uavs_);
   param_loader.loadParam("replanner/inflation_bonus", rbl_params_.inflation_bonus);
-  
+
+  rbl_params_.voxel_size = 2 * std::sqrt(rbl_params_.encumbrance / std::sqrt(3.0));
+
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -201,7 +202,8 @@ void WrapperRosRBL::onInit()// //{
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
   sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
   sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
-  sh_neighbors_estimates_ = mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray>(shopts, "neighbor_estimates_in");
+  sh_neighbors_estimates_ =
+      mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray>(shopts, "neighbor_estimates_in");
 
   tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
   tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
@@ -213,16 +215,16 @@ void WrapperRosRBL::onInit()// //{
 
   sc_set_ref_ = nh.serviceClient<mrs_msgs::ReferenceStampedSrv>("ref_out");
 
-  pub_viz_position_      = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
-  pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
-  pub_viz_seed_B_        = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
-  pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
-  pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
-  pub_viz_inflated_map_  = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
-  pub_viz_injected_voxels  = nh.advertise<sensor_msgs::PointCloud2>("viz/injected_vox", 1, true);
-  pub_viz_path_          = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
-  pub_viz_target_        = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
-  pub_viz_waypoint_      = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
+  pub_viz_position_       = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
+  pub_viz_centroid_       = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
+  pub_viz_seed_B_         = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
+  pub_viz_cell_A_         = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
+  pub_viz_cell_A_sensed_  = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
+  pub_viz_inflated_map_   = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
+  pub_viz_injected_voxels = nh.advertise<sensor_msgs::PointCloud2>("viz/injected_vox", 1, true);
+  pub_viz_path_           = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
+  pub_viz_target_         = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
+  pub_viz_waypoint_       = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
 
   transformer_ = std::make_shared<mrs_lib::Transformer>(nh, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
@@ -235,9 +237,9 @@ void WrapperRosRBL::onInit()// //{
 
   is_initialized_ = true;
   ROS_INFO("[WrapperRosRBL]: Initialization completed");
-}// //}
+}  // //}
 
-void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
+void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // //{
 {
   if (!is_initialized_) {
     return;
@@ -258,7 +260,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       geometry_msgs::PointStamped tmp_pt;
       tmp_pt.header = odom->header;
       tmp_pt.point  = odom->pose.pose.position;
-      auto res = transformer_->transformSingle(tmp_pt, _frame_);
+      auto res      = transformer_->transformSingle(tmp_pt, _frame_);
 
       if (!res) {
         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
@@ -269,7 +271,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       geometry_msgs::Vector3Stamped tmp_vel;
       tmp_vel.header = odom->header;
       tmp_vel.vector = odom->twist.twist.linear;
-      auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+      auto vel_res   = transformer_->transformSingle(tmp_vel, _frame_);
 
       if (!vel_res) {
         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity to control frame.");
@@ -286,20 +288,21 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
       // Roll (X-axis rotation)
       double sinr_cosp = 2.0 * (q_w * q_x + q_y * q_z);
       double cosr_cosp = 1.0 - 2.0 * (q_x * q_x + q_y * q_y);
-      euler.x() = std::atan2(sinr_cosp, cosr_cosp);
+      euler.x()        = std::atan2(sinr_cosp, cosr_cosp);
 
       // Pitch (Y-axis rotation)
       double sinp = 2.0 * (q_w * q_y - q_z * q_x);
-      if (std::abs(sinp) >= 1){
-        euler.y() = std::copysign(M_PI / 2, sinp); // Use 90 degrees if out of range
-      } else {
+      if (std::abs(sinp) >= 1) {
+        euler.y() = std::copysign(M_PI / 2, sinp);  // Use 90 degrees if out of range
+      }
+      else {
         euler.y() = std::asin(sinp);
       }
 
       // Yaw (Z-axis rotation)
       double siny_cosp = 2.0 * (q_w * q_z + q_x * q_y);
       double cosy_cosp = 1.0 - 2.0 * (q_y * q_y + q_z * q_z);
-      euler.z() = std::atan2(siny_cosp, cosy_cosp);
+      euler.z()        = std::atan2(siny_cosp, cosy_cosp);
 
       rbl_controller_->setRollPitchYaw(euler);
     }
@@ -332,7 +335,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
     //       geometry_msgs::Vector3Stamped tmp_vel;
     //       tmp_vel.header = odom->header;
     //       tmp_vel.vector = odom->twist.twist.linear;
-        
+
     //       auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
     //       if (!vel_res) {
     //         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
@@ -344,59 +347,61 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
     //   rbl_controller_->setGroupPositions(tmp_odoms);
     // }
 
-		std::vector<std::string> uav_list_;
-    std::vector<Eigen::Vector3d> tmp_odoms;
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZI>());
+    std::vector<std::string>                                 uav_list_;
+    std::vector<Eigen::Vector3d>                             tmp_odoms;
+    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> neighbors_estimates;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr                     pcl_cloud(new pcl::PointCloud<pcl::PointXYZI>());
 
-		uav_list_.reserve(_n_uavs_);
-		for (int i = 1; i <= _n_uavs_; ++i) {
-        	uav_list_.push_back("uav" + std::to_string(i));
-    	}
-		for (size_t i = 0; i < uav_list_.size(); ++i) {
-			const std::string& uav_name = uav_list_[i];
-			if (uav_name == _agent_name_) {
-				continue;
-			}
-			std::string uav_frame = uav_name + "/fcu";
+    uav_list_.reserve(_n_uavs_);
+    for (int i = 1; i <= _n_uavs_; ++i) {
+      uav_list_.push_back("uav" + std::to_string(i));
+    }
+    for (size_t i = 0; i < uav_list_.size(); ++i) {
+      const std::string& uav_name = uav_list_[i];
+      if (uav_name == _agent_name_) {
+        continue;
+      }
+      std::string uav_frame = uav_name + "/fcu";
 
-			auto tf = transformer_->getTransform(uav_frame, _frame_, ros::Time::now());
-			if (!tf) {
-				ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Failed to get TF for %s", uav_frame.c_str());
-				continue;
-			} else {
-				// ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Good warining - able to get this tf :) %s", uav_frame.c_str());
-			}
+      auto tf = transformer_->getTransform(uav_frame, _frame_, ros::Time::now());
+      if (!tf) {
+        ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Failed to get TF for %s", uav_frame.c_str());
+        continue;
+      }
+      else {
+        // ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Good warining - able to get this tf :) %s",
+        // uav_frame.c_str());
+      }
 
-			pcl::PointXYZI p;
-			p.x = tf.value().transform.translation.x;
-			p.y = tf.value().transform.translation.y;
-			p.z = tf.value().transform.translation.z;
-			p.intensity = 255.0f; 
+      pcl::PointXYZI p;
+      p.x         = tf.value().transform.translation.x;
+      p.y         = tf.value().transform.translation.y;
+      p.z         = tf.value().transform.translation.z;
+      p.intensity = 255.0f;
 
       Eigen::Vector3d pos;
-      pos.x() =  tf.value().transform.translation.x;
-      pos.y() =  tf.value().transform.translation.y;
-      pos.z() =  tf.value().transform.translation.y;
+      pos.x() = tf.value().transform.translation.x;
+      pos.y() = tf.value().transform.translation.y;
+      pos.z() = tf.value().transform.translation.y;
       tmp_odoms.push_back(pos);
 
       Eigen::Vector3d vel_vec(0, 0, 0);
       neighbors_estimates.emplace_back(pos, vel_vec);
 
-			int current_index = pcl_cloud->points.size();
-			pcl_cloud->points.push_back(p);
-			pcl_cloud->width = pcl_cloud->points.size();
-			pcl_cloud->height = 1;
-		}
+      int current_index = pcl_cloud->points.size();
+      pcl_cloud->points.push_back(p);
+      pcl_cloud->width  = pcl_cloud->points.size();
+      pcl_cloud->height = 1;
+    }
     sensor_msgs::PointCloud2 pcl_msg_output;
     pcl::toROSMsg(*pcl_cloud, pcl_msg_output);
-    pcl_msg_output.header.frame_id = _frame_; 
-    sensor_msgs::PointCloud2::ConstPtr pcl_msg = boost::make_shared<const sensor_msgs::PointCloud2>(pcl_msg_output); 
+    pcl_msg_output.header.frame_id             = _frame_;
+    sensor_msgs::PointCloud2::ConstPtr pcl_msg = boost::make_shared<const sensor_msgs::PointCloud2>(pcl_msg_output);
 
     rbl_controller_->setGroupPositions(tmp_odoms);
     rbl_controller_->setNeighborsEstimates(neighbors_estimates);
     rbl_controller_->setPCL(pcl_msg);
-    
+
 
     // if (sh_pcl_.newMsg()) {
     //   auto msg = sh_pcl_.getMsg();
@@ -437,9 +442,9 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
   if (!sc_set_ref_.call(msg_ref)) {
     ROS_ERROR("[WrapperRosRBL]: Failed to call service set reference");
   }
-}// //}
+}  // //}
 
-void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)// //{
+void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)  // //{
 {
 
   if (!is_initialized_) {
@@ -449,9 +454,10 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)/
   {
     std::scoped_lock lck(mtx_rbl_);
 
-    pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 2*rbl_params_.encumbrance, _frame_));
-    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2*rbl_params_.encumbrance, _frame_));
-    pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2*rbl_params_.encumbrance, _frame_));
+    pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 2 * rbl_params_.encumbrance, _frame_));
+    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2 * rbl_params_.encumbrance, _frame_));
+    pub_viz_position_.publish(
+        getVizPosition(rbl_controller_->getCurrentPosition(), 2 * rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
@@ -460,9 +466,9 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)/
     pub_viz_injected_voxels.publish(*getVizInflatedMap(rbl_controller_->getInjectionOfMap(), _frame_));
     pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }
-}// //}
+}  // //}
 
-bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,// //{
+bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,  // //{
                                          std_srvs::Trigger::Response&                 res)
 {
   res.success = true;
@@ -476,9 +482,9 @@ bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Req
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }
   return true;
-}// //}
+}  // //}
 
-bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,// //{
+bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,  // //{
                                            std_srvs::Trigger::Response&                 res)
 {
   res.success = true;
@@ -491,9 +497,9 @@ bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::R
     ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   }
   return true;
-}// //}
+}  // //}
 
-bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,// //{
+bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,  // //{
                                       mrs_msgs::Vec4::Response& res)
 {
   {
@@ -504,9 +510,9 @@ bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,// //{
   res.message = "Goal set";
   ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
   return true;
-}// //}
+}  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,// //{
+visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,  // //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -530,9 +536,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& 
   marker.color.a            = 0.3;
 
   return marker;
-}// //}
+}  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,// //{
+visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,  // //{
                                                              const double           scale,
                                                              const std::string&     frame)
 {
@@ -556,9 +562,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
   marker.color.a            = 0.3;
 
   return marker;
-}// //}
+}  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,// //{
+visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,  // //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -582,9 +588,9 @@ visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& 
   marker.color.a            = 0.3;
 
   return marker;
-}                                                           // //}
+}  // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,// //{
+std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,  // //{
                                                                      const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
@@ -604,10 +610,11 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::
   ros_msg->header.frame_id = frame;
 
   return ros_msg;
-}// //}
+}  // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,// //{
-                                                                           const std::string&                  frame)
+std::shared_ptr<sensor_msgs::PointCloud2>
+WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  // //{
+                                 const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
 
@@ -626,18 +633,18 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizInflatedMap(const
   ros_msg->header.frame_id = frame;
 
   return ros_msg;
-}// //}
+}  // //}
 
-nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,// //{
+nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
                                          const std::string&                  frame)
 {
   nav_msgs::Path path_msg;
-  path_msg.header.stamp = ros::Time::now();
+  path_msg.header.stamp    = ros::Time::now();
   path_msg.header.frame_id = frame;
 
   for (const auto& pt : path) {
     geometry_msgs::PoseStamped pose;
-    pose.header.stamp = ros::Time::now();
+    pose.header.stamp    = ros::Time::now();
     pose.header.frame_id = frame;
     pose.pose.position.x = pt.x();
     pose.pose.position.y = pt.y();
@@ -652,9 +659,9 @@ nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& pat
   }
 
   return path_msg;
-}// //}
+}  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,// //{
+visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,  // //{
                                                          const std::string&     frame)
 {
   visualization_msgs::Marker marker;
@@ -677,24 +684,24 @@ visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& 
   marker.color.a            = 1.0;
 
   return marker;
-}// //}
+}  // //}
 
-Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)// //{
+Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)  // //{
 {
   return Eigen::Vector3d(point.x, point.y, point.z);
-}// //}
+}  // //}
 
-Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)// //{
+Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)  // //{
 {
   return Eigen::Vector3d(vec.x, vec.y, vec.z);
-}// //}
+}  // //}
 
-geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)// //{
+geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)  // //{
 {
   return createPoint(vec(0), vec(1), vec(2));
-}// //}
+}  // //}
 
-geometry_msgs::Point WrapperRosRBL::createPoint(double x,// //{
+geometry_msgs::Point WrapperRosRBL::createPoint(double x,  // //{
                                                 double y,
                                                 double z)
 {
@@ -703,7 +710,7 @@ geometry_msgs::Point WrapperRosRBL::createPoint(double x,// //{
   point.y = y;
   point.z = z;
   return point;
-}// //}
+}  // //}
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(WrapperRosRBL,

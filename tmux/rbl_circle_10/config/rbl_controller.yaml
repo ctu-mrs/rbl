@@ -66,20 +66,20 @@ rbl_controller:
   d5: 0.5
   d6: 1.0
   d7: 0.2
-  radius: 10.0
-  betaD: 0.5
-  beta_min: 0.02
+  radius: 6.0
+  betaD: 1.0
+  beta_min: 0.15
   dt: 0.1
   step_size: 0.2
-  encumbrance: 0.6
+  encumbrance: 1.5
   use_z_rule: false
   cwvd_obs: 0.9
   cwvd_rob: 0.9
   use_garmin_alt: false
-  replanner: true
+  replanner: false 
   limited_fov: true
   ciri: true
-  boundary_threshold: 0.1
+  boundary_threshold: 0.4
   boundary_threshold_speed: 1.0
   lidar_tilt: 20.0 # [deg]
   lidar_fov: 59.0 #[deg]
