@@ -1,6 +1,6 @@
 simulation_rate: 200.0
 clock_rate: 100.0
-realtime_factor: 1.0
+realtime_factor: 0.8
 
 iterate_without_input: true
 
@@ -8,8 +8,8 @@ individual_takeoff_platform:
   enabled: false
 
 collisions:
-  enabled: false
-  crash: false
+  enabled: true
+  crash: true
 
   # if crash==false, then the collisions are elastic
   rebounce: 100.0
