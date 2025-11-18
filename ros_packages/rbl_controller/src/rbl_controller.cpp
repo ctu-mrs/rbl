@@ -16,7 +16,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
-    replanner_params.replanner_vox_size = 0.05;
+    replanner_params.replanner_vox_size = 0.1;
     replanner_params.replanner_freq = 0.5; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
@@ -236,45 +236,42 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
   // Inside your main loop:
   if (params_.replanner) {
 
-    // 1. Trigger replanning only if not already running
-    if ((!replanner_future_.valid() ||
-         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-        && rbl_replanner_->replanTimer()) {
 
-      // If the last replanning finished, retrieve result (if ready)
-      if (replanner_future_.valid() &&
-          replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+    // 1. If previous replanning finished, collect result ONCE
+    if (replanner_future_.valid() &&
+        replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+    {
         std::lock_guard<std::mutex> lock(replanner_mutex_);
-        path_ = replanner_future_.get();  // safely update last path
-      }
-
-      // Now start a *new* replanning task asynchronously
-      replanner_future_ = std::async(std::launch::async, [this]() {
-        rbl_replanner_->setAltitude(altitude_);
-        rbl_replanner_->setCurrentPosition(agent_pos_);
-        rbl_replanner_->setGoal(goal_);
-        // if (!pcl_init_) {
-          rbl_replanner_->setPCL(cloud_);
-          // pcl_init_ = true;
-        // }
-
-        auto new_path = rbl_replanner_->plan();
-        std::lock_guard<std::mutex> lock(replanner_mutex_);
-        inflated_map_ = rbl_replanner_->getInflatedCloud();
-        return new_path;
-      });
+        path_ = replanner_future_.get();        // safe: only once per cycle
     }
 
-    // 2. If replanning is still running, don’t block — use old path
-    if (replanner_future_.valid() &&
-        replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-      std::lock_guard<std::mutex> lock(replanner_mutex_);
-      path_ = replanner_future_.get();
+    // 2. Trigger new replanning if required and no replanner is running
+    if (params_.replanner &&
+        (!replanner_future_.valid() ||
+         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) &&
+        rbl_replanner_->replanTimer())
+    {
+        replanner_future_ = std::async(std::launch::async, [this]() {
+            rbl_replanner_->setAltitude(altitude_);
+            rbl_replanner_->setCurrentPosition(agent_pos_);
+            rbl_replanner_->setGoal(goal_);
+            rbl_replanner_->setPCL(cloud_);
+
+            auto new_path = rbl_replanner_->plan();
+
+            {
+                std::lock_guard<std::mutex> lock(replanner_mutex_);
+                inflated_map_ = rbl_replanner_->getInflatedCloud();
+            }
+
+            return new_path;
+        });
     }
 
     // 3. Continue control using the latest known path (non-blocking)
     if (path_.empty()) {
       p_ref = pRefAgent(goal_, rpy_[2]);
+      waypoint_ = goal_;
     } else {
       waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
       waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
