@@ -1,7 +1,7 @@
 
 #include "rbl_controller.h"
 
-RBLController::RBLController(const RBLParams& params) : params_(params)// //{
+RBLController::RBLController(const RBLParams& params) : params_(params)// //
 {
   radius_sensing_ = params_.radius / params_.cwvd_obs + sqrt((params_.voxel_size / 2) * (params_.voxel_size / 2));
   beta_ = params_.beta_min;
@@ -16,7 +16,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
-    replanner_params.replanner_vox_size = 0.1;
+    replanner_params.replanner_vox_size = 0.05;
     replanner_params.replanner_freq = 0.5; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
@@ -25,7 +25,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //{
   if (params.ciri) {
     ciriParams  ciri_params;
     ciri_params.epsilon = 1e-6;
-    ciri_params.inflation = params.encumbrance + params.voxel_size/2;
+    ciri_params.inflation = params.encumbrance + params.voxel_size;
     ciri_solver_ = std::make_shared<CIRI>(ciri_params);
   }
 }// //}
@@ -253,10 +253,10 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
         rbl_replanner_->setAltitude(altitude_);
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
-        if (!pcl_init_) {
+        // if (!pcl_init_) {
           rbl_replanner_->setPCL(cloud_);
-          pcl_init_ = true;
-        }
+          // pcl_init_ = true;
+        // }
 
         auto new_path = rbl_replanner_->plan();
         std::lock_guard<std::mutex> lock(replanner_mutex_);
@@ -699,9 +699,16 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // direction_vec[0] = cos(p_ref.heading);
   // direction_vec[1] = sin(p_ref.heading);
   // direction_vec[2] = 0;
-  int segments = 10;
+  int segments = 5;
   bool result = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
+
+  if (!pcl_init_) {
+    c1 = agent_pos; 
+    seed_b = agent_pos; 
+    pcl_init_= true;
+    waypoint_ = agent_pos;
+  }
 
   // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<< seed_b[1]<<" , "<< seed_b[2] << std::endl;
   // std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
@@ -713,7 +720,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   double dist_agent_seed = (seed_b - agent_pos).norm();
-  Eigen::Vector3d direction_vec = (agent_pos - seed_b)/dist_agent_seed;
+  Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
 
 //   for (int i = 1; i < segments; ++i) {
   for (int i = 0; i < segments; ++i) {
@@ -730,14 +737,15 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     if (result) {
       break;
     } else {
-      // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+      std::cout << "[RBLController]: Moving seed closer to the uav for ciri "<< i << std::endl;
     }
+  
   }
 
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
   } else {
-    // std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
+    std::cout << "[RBLController]: Convex decomposition failed. " << std::endl;
     return false;
   }
 
@@ -1078,7 +1086,7 @@ void RBLController::applyRules(double&                beta,// //{
       th = std::max(0.0, th - 2 * dt);
     }
 
-    th = 0;
+    // th = 0;
 
 
     // third condition
@@ -1180,6 +1188,7 @@ void RBLController::applyRules(double&                beta,// //{
     destination[0]   = current_j_x + distance * cos(new_angle);
     destination[1]   = current_j_y + distance * sin(new_angle);
   }
+  std::cout << "beta: " << beta <<  ",   th: " << th << std::endl;
 }// //}
 
 Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,// //{ 

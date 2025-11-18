@@ -74,7 +74,7 @@ mrs_uav_managers:
       tilt: 60.0 # [deg]
 
     default_constraints:
-      gps_baro: "slow"
+      gps_baro: "medium"
 
 mrs_uav_trajectory_generation:
 
