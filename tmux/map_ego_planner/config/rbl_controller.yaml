@@ -19,10 +19,10 @@ rbl_controller:
   d5: 0.5
   d6: 1.0
   d7: 0.2
-  radius: 4.0
-  betaD: 0.1
-  beta_min: 0.01
-  dt: 0.2
+  radius: 5.0
+  betaD: 0.5
+  beta_min: 0.1
+  dt: 0.075
   step_size: 0.05
   encumbrance: 0.30
   use_z_rule: false
@@ -32,7 +32,7 @@ rbl_controller:
   replanner: true
   limited_fov: false
   ciri: true
-  boundary_threshold: 0.2
+  boundary_threshold: 0.1
   boundary_threshold_speed: 0.5
   lidar_tilt: 15.0 # [deg]
   lidar_fov: 360.0 #[deg]
@@ -40,4 +40,4 @@ rbl_controller:
   voxel_size: 0.1
 
 replanner:
-  inflation_bonus: 0.0
+  inflation_bonus: 0.1

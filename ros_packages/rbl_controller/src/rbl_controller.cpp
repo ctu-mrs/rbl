@@ -25,7 +25,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //
   if (params.ciri) {
     ciriParams  ciri_params;
     ciri_params.epsilon = 1e-6;
-    ciri_params.inflation = params.encumbrance + params.voxel_size;
+    ciri_params.inflation = params.encumbrance + 0.5*params.voxel_size;
     ciri_solver_ = std::make_shared<CIRI>(ciri_params);
   }
 }// //}

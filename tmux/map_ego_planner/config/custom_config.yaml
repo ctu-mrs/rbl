@@ -74,7 +74,7 @@ mrs_uav_managers:
       tilt: 60.0 # [deg]
 
     default_constraints:
-      gps_baro: "medium"
+      gps_baro: "fast"
 
 mrs_uav_trajectory_generation:
 
@@ -84,15 +84,15 @@ mrs_uav_trajectory_generation:
   # check and fix the max deviation between the input path and the output trajectory
   # by subsampling the original path with more waypoints
   check_trajectory_deviation:
-    max_deviation: 0.20 # [m]
+    max_deviation: 0.10 # [m]
 
   # allows to neglect waypoints in the original path if the new path
   # does not violate max distance from the original path.
   # This makes for similar but sparser paths, which are easier for the
   # trajectory generator to work with.
-  path_straightener:
-    enabled: true
-    max_deviation: 0.20 # [m]
+  # path_straightener:
+  #   enabled: true
+  #   max_deviation: 0.20 # [m]
 
 
 
