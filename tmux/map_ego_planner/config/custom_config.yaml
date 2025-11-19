@@ -38,11 +38,11 @@ mrs_uav_managers:
       takeoff_height: 1.5
   constraint_manager:
 
-    superfast:
+    fast:
 
       horizontal:
-        speed: 4.0        # [m/s]
-        acceleration: 8.0 #4.0 # [m/s^2]
+        speed: 40.0        # [m/s]
+        acceleration: 48.0 #4.0 # [m/s^2]
         jerk: 60.0        # [m/s^3]
         snap: 60.0        # [m/s^4]
 
@@ -50,7 +50,7 @@ mrs_uav_managers:
 
         ascending:
           speed: 4.0 #4.0        # [m/s]
-          acceleration: 8.0 #2.0 # [m/s^2]
+          acceleration: 48.0 #2.0 # [m/s^2]
           jerk: 60.0        # [m/s^3]
           snap: 60.0        # [m/s^4]
 

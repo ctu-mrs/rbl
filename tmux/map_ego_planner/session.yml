@@ -38,7 +38,7 @@ windows:
   # - uav_ego_planner:
   #     layout: tiled
   #     panes:
-  #       - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0
+  #       - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT
   - goto:
       layout: tiled
       panes:
