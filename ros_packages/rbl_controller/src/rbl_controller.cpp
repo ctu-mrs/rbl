@@ -12,12 +12,12 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //
     replanner_params.voxel_size = params.voxel_size;
     replanner_params.visibility= params.visibility;
     replanner_params.map_width = 15.0;
-    replanner_params.map_height = 7.0;
+    replanner_params.map_height = 4.0;
     replanner_params.weight_safety = 1.0;
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.1;
-    replanner_params.replanner_freq = 0.5; //[Hz]
+    replanner_params.replanner_freq = 0.33; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -271,7 +271,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     // 3. Continue control using the latest known path (non-blocking)
     if (path_.empty()) {
       p_ref = pRefAgent(goal_, rpy_[2]);
-      waypoint_ = goal_;
+      // waypoint_ = goal_;
     } else {
       waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
       waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
@@ -1083,7 +1083,7 @@ void RBLController::applyRules(double&                beta,// //{
       th = std::max(0.0, th - 2 * dt);
     }
 
-    // th = 0;
+    th = 0;
 
 
     // third condition

@@ -35,10 +35,10 @@ windows:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForRos; roslaunch map_generator map_generator.launch map_frame:=$UAV_NAME/world_origin map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT 
-  - uav_ego_planner:
-      layout: tiled
-      panes:
-        - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0
+  # - uav_ego_planner:
+  #     layout: tiled
+  #     panes:
+  #       - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT max_vel:=1.0
   - goto:
       layout: tiled
       panes:
