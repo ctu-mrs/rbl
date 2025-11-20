@@ -17,7 +17,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.1;
-    replanner_params.replanner_freq = 0.33; //[Hz]
+    replanner_params.replanner_freq = 0.3; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -1060,6 +1060,7 @@ void RBLController::applyRules(double&                beta,// //{
   double current_j_y = agent_pos[1];
   double current_j_z = agent_pos[2];
 
+
   if (!params_.only_2d) {
     // first condition
     double dist_c1_c2 = sqrt(pow((c1[0] - c2[0]), 2) + pow((c1[1] - c2[1]), 2) + pow((c1[2] - c2[2]), 2));
@@ -1184,8 +1185,9 @@ void RBLController::applyRules(double&                beta,// //{
     double distance  = sqrt(pow((goal[0] - current_j_x), 2) + pow((goal[1] - current_j_y), 2));
     destination[0]   = current_j_x + distance * cos(new_angle);
     destination[1]   = current_j_y + distance * sin(new_angle);
+
+    // std::cout << "beta: " << beta <<  ",   th: " << th << std::endl;
   }
-  std::cout << "beta: " << beta <<  ",   th: " << th << std::endl;
 }// //}
 
 Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path,// //{ 
@@ -1316,7 +1318,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 4){ //+-90 deg
+    if (std::abs(difference) < M_PI / 2){ //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
@@ -1333,8 +1335,10 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     }
     p_ref.heading = desired_heading;
 
-    if ((agent_pos - goal).norm() <= 0.2) { //Arived at goal pos
-      p_ref.heading = rpy[2]; //keep the same heading
+    if ((agent_pos - goal).norm() <= 0.3) { //Arived at goal pos
+      // p_ref.heading = rpy[2]; //keep the same heading
+      p_ref.heading = desired_heading;
+      std::cout << "[RBLController]: Arrived at goal pos" << std::endl; //keep the same heading
     } else {
       p_ref.heading = desired_heading;
     }

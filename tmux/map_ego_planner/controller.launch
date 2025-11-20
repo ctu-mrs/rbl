@@ -6,7 +6,7 @@
     <arg name="RUN_TYPE"
          default="simulation" />
 
-    <arg name="drone_id" default="0"/>
+    <arg name="drone_id" default="1"/>
     <arg name="custom_config"
          default="" />
     <arg name="control_frame"

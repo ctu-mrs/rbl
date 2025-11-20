@@ -9,6 +9,13 @@ rate:
 
 rbl_controller:
   only_2d: false
+  replanner: true
+  ciri: true 
+  limited_fov: true 
+  # only_2d: true 
+  # replanner: false
+  # ciri: false
+  # limited_fov: false 
   z_min: 0.0
   z_max: 5.0
   z_ref: 2.0
@@ -29,13 +36,12 @@ rbl_controller:
   cwvd_obs: 0.9
   cwvd_rob: 0.9
   use_garmin_alt: false
-  replanner: true
-  limited_fov: true
-  ciri: true
   boundary_threshold: 0.0
   boundary_threshold_speed: 0.0
-  lidar_tilt: 15.0 # [deg]
-  lidar_fov: 59.0 #[deg]
+  # lidar_tilt: 15.0 # [deg]
+  # lidar_fov: 59.0 #[deg]
+  lidar_tilt: 0.0 # [deg]
+  lidar_fov: 360.0 #[deg]
   move_centroid_to_sensed_cell: true
   voxel_size: 0.1
 
