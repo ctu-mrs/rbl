@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # -----------------------------
 # Parameters
 # -----------------------------
-CSV_FILE = "2025-11-20-13-04-25.bag.csv"
+CSV_FILE = "2025-11-21-11-01-38.bag.csv"
 DIST_THRESHOLD = 0.20    # meters to goal
 SPEED_THRESHOLD = 0.01   # minimum speed to start plotting
 WINDOW_LENGTH = 11       # Savitzky-Golay filter (must be odd)

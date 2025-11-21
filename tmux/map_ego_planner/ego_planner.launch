@@ -6,10 +6,10 @@
     <arg name="map_size_z" default="4" />
     <arg name="init_x" default="$(eval map_size_x / 2.0 )" />
     <arg name="init_y" default="0.0" />
-    <arg name="init_z" default="0.0" />
+    <arg name="init_z" default="0.5" />
     <arg name="flight_type" default="1"/>
     <arg name="vel_max" default="4.0" />
-    <arg name="acc_max" default="8.0" />
+    <arg name="acc_max" default="4.0" />
     <arg name="jerk_max" default="60.0" />
     <arg name="point_num" default="1"/>
     <arg name="target0_x" default="0.0"/>
