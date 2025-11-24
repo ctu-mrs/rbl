@@ -678,6 +678,7 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std
 {
   const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
   // injected_points_map_.clear();
+  //
 
   for (const auto& state: group_states) {
     const Eigen::Vector3d& position = state.position;
@@ -690,20 +691,40 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std
     for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
       for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
         for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
+
+          double dist = std::sqrt(dx*dx + dy*dy + dz*dz) * voxel_size;
+
+          if (dist > encumbrance + voxel_size) continue;
+
           int current_nx = center_nx + dx;
           int current_ny = center_ny + dy;
           int current_nz = center_nz + dz;
 
-          double        voxel_center_x = (current_nx + 0.5) * voxel_size;
-          double        voxel_center_y = (current_ny + 0.5) * voxel_size;
-          double        voxel_center_z = (current_nz + 0.5) * voxel_size;
-          pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
-          cloud->push_back(p);
-          Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
-          // injected_points_map_.push_back(point);
+          double voxel_center_x = (current_nx + 0.5) * voxel_size;
+          double voxel_center_y = (current_ny + 0.5) * voxel_size;
+          double voxel_center_z = (current_nz + 0.5) * voxel_size;
+
+          cloud->push_back(pcl::PointXYZ(voxel_center_x, voxel_center_y, voxel_center_z));
         }
       }
     }
+    // for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
+    //   for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
+    //     for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
+    //       int current_nx = center_nx + dx;
+    //       int current_ny = center_ny + dy;
+    //       int current_nz = center_nz + dz;
+
+    //       double        voxel_center_x = (current_nx + 0.5) * voxel_size;
+    //       double        voxel_center_y = (current_ny + 0.5) * voxel_size;
+    //       double        voxel_center_z = (current_nz + 0.5) * voxel_size;
+    //       pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
+    //       cloud->push_back(p);
+    //       Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
+    //       // injected_points_map_.push_back(point);
+    //     }
+    //   }
+    // }
   }
     return cloud;
 }
