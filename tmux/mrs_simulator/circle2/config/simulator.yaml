@@ -1,0 +1,52 @@
+simulation_rate: 200.0
+clock_rate: 100.0
+realtime_factor: 0.8
+
+iterate_without_input: true
+
+individual_takeoff_platform:
+  enabled: false
+
+collisions:
+  enabled: true
+  crash: true
+
+  # if crash==false, then the collisions are elastic
+  rebounce: 100.0
+
+# randomization of the initial conditions around the desired spawn point
+randomization:
+
+  enabled: false
+
+  bounds:
+    x: 15.0
+    y: 15.0
+    z: 15.0
+
+ground:
+  enabled: true
+  z: 0.0 # [m]
+#
+
+
+uav_names: [
+  "uav1",
+  "uav2",
+]
+
+uav1:
+  type: "x500"
+  spawn:
+    x: 15.00
+    y: 0.00
+    z: 5.00
+    heading: -0.05
+
+uav2:
+  type: "x500"
+  spawn:
+    x: -15.00
+    y: 0.00
+    z: 5.00
+    heading: -0.04

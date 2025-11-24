@@ -9,35 +9,9 @@ connections:
   - root_frame_id: "uav2/fcu"
     equal_frame_id: "uav2/world_origin"
 
-  - root_frame_id: "uav3/fcu"
-    equal_frame_id: "uav3/world_origin"
-
-  - root_frame_id: "uav4/fcu"
-    equal_frame_id: "uav4/world_origin"
-
-  - root_frame_id: "uav5/fcu"
-    equal_frame_id: "uav5/world_origin"
-      
-  - root_frame_id: "uav6/fcu"
-    equal_frame_id: "uav6/world_origin"
-
-  - root_frame_id: "uav7/fcu"
-    equal_frame_id: "uav7/world_origin"
-    
-  - root_frame_id: "uav8/fcu"
-    equal_frame_id: "uav8/world_origin"
-      
-  - root_frame_id: "uav9/fcu"
-    equal_frame_id: "uav9/world_origin"
-
-  - root_frame_id: "uav10/fcu"
-    equal_frame_id: "uav10/world_origin"
-    
-
   - root_frame_id: "simulator_origin"
     equal_frame_id: "simulator_origin"
 
- 
   # you can add further connections here:
   # - root_frame_id: "another_root"
   #   equal_frame_id: "another_equal"
@@ -46,4 +20,4 @@ connections:
 ignore_older_messages: false
 
 # if no update of a certain connection happens for this duration, it will be forced
-max_update_period: 0.1 # seconds (set to zero to disable)
+max_update_period: 0.05 # seconds (set to zero to disable)
