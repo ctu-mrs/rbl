@@ -165,7 +165,7 @@ void WrapperRosRBL::onInit()  // //{
   param_loader.loadParam("rbl_controller/add_estimates_as_voxels", rbl_params_.add_estimates_as_voxels);
   param_loader.loadParam("replanner/inflation_bonus", rbl_params_.inflation_bonus);
 
-  rbl_params_.voxel_size = 2 * std::sqrt(rbl_params_.encumbrance / std::sqrt(3.0));
+  // rbl_params_.voxel_size = 2 * std::sqrt(rbl_params_.encumbrance / std::sqrt(3.0));
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
