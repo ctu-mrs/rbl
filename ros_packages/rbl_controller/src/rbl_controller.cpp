@@ -1308,29 +1308,29 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
     double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
     double diff                = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference          = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 5) {  //+-90 deg
+
+    if (std::abs(difference) < M_PI / 2){ //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
-    }
-    else {
+    } else {
       p_ref.position.x = agent_pos[0];
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
     }
 
-    if ((c1 - c1_full).norm() > 0.5) {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
-    }
-    else {
-      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
+    if ((c1 - c1_full).norm() < 0.5) {
+      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
+    }else {
+      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
     }
     p_ref.heading = desired_heading;
 
-    if ((agent_pos - goal).norm() <= 0.2) {  // Arived at goal pos
-      p_ref.heading = rpy[2];                // keep the same heading
-    }
-    else {
+    if ((agent_pos - goal).norm() <= 0.3) { //Arived at goal pos
+      // p_ref.heading = rpy[2]; //keep the same heading
+      p_ref.heading = desired_heading;
+      std::cout << "[RBLController]: Arrived at goal pos" << std::endl; //keep the same heading
+    } else {
       p_ref.heading = desired_heading;
     }
   }
