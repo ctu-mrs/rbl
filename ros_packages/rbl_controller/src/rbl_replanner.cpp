@@ -173,19 +173,41 @@ bool RBLReplanner::percentageCompleted(const double percentage, const std::vecto
   return false;
 }// //}
 
-bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)// //{
-{
-  int x, y, z;
-  for (size_t i = 0; i< _path.size(); ++i) {
-    x = std::get<0>(_path[i]);
-    y = std::get<1>(_path[i]);
-    z = std::get<2>(_path[i]);
-    if (grid->at(x, y, z) == 1) {
-      return true;
+
+bool RBLReplanner::pathBlocked(std::vector<std::tuple<int,int,int>>& path, std::optional<VoxelGrid>& grid) {
+    if (!grid.has_value())
+        return false;        // or true, depending on your logic
+
+    const VoxelGrid& g = grid.value();
+
+    for (const auto& p : path) {
+        int x = std::get<0>(p);
+        int y = std::get<1>(p);
+        int z = std::get<2>(p);
+
+        if (g.at(x, y, z) == 1)
+            return true;
     }
-  }
-  return false;
-}// //}
+
+    return false;
+}
+// bool RBLReplanner::pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid)// //{
+// {
+// if (!grid) { 
+//   return false; 
+// }
+
+//   int x, y, z;
+//   for (size_t i = 0; i< _path.size(); ++i) {
+//     x = std::get<0>(_path[i]);
+//     y = std::get<1>(_path[i]);
+//     z = std::get<2>(_path[i]);
+//     if (grid->at(x, y, z) == 1) {
+//       return true;
+//     }
+//   }
+//   return false;
+// }// //}
 
 bool RBLReplanner::replanTimer()// //{
 { 

@@ -138,7 +138,7 @@ private:
 
   bool shouldReplan(const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos, std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid);
   bool percentageCompleted(const double percentage, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& agent_pos);
-  bool pathBlocked(std::vector<std::tuple<int, int, int>> _path, std::optional<VoxelGrid>& grid);
+  bool pathBlocked(std::vector<std::tuple<int, int, int>>& _path, std::optional<VoxelGrid>& grid);
 
   void initializationPlan();
   double roundToNextMultiple(double value, double multiple);

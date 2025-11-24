@@ -7,14 +7,14 @@
     <arg name="init_x" default="$(eval map_size_x / 2.0 )" />
     <arg name="init_y" default="0.0" />
     <arg name="init_z" default="0.5" />
-    <arg name="flight_type" default="1"/>
+    <arg name="flight_type" default="2"/>
     <arg name="vel_max" default="4.0" />
     <arg name="acc_max" default="4.0" />
     <arg name="jerk_max" default="60.0" />
     <arg name="point_num" default="1"/>
-    <arg name="target0_x" default="0.0"/>
-    <arg name="target0_y" default="0.0"/>
-    <arg name="target0_z" default="0.0"/>
+    <arg name="target0_x" value="-15.0"/>
+    <arg name="target0_y" value="0.0"/>
+    <arg name="target0_z" value="0.5"/>
     <arg name="target1_x" default="0.0"/>
     <arg name="target1_y" default="0.0"/>
     <arg name="target1_z" default="0.0"/>
@@ -56,7 +56,7 @@
         <arg name="max_acc" value="$(arg acc_max)" />
         <arg name="max_jer" value="$(arg jerk_max)" />
         <!--always set to 1.5 times grater than sensing horizen-->
-        <arg name="planning_horizon" value="10.0" />
+        <arg name="planning_horizon" value="7.0" />
         <arg name="use_multitopology_trajs" value="false" />
         <!-- 1: use 2D Nav Goal to select goal  -->
         <!-- 2: use global waypoints below  -->

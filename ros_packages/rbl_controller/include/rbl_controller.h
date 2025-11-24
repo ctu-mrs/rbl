@@ -128,16 +128,19 @@ private:
   bool                                                      flag_threshold;
   double                                                    radius_sensing_;
   double                                                    altitude_;
+  double                                                    last_altitude_;
   double                                                    beta_;
   double                                                    pcl_init_;
   double                                                    ph_; //vertical
   double                                                    th_; //azimuthal
   Eigen::Vector3d                                           goal_; //final goal where the uav will converge
+  Eigen::Vector3d                                           last_goal_; //final goal where the uav will converge
   Eigen::Vector3d                                           destination_; //rotated current goal/waypoint
   Eigen::Vector3d                                           waypoint_ = Eigen::Vector3d::Zero();
   Eigen::Vector3d                                           seed_b_= Eigen::Vector3d::Zero();
   Eigen::Vector3d                                           waypoint_fixed_distance_; //replanner waypoint
   Eigen::Vector3d                                           agent_pos_; 
+  Eigen::Vector3d                                           last_agent_pos_; 
   Eigen::Vector3d                                           agent_vel_; 
   Eigen::Vector3d                                           rpy_; 
   Eigen::Vector3d                                           c1_= Eigen::Vector3d::Zero();
@@ -154,6 +157,7 @@ private:
   std::vector<Eigen::Vector3d>                              injected_points_map_;
   std::vector<Eigen::Vector3d>                              path_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           last_cloud_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;
   std::shared_ptr<CIRI>                                     ciri_solver_;
   std::future<std::vector<Eigen::Vector3d>>                 replanner_future_;

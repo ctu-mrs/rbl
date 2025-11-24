@@ -352,15 +352,15 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)// //{
     //   rbl_controller_->setPCL(msg);
     // }
 
-    // if (!pcl_loaded_ && sh_pcl_.newMsg()) {
+    if (!pcl_loaded_ && sh_pcl_.newMsg()) {
       auto msg = sh_pcl_.getMsg();
       if (msg->header.frame_id != _frame_) {
         ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
         return;
       }
       rbl_controller_->setPCL(msg);
-      // pcl_loaded_ = true;
-    // }
+      pcl_loaded_ = true;
+    }
 
     if (sh_neighbors_estimates_.newMsg()) {
       std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;

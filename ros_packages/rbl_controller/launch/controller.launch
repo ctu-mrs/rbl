@@ -17,9 +17,11 @@
     <arg unless="$(arg debug)"
          name="launch_prefix_debug"
          value="" />
-    <arg if="$(arg debug)"
-         name="launch_prefix_debug"
-         value="debug_roslaunch" />
+
+    <arg if="$(arg debug)" name="launch_prefix_debug" value="gdb -ex run --args" />
+    <!-- <arg if="$(arg debug)" -->
+    <!--      name="launch_prefix_debug" -->
+    <!--      value="debug_roslaunch" /> -->
 
     <!-- will it run as standalone nodelet or using a nodelet manager? -->
     <arg name="standalone"

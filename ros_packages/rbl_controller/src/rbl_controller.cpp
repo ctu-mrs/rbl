@@ -17,7 +17,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)// //
     replanner_params.weight_deviation = 100.0;
     replanner_params.inflation_bonus = params.inflation_bonus;
     replanner_params.replanner_vox_size = 0.1;
-    replanner_params.replanner_freq = 0.3; //[Hz]
+    replanner_params.replanner_freq = 3; //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
@@ -198,88 +198,71 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef() // //{
     return std::nullopt;
   }
   
-  // if (params_.replanner) {
-  //   // Trigger replanner asynchronously
-  //   if (rbl_replanner_->replanTimer()) {
-  //     replanner_future_ = std::async(std::launch::async, [this]() {
-  //       rbl_replanner_->setAltitude(altitude_);
-  //       rbl_replanner_->setCurrentPosition(agent_pos_);
-  //       rbl_replanner_->setGoal(goal_);
-  //       if (!pcl_init_) {
-  //         rbl_replanner_->setPCL(cloud_); 
-  //         pcl_init_=true;
-  //       }
-  //       auto new_path = rbl_replanner_->plan();
-  //       std::lock_guard<std::mutex> lock(replanner_mutex_);
-  //       inflated_map_ = rbl_replanner_->getInflatedCloud();
-  //       return new_path;
-  //     });
-  //   }
 
-  //   // Check if replanner finished and update path_
-  //   if (replanner_future_.valid() &&
-  //       replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-  //     std::lock_guard<std::mutex> lock(replanner_mutex_);
-  //     path_ = replanner_future_.get();
-  //   }
-
-  //   if (path_.empty()) {
-  //     p_ref = pRefAgent(agent_pos_, rpy_[2]);
-  //     return p_ref;
-  //   }
-
-  //   waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
-  //   waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
-  //   destination_ = waypoint_;
-  // }
-
-  // Inside your main loop:
+  // ---- REPLANNER HANDLING ----
   if (params_.replanner) {
 
+      // 1. Collect previous replanning result if ready
+      if (replanner_future_.valid() &&
+          replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+      {
+          std::lock_guard<std::mutex> lock(replanner_mutex_);
+          path_ = std::move(replanner_future_.get()); // move to avoid copy
+      }
 
-    // 1. If previous replanning finished, collect result ONCE
-    if (replanner_future_.valid() &&
-        replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-    {
-        std::lock_guard<std::mutex> lock(replanner_mutex_);
-        path_ = replanner_future_.get();        // safe: only once per cycle
-    }
+      // 2. Trigger new replanning if no replanner is running and timer allows
+      bool replanner_ready = !replanner_future_.valid() ||
+                             replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
 
-    // 2. Trigger new replanning if required and no replanner is running
-    if (params_.replanner &&
-        (!replanner_future_.valid() ||
-         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) &&
-        rbl_replanner_->replanTimer())
-    {
-        replanner_future_ = std::async(std::launch::async, [this]() {
-            rbl_replanner_->setAltitude(altitude_);
-            rbl_replanner_->setCurrentPosition(agent_pos_);
-            rbl_replanner_->setGoal(goal_);
-            rbl_replanner_->setPCL(cloud_);
+      if (replanner_ready && rbl_replanner_->replanTimer()) {
 
-            auto new_path = rbl_replanner_->plan();
+          // Only update replanner state if it changed
+          if (altitude_ != last_altitude_) {
+              rbl_replanner_->setAltitude(altitude_);
+              last_altitude_ = altitude_;
+          }
+          if (agent_pos_ != last_agent_pos_) {
+              rbl_replanner_->setCurrentPosition(agent_pos_);
+              last_agent_pos_ = agent_pos_;
+          }
+          if (goal_ != last_goal_) {
+              rbl_replanner_->setGoal(goal_);
+              last_goal_ = goal_;
+          }
+          if (cloud_ != last_cloud_) {
+              rbl_replanner_->setPCL(cloud_);
+              last_cloud_ = cloud_;
+          }
 
-            {
-                std::lock_guard<std::mutex> lock(replanner_mutex_);
-                inflated_map_ = rbl_replanner_->getInflatedCloud();
-            }
+          // Launch async replanner
+          replanner_future_ = std::async(std::launch::async, [this]() {
+              auto new_path = rbl_replanner_->plan(); // expensive computation
 
-            return new_path;
-        });
-    }
+              {
+                  std::lock_guard<std::mutex> lock(replanner_mutex_);
+                  inflated_map_ = rbl_replanner_->getInflatedCloud(); // thread-safe update
+              }
 
-    // 3. Continue control using the latest known path (non-blocking)
-    if (path_.empty()) {
-      p_ref = pRefAgent(goal_, rpy_[2]);
-      // waypoint_ = goal_;
-    } else {
-      waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
-      waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
-      destination_ = waypoint_;
-      p_ref = pRefAgent(destination_, rpy_[2]);
-    }
+              return new_path;
+          });
+      }
+
+      // 3. Continue control using the latest known path
+      if (path_.empty()) {
+          p_ref = pRefAgent(goal_, rpy_[2]);
+      } else {
+          waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+          waypoint_ = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+          destination_ = waypoint_;
+          p_ref = pRefAgent(destination_, rpy_[2]);
+      }
   }
 
+  // ---- ADD ESTIMATES AS VOXELS ----
+  if (params_.add_estimates_as_voxels && params_.use_map) {
+      addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, 
+                                params_.voxel_size, params_.encumbrance);
+  }
   if (params_.add_estimates_as_voxels && params_.use_map) {
     // addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
     addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);    
@@ -1083,9 +1066,9 @@ void RBLController::applyRules(double&                beta,// //{
     else {
       th = std::max(0.0, th - 2 * dt);
     }
-
+    if (params_.replanner == true){
     th = 0;
-
+    }
 
     // third condition
     if (th == M_PI / 2 &&

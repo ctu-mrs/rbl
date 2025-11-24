@@ -33,8 +33,8 @@ rbl_controller:
   step_size: 0.1
   encumbrance: 0.30
   use_z_rule: false
-  cwvd_obs: 0.9
-  cwvd_rob: 0.9
+  cwvd_obs: 0.95
+  cwvd_rob: 0.95
   use_garmin_alt: false
   boundary_threshold: 0.0
   boundary_threshold_speed: 0.0
