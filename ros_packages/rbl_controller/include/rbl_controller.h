@@ -82,6 +82,12 @@ struct RBLParams {
   bool                                  ciri                          = false;
   bool                                  add_estimates_as_voxels       = true;
   double                                inflation_bonus               = 0.0;
+    bool downsample_pcl = false;
+};
+
+struct State {
+Eigen::Vector3d position;
+Eigen::Vector3d velocity;
 };
 
 class RBLController {
@@ -89,9 +95,8 @@ public:
   RBLController(const RBLParams& par);
   void setCurrentPosition(const Eigen::Vector3d& point);
   void setCurrentVelocity(const Eigen::Vector3d& point);
-  void setGroupPositions(const std::vector<Eigen::Vector3d>& list_points);
-  void setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& estimates);
-  void setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points);
+  void setGroupStates(const std::vector<State>& states);
+    void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
@@ -99,7 +104,7 @@ public:
 
 bool inputsHealthy( const Eigen::Vector3d&                                            agent_pos, 
                     const Eigen::Vector3d&                                            agent_vel, 
-                    const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&   neighbors_estimates, 
+                    const std::vector<State>&   group_states,
                     std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
                     Eigen::Vector3d&                                                  goal, 
                     double&                                                           altitude, 
@@ -115,9 +120,8 @@ bool inputsHealthy( const Eigen::Vector3d&                                      
   std::vector<Eigen::Vector3d>                  getCellA();
   std::vector<Eigen::Vector3d>                  getSensedCellA();
   std::vector<Eigen::Vector3d>                  getInflatedMap();
-  std::vector<Eigen::Vector3d>                  getInjectionOfMap();
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getPCL();
   std::vector<Eigen::Vector3d>                  getPath();
-  pcl::PointCloud<pcl::PointXYZ>                getPCL();
 
 private:
   RBLParams                                                 params_;
@@ -138,8 +142,7 @@ private:
   Eigen::Vector3d                                           c1_= Eigen::Vector3d::Zero();
   Eigen::Vector3d                                           c2_;
   Eigen::Vector3d                                           c1_no_rot_;
-  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates_; //[pos, vel]
-  std::vector<Eigen::Vector3d>                              neighbors_pos_;
+  std::vector<State>                              group_states_;
   std::vector<Eigen::Vector3d>                              cell_A_;
   std::vector<Eigen::Vector3d>                              sensed_cell_A_;
   std::vector<Eigen::Vector3d>                              cell_S_;
@@ -155,11 +158,8 @@ private:
   std::mutex                                                replanner_mutex_;
 
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
-  void addEstimatesAsVoxelsToPcl( std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
-                                  const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& neighbors_estimates, 
-                                  const double                                                    voxel_size, 
-                                  const double                                                    encumbrance);
-  void voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, double voxel_size);
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+                                double                                           voxel_size);
   std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center, const double& radius, const double& step_size);
   void pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere, const Eigen::Vector3d& center, const double& radius, const double& step_size, const double& altitude);
   void partitionCellA(std::vector<Eigen::Vector3d>&                             cell_A, 

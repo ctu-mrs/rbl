@@ -40,32 +40,14 @@ void RBLController::setCurrentVelocity(const Eigen::Vector3d& point)  // //{
   agent_vel_ = point;
 }  // //}
 
-void RBLController::setGroupPositions(const std::vector<Eigen::Vector3d>& list_points)  // //{
+void RBLController::setGroupStates(const std::vector<State>& states)  // //{
 {
-  neighbors_pos_ = list_points;
+  group_states_ = states;
 }  // //}
 
-void RBLController::setNeighborsEstimates(const std::vector<std::pair<Eigen::Vector3d,
-                                                                      Eigen::Vector3d>>& estimates)
+void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
 {
-  // std::cout << "[RBLController]: Recieved this many estimates: " << estimates.size() << std::endl;
-  for (int i = 0; i < estimates.size(); i++) {
-    Eigen::Vector3d pos = estimates[i].first;
-    Eigen::Vector3d vel = estimates[i].second;
-    // std::cout << "[RBLController]: Pos Estimate[" << i <<"]: [" << pos.x() << ", " << pos.y() << ", " << pos.z() <<
-    // "]" << std::endl; std::cout << "[RBLController]: Vel Estimate[" << i <<"]: [" << vel.x() << ", " << vel.y() << ",
-    // " << vel.z() << "]" << std::endl;
-  }
-  neighbors_estimates_ = estimates;
-}
-
-void RBLController::setPCL(const sensor_msgs::PointCloud2::ConstPtr& list_points)  // //{
-{
-  if (list_points) {
-    pcl::PointCloud<pcl::PointXYZ> temp_cloud;
-    pcl::fromROSMsg(*list_points, temp_cloud);
-    cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
-  }
+    cloud_ = cloud;
 }  // //}
 
 void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
@@ -88,8 +70,7 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)  // //{
 
 bool RBLController::inputsHealthy(const Eigen::Vector3d&                           agent_pos,
                                   const Eigen::Vector3d&                           agent_vel,
-                                  const std::vector<std::pair<Eigen::Vector3d,
-                                                              Eigen::Vector3d>>&   neighbors_estimates,
+                                  const std::vector<State>&   group_states,
                                   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                   Eigen::Vector3d&                                 goal,
                                   double&                                          altitude,
@@ -139,8 +120,9 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
     healthy = false;
   }
 
-  for (size_t i = 0; i < neighbors_estimates.size(); ++i) {
-    const auto& [pos, vel] = neighbors_estimates[i];
+  for (const auto& state: group_states) {
+    const auto& pos = state.position;
+    const auto& vel = state.velocity;
     if (!validVector(pos)) {
       printLimited("neighbor_pos", "[RBLController]: One or more neighbors have invalid positions");
       healthy = false;
@@ -173,14 +155,13 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
 {
   mrs_msgs::Reference p_ref;
 
-  if (!inputsHealthy(agent_pos_, agent_vel_, neighbors_estimates_, cloud_, goal_, altitude_, rpy_)) {
+  if (!inputsHealthy(agent_pos_, agent_vel_, group_states_, cloud_, goal_, altitude_, rpy_)) {
     std::cout << "[RBLController]: Inputs are not ok. Cannot return next reference" << std::endl;
     return std::nullopt;
   }
 
-
-  auto no_ground_cloud = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
-  if (!no_ground_cloud) {
+  cloud_ = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+  if (!cloud_) {
     return std::nullopt;
   }
 
@@ -216,10 +197,10 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
     destination_             = waypoint_;
   }
 
-  if (params_.add_estimates_as_voxels && params_.use_map) {
-    // addEstimatesAsVoxelsToPcl(cloud_, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-    addEstimatesAsVoxelsToPcl(no_ground_cloud, neighbors_estimates_, params_.voxel_size, params_.encumbrance);
-  }
+    std::vector<Eigen::Vector3d> group_positions;
+    for(const auto& state: group_states_){
+        group_positions.push_back(state.position);
+    }
 
   // Partitioning logic
   cell_A_.clear();
@@ -233,8 +214,8 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                           agent_pos_,
                           rpy_,
                           waypoint_,
-                          neighbors_pos_,
-                          no_ground_cloud,
+                          group_positions,
+                          cloud_,
                           altitude_,
                           c1_,
                           seed_b_);
@@ -398,9 +379,9 @@ std::vector<Eigen::Vector3d> RBLController::getInflatedMap()  // //{
   return inflated_map_;
 }  // //}
 
-std::vector<Eigen::Vector3d> RBLController::getInjectionOfMap()
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getPCL()
 {
-  return injected_points_map_;
+  return cloud_;
 }
 
 std::vector<Eigen::Vector3d> RBLController::getPath()  // //{
@@ -422,8 +403,8 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
     return nullptr;
   }
 
-  if (params_.use_map) {
-    voxelizePcl(cloud, params_.voxel_size);
+  if (params_.downsample_pcl) {
+    cloud = downSamplePcl(cloud, params_.voxel_size);
   }
 
   // if (params_.replanner) {
@@ -448,58 +429,6 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
   }
 
   return std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_no_ground_cloud);
-}  // //}
-
-void RBLController::addEstimatesAsVoxelsToPcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
-                                              const std::vector<std::pair<Eigen::Vector3d,
-                                                                          Eigen::Vector3d>>&   neighbors_estimates,
-                                              const double                                     voxel_size,
-                                              const double                                     encumbrance)
-{
-  const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
-  injected_points_map_.clear();
-
-  for (const auto& estimate_pair : neighbors_estimates) {
-    const Eigen::Vector3d& position = estimate_pair.first;
-
-    const int center_nx = std::floor(position.x() / voxel_size);
-    const int center_ny = std::floor(position.y() / voxel_size);
-    const int center_nz = std::floor(position.z() / voxel_size);
-
-    for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
-      for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
-        for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
-          int current_nx = center_nx + dx;
-          int current_ny = center_ny + dy;
-          int current_nz = center_nz + dz;
-
-          double        voxel_center_x = (current_nx + 0.5) * voxel_size;
-          double        voxel_center_y = (current_ny + 0.5) * voxel_size;
-          double        voxel_center_z = (current_nz + 0.5) * voxel_size;
-          pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
-          cloud->push_back(p);
-          Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
-          injected_points_map_.push_back(point);
-        }
-      }
-    }
-  }
-}
-
-void RBLController::voxelizePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
-                                double                                           voxel_size)
-{
-  // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
-
-  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
-  sor.setInputCloud(boost_cloud);
-  sor.setLeafSize(static_cast<float>(voxel_size), static_cast<float>(voxel_size), static_cast<float>(voxel_size));
-  sor.filter(*boost_voxelized_cloud);
-
-  cloud = std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>(boost_voxelized_cloud.get(), [boost_voxelized_cloud](...) {});
 }  // //}
 
 std::vector<Eigen::Vector3d> RBLController::getpointsInsideCircle(const Eigen::Vector3d& center,  // //{
@@ -895,7 +824,7 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
     pointsInsideSphere(cell_S, agent_pos, params_.radius, params_.step_size, altitude);
   }
 
-  if (!neighbors_pos_.empty() || (cloud && cloud->size() > 0)) {
+  if (!group_states_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
       bool success = partitionCellACiri(cell_A,
                                         cell_S,
@@ -1485,4 +1414,20 @@ double RBLController::normalizeAngle(double angle)  // //{
     angle += 2 * M_PI;
   }
   return angle;
+}  // //}
+
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+                                double                                           voxel_size)
+{
+  // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+
+  pcl::VoxelGrid<pcl::PointXYZ> sor;
+  sor.setInputCloud(boost_cloud);
+  sor.setLeafSize(static_cast<float>(voxel_size), static_cast<float>(voxel_size), static_cast<float>(voxel_size));
+  sor.filter(*boost_voxelized_cloud);
+
+  return std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>(boost_voxelized_cloud.get(), [boost_voxelized_cloud](...) {});
 }  // //}

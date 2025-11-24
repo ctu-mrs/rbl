@@ -35,8 +35,11 @@ public:
   bool         is_activated_   = false;
 
   bool        _group_odoms_enabled_ = false;
+  bool        _add_agents_to_pcl_ = false;
   std::string _agent_name_;
   std::string _frame_;
+
+
 
   std::mutex                     mtx_rbl_;
   std::shared_ptr<RBLController> rbl_controller_;
@@ -64,9 +67,12 @@ public:
   std::shared_ptr<sensor_msgs::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                         const std::string&                  frame);
   ros::Publisher                            pub_viz_inflated_map_;
-  ros::Publisher                            pub_viz_injected_voxels;
   std::shared_ptr<sensor_msgs::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
                                                               const std::string&                  frame);
+  ros::Publisher                            pub_viz_cloud;
+std::shared_ptr<sensor_msgs::PointCloud2>
+getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& pcl,  // //{
+                                 const std::string&                  frame);
   ros::Publisher                            pub_viz_path_;
   nav_msgs::Path                            getVizPath(const std::vector<Eigen::Vector3d>& path,
                                                        const std::string&                  frame);
@@ -91,9 +97,6 @@ public:
   mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
   mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
   mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2> sh_pcl_;
-  // mrs_lib::SubscribeHandler<mrs_msgs::PoseWithCovarianceArrayStamped> sh_neighbors_estimates_;
-  mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray> sh_neighbors_estimates_;
-
   std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
 
   std::shared_ptr<mrs_lib::Transformer> transformer_;
@@ -104,8 +107,10 @@ public:
   geometry_msgs::Point createPoint(double x,
                                    double y,
                                    double z);
-
-  int _n_uavs_;
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
+                                  const std::vector<State>& group_states, 
+                                  const double                                                    voxel_size, 
+                                  const double                                                    encumbrance);
 };  // //}
 
 void WrapperRosRBL::onInit()  // //{
@@ -119,6 +124,7 @@ void WrapperRosRBL::onInit()  // //{
   param_loader.loadParam("uav_name", _agent_name_);
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
+  param_loader.loadParam("group_odoms/add_to_pcl", _add_agents_to_pcl_);
 
   std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
   double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
@@ -154,13 +160,12 @@ void WrapperRosRBL::onInit()  // //{
   param_loader.loadParam("rbl_controller/lidar_tilt", rbl_params_.lidar_tilt);
   param_loader.loadParam("rbl_controller/lidar_fov", rbl_params_.lidar_fov);
   param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);
-  param_loader.loadParam("rbl_controller/voxel_size", rbl_params_.voxel_size);
+  param_loader.loadParam("rbl_controller/pcl/downsample", rbl_params_.downsample_pcl);
+  param_loader.loadParam("rbl_controller/pcl/voxel_size", rbl_params_.voxel_size);
   param_loader.loadParam("rbl_controller/add_estimates_as_voxels", rbl_params_.add_estimates_as_voxels);
-  param_loader.loadParam("rbl_controller/n_uavs", _n_uavs_);
   param_loader.loadParam("replanner/inflation_bonus", rbl_params_.inflation_bonus);
 
   rbl_params_.voxel_size = 2 * std::sqrt(rbl_params_.encumbrance / std::sqrt(3.0));
-
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
@@ -202,8 +207,6 @@ void WrapperRosRBL::onInit()  // //{
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
   sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
   sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
-  sh_neighbors_estimates_ =
-      mrs_lib::SubscribeHandler<rbl_controller::PoseVelocityArray>(shopts, "neighbor_estimates_in");
 
   tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
   tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
@@ -221,7 +224,7 @@ void WrapperRosRBL::onInit()  // //{
   pub_viz_cell_A_         = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
   pub_viz_cell_A_sensed_  = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
   pub_viz_inflated_map_   = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
-  pub_viz_injected_voxels = nh.advertise<sensor_msgs::PointCloud2>("viz/injected_vox", 1, true);
+  pub_viz_cloud = nh.advertise<sensor_msgs::PointCloud2>("viz/cloud", 1, true);
   pub_viz_path_           = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
   pub_viz_target_         = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
   pub_viz_waypoint_       = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
@@ -312,124 +315,68 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
       rbl_controller_->setAltitude(alt->range);
     }
 
-    // if (!sh_group_odoms_.empty()) {
+      std::vector<State> group_states;
+    if (!sh_group_odoms_.empty()) {
 
-    //   std::vector<Eigen::Vector3d> tmp_odoms;
-    //   std::vector<Eigen::Vector3d> tmp_vels;
-    //   for (auto& tmp_sh : sh_group_odoms_) {
 
-    //     if (tmp_sh.newMsg()) {
-    //       auto                        odom = tmp_sh.getMsg();
-    //       geometry_msgs::PointStamped tmp_pt;
-    //       tmp_pt.header = odom->header;
-    //       tmp_pt.point  = odom->pose.pose.position;
+      for (auto& tmp_sh : sh_group_odoms_) {
 
-    //       auto res = transformer_->transformSingle(tmp_pt, _frame_);
+        if (tmp_sh.newMsg()) {
+                    State tmp_state;
+          auto                        odom = tmp_sh.getMsg();
+          geometry_msgs::PointStamped tmp_pt;
+          tmp_pt.header = odom->header;
+          tmp_pt.point  = odom->pose.pose.position;
 
-    //       if (!res) {
-    //         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
-    //         return;
-    //       }
-    //       tmp_odoms.emplace_back(pointToEigen(res.value().point));
+          auto res = transformer_->transformSingle(tmp_pt, _frame_);
 
-    //       geometry_msgs::Vector3Stamped tmp_vel;
-    //       tmp_vel.header = odom->header;
-    //       tmp_vel.vector = odom->twist.twist.linear;
+          if (!res) {
+            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
+            return;
+          }
+            tmp_state.position = pointToEigen(res.value().point);
 
-    //       auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
-    //       if (!vel_res) {
-    //         ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
-    //         return;
-    //       }
-    //       tmp_vels.emplace_back(vectorToEigen(vel_res->vector));  // store velocity
-    //     }
-    //   }
-    //   rbl_controller_->setGroupPositions(tmp_odoms);
-    // }
+          geometry_msgs::Vector3Stamped tmp_vel;
+          tmp_vel.header = odom->header;
+          tmp_vel.vector = odom->twist.twist.linear;
 
-    std::vector<std::string>                                 uav_list_;
-    std::vector<Eigen::Vector3d>                             tmp_odoms;
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> neighbors_estimates;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr                     pcl_cloud(new pcl::PointCloud<pcl::PointXYZI>());
-
-    uav_list_.reserve(_n_uavs_);
-    for (int i = 1; i <= _n_uavs_; ++i) {
-      uav_list_.push_back("uav" + std::to_string(i));
+          auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+          if (!vel_res) {
+            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
+            return;
+          }
+                    tmp_state.velocity = vectorToEigen(vel_res->vector);
+                    group_states.emplace_back(tmp_state);
+        }
+      }
+      rbl_controller_->setGroupStates(group_states);
     }
-    for (size_t i = 0; i < uav_list_.size(); ++i) {
-      const std::string& uav_name = uav_list_[i];
-      if (uav_name == _agent_name_) {
-        continue;
-      }
-      std::string uav_frame = uav_name + "/fcu";
 
-      auto tf = transformer_->getTransform(uav_frame, _frame_, ros::Time::now());
-      if (!tf) {
-        ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Failed to get TF for %s", uav_frame.c_str());
-        continue;
-      }
-      else {
-        // ROS_WARN_THROTTLE(5.0, "[FilterReflectiveUavs]: Good warining - able to get this tf :) %s",
-        // uav_frame.c_str());
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    if (sh_pcl_.getNumPublishers() > 0 && sh_pcl_.newMsg()) {
+
+      auto msg = sh_pcl_.getMsg();
+      if (msg->header.frame_id != _frame_) {
+        ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
+        return;
       }
 
-      pcl::PointXYZI p;
-      p.x         = tf.value().transform.translation.x;
-      p.y         = tf.value().transform.translation.y;
-      p.z         = tf.value().transform.translation.z;
-      p.intensity = 255.0f;
+      if (msg) {
+        pcl::PointCloud<pcl::PointXYZ> temp_cloud;
+        pcl::fromROSMsg(*msg, temp_cloud);
+        cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
+                }
+            }
 
-      Eigen::Vector3d pos;
-      pos.x() = tf.value().transform.translation.x;
-      pos.y() = tf.value().transform.translation.y;
-      pos.z() = tf.value().transform.translation.y;
-      tmp_odoms.push_back(pos);
-
-      Eigen::Vector3d vel_vec(0, 0, 0);
-      neighbors_estimates.emplace_back(pos, vel_vec);
-
-      int current_index = pcl_cloud->points.size();
-      pcl_cloud->points.push_back(p);
-      pcl_cloud->width  = pcl_cloud->points.size();
-      pcl_cloud->height = 1;
-    }
-    sensor_msgs::PointCloud2 pcl_msg_output;
-    pcl::toROSMsg(*pcl_cloud, pcl_msg_output);
-    pcl_msg_output.header.frame_id             = _frame_;
-    sensor_msgs::PointCloud2::ConstPtr pcl_msg = boost::make_shared<const sensor_msgs::PointCloud2>(pcl_msg_output);
-
-    rbl_controller_->setGroupPositions(tmp_odoms);
-    rbl_controller_->setNeighborsEstimates(neighbors_estimates);
-    rbl_controller_->setPCL(pcl_msg);
-
-
-    // if (sh_pcl_.newMsg()) {
-    //   auto msg = sh_pcl_.getMsg();
-    //   if (msg->header.frame_id != _frame_) {
-    //     ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
-    //     return;
-    //   }
-    //   rbl_controller_->setPCL(msg);
-    // }
-
-    // if (sh_neighbors_estimates_.newMsg()) {
-    //   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>  neighbors_estimates;
-    //   auto msg_estimates = sh_neighbors_estimates_.getMsg();
-
-    //   for (size_t i = 0; i < msg_estimates->poses.size(); i++) {
-    //     const auto& pose = msg_estimates->poses[i];
-    //     const auto& vel  = msg_estimates->velocities[i];
-
-    //     Eigen::Vector3d pos(pose.position.x,
-    //                         pose.position.y,
-    //                         pose.position.z);
-
-    //     Eigen::Vector3d vel_vec(vel.x, vel.y, vel.z);
-
-    //     neighbors_estimates.emplace_back(pos, vel_vec);
-    //   }
-    //   rbl_controller_->setNeighborsEstimates(neighbors_estimates);
-    // }
+      if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
+        cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
+      }
+        if(cloud->empty()) {
+        ROS_ERROR("[WrapperRosRBL]: PCL is empty");
+            return;
+        }
+          rbl_controller_->setPCL(cloud);
+    pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
     auto ret = rbl_controller_->getNextRef();
     if (!ret) {
@@ -463,7 +410,7 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te) 
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
     pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
-    pub_viz_injected_voxels.publish(*getVizInflatedMap(rbl_controller_->getInjectionOfMap(), _frame_));
+
     pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }
 }  // //}
@@ -635,6 +582,18 @@ WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  //
   return ros_msg;
 }  // //}
 
+std::shared_ptr<sensor_msgs::PointCloud2>
+WrapperRosRBL::getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& pcl,  // //{
+                                 const std::string&                  frame)
+{
+  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+
+  pcl::toROSMsg(*pcl, *ros_msg);
+  ros_msg->header.frame_id = frame;
+
+  return ros_msg;
+}  // //}
+
 nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
                                          const std::string&                  frame)
 {
@@ -711,6 +670,45 @@ geometry_msgs::Point WrapperRosRBL::createPoint(double x,  // //{
   point.z = z;
   return point;
 }  // //}
+
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
+                                  const std::vector<State>& group_states, 
+                                  const double                                                    voxel_size, 
+                                  const double                                                    encumbrance)
+{
+  const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
+  // injected_points_map_.clear();
+
+  for (const auto& state: group_states) {
+    const Eigen::Vector3d& position = state.position;
+        ROS_DEBUG("[WrapperRosRBL]: Adding points to PCL at: %.2f, %.2f, %.2f", position.x(), position.y(), position.z());
+
+    const int center_nx = std::floor(position.x() / voxel_size);
+    const int center_ny = std::floor(position.y() / voxel_size);
+    const int center_nz = std::floor(position.z() / voxel_size);
+
+    for (int dx = -num_voxels_half_side; dx <= num_voxels_half_side; ++dx) {
+      for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
+        for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
+          int current_nx = center_nx + dx;
+          int current_ny = center_ny + dy;
+          int current_nz = center_nz + dz;
+
+          double        voxel_center_x = (current_nx + 0.5) * voxel_size;
+          double        voxel_center_y = (current_ny + 0.5) * voxel_size;
+          double        voxel_center_z = (current_nz + 0.5) * voxel_size;
+          pcl::PointXYZ p(voxel_center_x, voxel_center_y, voxel_center_z);
+          cloud->push_back(p);
+          Eigen::Vector3d point = Eigen::Vector3d(voxel_center_x, voxel_center_y, voxel_center_z);
+          // injected_points_map_.push_back(point);
+        }
+      }
+    }
+  }
+    return cloud;
+}
+
+
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(WrapperRosRBL,
