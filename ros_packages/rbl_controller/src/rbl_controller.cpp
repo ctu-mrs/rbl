@@ -22,7 +22,7 @@ RBLController::RBLController(const RBLParams& params) : params_(params)  // //{
   if (params.ciri) {
     ciriParams ciri_params;
     ciri_params.epsilon   = 1e-6;
-    ciri_params.inflation = params.encumbrance + params.voxel_size / 2;
+    ciri_params.inflation = params.encumbrance + params.voxel_size;
     ciri_solver_          = std::make_shared<CIRI>(ciri_params);
   }
 }  // //}
@@ -676,7 +676,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   Eigen::Vector3d v   = c1 - seed_b;
   double          n   = v.norm();
   double          eps = 1e-8;
-  seed_b              = seed_b + 2 * params_.dt * v / (n + eps);
+  seed_b              = agent_pos; //seed_b + 2 * params_.dt * v / (n + eps);
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   double          dist_agent_seed = (seed_b - agent_pos).norm();
