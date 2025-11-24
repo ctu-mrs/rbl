@@ -625,6 +625,7 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   }
 }  // //}
 
+
 bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,  // //{
                                        std::vector<Eigen::Vector3d>&                    cell_S,
                                        std::vector<Eigen::Vector3d>&                    plane_normals,
