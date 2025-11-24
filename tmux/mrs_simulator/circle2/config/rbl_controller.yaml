@@ -9,7 +9,7 @@ rate:
   timer_diagnostics: 10
 
 rbl_controller:
-  only_2d: true
+  only_2d: false
   z_min: 0.0
   z_max: 10.0
   z_ref: 5.0
@@ -31,8 +31,8 @@ rbl_controller:
   cwvd_rob: 0.9
   use_garmin_alt: false
   replanner: false
-  limited_fov: false
-  ciri: false
+  limited_fov: true
+  ciri: true
   boundary_threshold: 1.5
   boundary_threshold_speed: 0.0
   lidar_tilt: 20.0 # [deg]
