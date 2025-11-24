@@ -1070,7 +1070,7 @@ void RBLController::applyRules(double&                beta,  // //{
       th = std::max(0.0, th - 2 * dt);
     }
 
-    th = 0;
+    // th = 0;
 
 
     // third condition
@@ -1125,7 +1125,7 @@ void RBLController::applyRules(double&                beta,  // //{
         ph = 0;
       }
     }
-
+    std::cout << "theta: " << th << ", beta: " << beta << std::endl;
 
     double dx    = goal[0] - current_j_x;
     double dy    = goal[1] - current_j_y;

@@ -19,6 +19,7 @@ Panels:
         - /Encumbrances1/UAV81
         - /Encumbrances1/UAV91
         - /Encumbrances1/UAV101
+        - /PointCloud21
       Splitter Ratio: 0.560869574546814
     Tree Height: 743
   - Class: rviz/Selection
@@ -38,7 +39,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -677,6 +678,34 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 5.949999809265137
+        Min Value: 3.8499999046325684
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: AxisColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.10000000149011612
+      Style: Flat Squares
+      Topic: /uav1/rbl_controller/viz/cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -705,7 +734,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 55.5230712890625
+      Distance: 105.13135528564453
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -721,9 +750,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6397959589958191
+      Pitch: 1.2697958946228027
       Target Frame: common_origin
-      Yaw: 1.6653976440429688
+      Yaw: 1.705397605895996
     Saved: ~
 Window Geometry:
   Displays:

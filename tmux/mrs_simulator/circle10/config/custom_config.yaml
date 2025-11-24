@@ -22,7 +22,7 @@ mrs_uav_managers:
   constraint_manager:
 
     default_constraints:
-      gps_baro: "fast"
+      gps_baro: "slow"
 
   control_manager:
 
