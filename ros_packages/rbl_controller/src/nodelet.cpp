@@ -36,6 +36,7 @@ public:
 
   bool        _group_odoms_enabled_ = false;
   bool        _add_agents_to_pcl_   = false;
+  int         _group_odoms_size_    = 0;
   std::string _agent_name_;
   std::string _frame_;
 
@@ -124,6 +125,7 @@ void WrapperRosRBL::onInit()  // //{
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
   param_loader.loadParam("group_odoms/add_to_pcl", _add_agents_to_pcl_);
+  param_loader.loadParam("group_odoms/size", _group_odoms_size_);
 
   std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
   double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
@@ -182,12 +184,14 @@ void WrapperRosRBL::onInit()  // //{
 
   if (_group_odoms_enabled_) {
 
-    while (sh_group_odoms_.empty()) {
+    do {
+      ROS_INFO("[WrapperRosRBL]: Clearing group odom topics");
+      sh_group_odoms_.clear();
       ros::master::V_TopicInfo all_topics;
       ros::master::getTopics(all_topics);
 
       for (const auto& topic : all_topics) {
-        if (topic.name.find(_agent_name_) == std::string::npos &&
+        if (topic.name.find(_agent_name_ + "/") == std::string::npos &&
             topic.name.find(odom_topic_name) != std::string::npos) {
           ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
           sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
@@ -195,12 +199,9 @@ void WrapperRosRBL::onInit()  // //{
       }
 
       if (sh_group_odoms_.empty()) {
-        ROS_WARN_ONCE("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
+        ROS_WARN("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
       }
-      else {
-        ROS_INFO("[WrapperRosRBL]: Topics matched: %s", odom_topic_name.c_str());
-      }
-    }
+    } while (sh_group_odoms_.size() < _group_odoms_size_);
   }
 
   sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
