@@ -35,10 +35,9 @@ public:
   bool         is_activated_   = false;
 
   bool        _group_odoms_enabled_ = false;
-  bool        _add_agents_to_pcl_ = false;
+  bool        _add_agents_to_pcl_   = false;
   std::string _agent_name_;
   std::string _frame_;
-
 
 
   std::mutex                     mtx_rbl_;
@@ -70,47 +69,47 @@ public:
   std::shared_ptr<sensor_msgs::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
                                                               const std::string&                  frame);
   ros::Publisher                            pub_viz_cloud;
-std::shared_ptr<sensor_msgs::PointCloud2>
-getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& pcl,  // //{
-                                 const std::string&                  frame);
-  ros::Publisher                            pub_viz_path_;
-  nav_msgs::Path                            getVizPath(const std::vector<Eigen::Vector3d>& path,
-                                                       const std::string&                  frame);
-  ros::Publisher                            pub_viz_position_;
-  visualization_msgs::Marker                getVizPosition(const Eigen::Vector3d& point,
-                                                           const double           scale,
-                                                           const std::string&     frame);
-  ros::Publisher                            pub_viz_centroid_;
-  ros::Publisher                            pub_viz_seed_B_;
-  visualization_msgs::Marker                getVizCentroid(const Eigen::Vector3d& point,
-                                                           const std::string&     frame);
-  ros::Publisher                            pub_viz_target_;
-  visualization_msgs::Marker                getVizModGroupGoal(const Eigen::Vector3d& point,
-                                                               const double           scale,
-                                                               const std::string&     frame);
-  ros::Publisher                            pub_viz_waypoint_;
-  visualization_msgs::Marker                getVizWaypoint(const Eigen::Vector3d& point,
-                                                           const double           scale,
-                                                           const std::string&     frame);
+  std::shared_ptr<sensor_msgs::PointCloud2>
+                             getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& pcl,  // //{
+                                       const std::string&                                     frame);
+  ros::Publisher             pub_viz_path_;
+  nav_msgs::Path             getVizPath(const std::vector<Eigen::Vector3d>& path,
+                                        const std::string&                  frame);
+  ros::Publisher             pub_viz_position_;
+  visualization_msgs::Marker getVizPosition(const Eigen::Vector3d& point,
+                                            const double           scale,
+                                            const std::string&     frame);
+  ros::Publisher             pub_viz_centroid_;
+  ros::Publisher             pub_viz_seed_B_;
+  visualization_msgs::Marker getVizCentroid(const Eigen::Vector3d& point,
+                                            const std::string&     frame);
+  ros::Publisher             pub_viz_target_;
+  visualization_msgs::Marker getVizModGroupGoal(const Eigen::Vector3d& point,
+                                                const double           scale,
+                                                const std::string&     frame);
+  ros::Publisher             pub_viz_waypoint_;
+  visualization_msgs::Marker getVizWaypoint(const Eigen::Vector3d& point,
+                                            const double           scale,
+                                            const std::string&     frame);
 
 
-  mrs_lib::SubscribeHandler<nav_msgs::Odometry>       sh_odom_;
-  mrs_lib::SubscribeHandler<sensor_msgs::Range>       sh_alt_;
-  mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2> sh_pcl_;
+  mrs_lib::SubscribeHandler<nav_msgs::Odometry>              sh_odom_;
+  mrs_lib::SubscribeHandler<sensor_msgs::Range>              sh_alt_;
+  mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>        sh_pcl_;
   std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
 
   std::shared_ptr<mrs_lib::Transformer> transformer_;
 
-  Eigen::Vector3d      pointToEigen(const geometry_msgs::Point& point);
-  Eigen::Vector3d      vectorToEigen(const geometry_msgs::Vector3& vec);
-  geometry_msgs::Point pointFromEigen(const Eigen::Vector3d& vec);
-  geometry_msgs::Point createPoint(double x,
-                                   double y,
-                                   double z);
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
-                                  const std::vector<State>& group_states, 
-                                  const double                                                    voxel_size, 
-                                  const double                                                    encumbrance);
+  Eigen::Vector3d                                 pointToEigen(const geometry_msgs::Point& point);
+  Eigen::Vector3d                                 vectorToEigen(const geometry_msgs::Vector3& vec);
+  geometry_msgs::Point                            pointFromEigen(const Eigen::Vector3d& vec);
+  geometry_msgs::Point                            createPoint(double x,
+                                                              double y,
+                                                              double z);
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                                                const std::vector<State>& group_states,
+                                                                const double              voxel_size,
+                                                                const double              encumbrance);
 };  // //}
 
 void WrapperRosRBL::onInit()  // //{
@@ -218,16 +217,16 @@ void WrapperRosRBL::onInit()  // //{
 
   sc_set_ref_ = nh.serviceClient<mrs_msgs::ReferenceStampedSrv>("ref_out");
 
-  pub_viz_position_       = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
-  pub_viz_centroid_       = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
-  pub_viz_seed_B_         = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
-  pub_viz_cell_A_         = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
-  pub_viz_cell_A_sensed_  = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
-  pub_viz_inflated_map_   = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
-  pub_viz_cloud = nh.advertise<sensor_msgs::PointCloud2>("viz/cloud", 1, true);
-  pub_viz_path_           = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
-  pub_viz_target_         = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
-  pub_viz_waypoint_       = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
+  pub_viz_position_      = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
+  pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
+  pub_viz_seed_B_        = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
+  pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
+  pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
+  pub_viz_inflated_map_  = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
+  pub_viz_cloud          = nh.advertise<sensor_msgs::PointCloud2>("viz/cloud", 1, true);
+  pub_viz_path_          = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
+  pub_viz_target_        = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
+  pub_viz_waypoint_      = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
 
   transformer_ = std::make_shared<mrs_lib::Transformer>(nh, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
@@ -315,14 +314,13 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
       rbl_controller_->setAltitude(alt->range);
     }
 
-      std::vector<State> group_states;
+    std::vector<State> group_states;
     if (!sh_group_odoms_.empty()) {
-
 
       for (auto& tmp_sh : sh_group_odoms_) {
 
         if (tmp_sh.newMsg()) {
-                    State tmp_state;
+          State                       tmp_state;
           auto                        odom = tmp_sh.getMsg();
           geometry_msgs::PointStamped tmp_pt;
           tmp_pt.header = odom->header;
@@ -334,7 +332,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
             return;
           }
-            tmp_state.position = pointToEigen(res.value().point);
+          tmp_state.position = pointToEigen(res.value().point);
 
           geometry_msgs::Vector3Stamped tmp_vel;
           tmp_vel.header = odom->header;
@@ -345,14 +343,14 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
             return;
           }
-                    tmp_state.velocity = vectorToEigen(vel_res->vector);
-                    group_states.emplace_back(tmp_state);
+          tmp_state.velocity = vectorToEigen(vel_res->vector);
+          group_states.emplace_back(tmp_state);
         }
       }
       rbl_controller_->setGroupStates(group_states);
     }
 
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     if (sh_pcl_.getNumPublishers() > 0 && sh_pcl_.newMsg()) {
 
       auto msg = sh_pcl_.getMsg();
@@ -365,17 +363,17 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
         pcl::PointCloud<pcl::PointXYZ> temp_cloud;
         pcl::fromROSMsg(*msg, temp_cloud);
         cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
-                }
-            }
-
-      if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
-        cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
       }
-        if(cloud->empty()) {
-        ROS_ERROR("[WrapperRosRBL]: PCL is empty");
-            return;
-        }
-          rbl_controller_->setPCL(cloud);
+    }
+
+    if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
+      cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
+    }
+    if (cloud->empty()) {
+      ROS_ERROR("[WrapperRosRBL]: PCL is empty");
+      return;
+    }
+    rbl_controller_->setPCL(cloud);
     pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
     auto ret = rbl_controller_->getNextRef();
@@ -584,7 +582,7 @@ WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  //
 
 std::shared_ptr<sensor_msgs::PointCloud2>
 WrapperRosRBL::getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& pcl,  // //{
-                                 const std::string&                  frame)
+                         const std::string&                                     frame)
 {
   auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
 
@@ -671,18 +669,19 @@ geometry_msgs::Point WrapperRosRBL::createPoint(double x,  // //{
   return point;
 }  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                cloud, 
-                                  const std::vector<State>& group_states, 
-                                  const double                                                    voxel_size, 
-                                  const double                                                    encumbrance)
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
+WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                             const std::vector<State>&                        group_states,
+                             const double                                     voxel_size,
+                             const double                                     encumbrance)
 {
   const int num_voxels_half_side = std::ceil(encumbrance / voxel_size);
   // injected_points_map_.clear();
   //
 
-  for (const auto& state: group_states) {
+  for (const auto& state : group_states) {
     const Eigen::Vector3d& position = state.position;
-        ROS_DEBUG("[WrapperRosRBL]: Adding points to PCL at: %.2f, %.2f, %.2f", position.x(), position.y(), position.z());
+    ROS_DEBUG("[WrapperRosRBL]: Adding points to PCL at: %.2f, %.2f, %.2f", position.x(), position.y(), position.z());
 
     const int center_nx = std::floor(position.x() / voxel_size);
     const int center_ny = std::floor(position.y() / voxel_size);
@@ -692,9 +691,10 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std
       for (int dy = -num_voxels_half_side; dy <= num_voxels_half_side; ++dy) {
         for (int dz = -num_voxels_half_side; dz <= num_voxels_half_side; ++dz) {
 
-          double dist = std::sqrt(dx*dx + dy*dy + dz*dz) * voxel_size;
+          double dist = std::sqrt(dx * dx + dy * dy + dz * dz) * voxel_size;
 
-          if (dist > encumbrance + voxel_size) continue;
+          if (dist > encumbrance + voxel_size)
+            continue;
 
           int current_nx = center_nx + dx;
           int current_ny = center_ny + dy;
@@ -726,9 +726,8 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> WrapperRosRBL::addAgents2PCL(std
     //   }
     // }
   }
-    return cloud;
+  return cloud;
 }
-
 
 
 #include <pluginlib/class_list_macros.h>

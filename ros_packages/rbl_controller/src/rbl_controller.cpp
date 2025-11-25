@@ -47,7 +47,7 @@ void RBLController::setGroupStates(const std::vector<State>& states)  // //{
 
 void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
 {
-    cloud_ = cloud;
+  cloud_ = cloud;
 }  // //}
 
 void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
@@ -70,7 +70,7 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)  // //{
 
 bool RBLController::inputsHealthy(const Eigen::Vector3d&                           agent_pos,
                                   const Eigen::Vector3d&                           agent_vel,
-                                  const std::vector<State>&   group_states,
+                                  const std::vector<State>&                        group_states,
                                   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                   Eigen::Vector3d&                                 goal,
                                   double&                                          altitude,
@@ -120,7 +120,7 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
     healthy = false;
   }
 
-  for (const auto& state: group_states) {
+  for (const auto& state : group_states) {
     const auto& pos = state.position;
     const auto& vel = state.velocity;
     if (!validVector(pos)) {
@@ -197,10 +197,10 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
     destination_             = waypoint_;
   }
 
-    std::vector<Eigen::Vector3d> group_positions;
-    for(const auto& state: group_states_){
-        group_positions.push_back(state.position);
-    }
+  std::vector<Eigen::Vector3d> group_positions;
+  for (const auto& state : group_states_) {
+    group_positions.push_back(state.position);
+  }
 
   // Partitioning logic
   cell_A_.clear();
@@ -677,7 +677,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   Eigen::Vector3d v   = c1 - seed_b;
   double          n   = v.norm();
   double          eps = 1e-8;
-  seed_b              = agent_pos; //seed_b + 2 * params_.dt * v / (n + eps);
+  seed_b              = agent_pos;  // seed_b + 2 * params_.dt * v / (n + eps);
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   double          dist_agent_seed = (seed_b - agent_pos).norm();
@@ -1310,28 +1310,31 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
     double diff                = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference          = (diff < -M_PI) ? diff + 2 * M_PI : diff;
 
-    if (std::abs(difference) < M_PI / 2){ //+-90 deg
+    if (std::abs(difference) < M_PI / 2) {  //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
-    } else {
+    }
+    else {
       p_ref.position.x = agent_pos[0];
       p_ref.position.y = agent_pos[1];
       p_ref.position.z = agent_pos[2];
     }
 
     if ((c1 - c1_full).norm() < 0.5) {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
-    }else {
-      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
+      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    }
+    else {
+      desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
     }
     p_ref.heading = desired_heading;
 
-    if ((agent_pos - goal).norm() <= 0.3) { //Arived at goal pos
+    if ((agent_pos - goal).norm() <= 0.3) {  // Arived at goal pos
       // p_ref.heading = rpy[2]; //keep the same heading
       p_ref.heading = desired_heading;
-      std::cout << "[RBLController]: Arrived at goal pos" << std::endl; //keep the same heading
-    } else {
+      std::cout << "[RBLController]: Arrived at goal pos" << std::endl;  // keep the same heading
+    }
+    else {
       p_ref.heading = desired_heading;
     }
   }
@@ -1417,8 +1420,9 @@ double RBLController::normalizeAngle(double angle)  // //{
   return angle;
 }  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
-                                double                                           voxel_size)
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
+RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+                             double                                           voxel_size)
 {
   // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
 
