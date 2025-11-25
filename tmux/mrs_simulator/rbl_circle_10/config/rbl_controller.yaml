@@ -1,0 +1,170 @@
+group_odoms:
+  enable: false
+
+odometry_topic: estimation_manager/odom_main
+
+rate:
+  timer_set_ref: 30
+  timer_diagnostics: 10
+
+rbl_controller:
+  only_2d: false
+  z_min: 0.0
+  z_max: 10.0
+  z_ref: 5.0
+  d1: 1.5
+  d2: 1.5
+  d3: 1.5
+  d4: 1.5
+  d5: 1.5
+  d6: 1.5
+  d7: 1.5
+  radius: 8.0 # max planning horizon
+  betaD: 3.5
+  beta_min: 0.20
+  dt: 0.1
+  step_size: 0.2
+  encumbrance: 0.5
+  use_z_rule: false
+  cwvd_obs: 0.9
+  cwvd_rob: 0.9
+  use_garmin_alt: false
+  replanner: false 
+  limited_fov: false
+  ciri: true
+  boundary_threshold: 1.5
+  boundary_threshold_speed: 0.0
+  lidar_tilt: 20.0 # [deg]
+  lidar_fov: 59.0 #[deg]
+  move_centroid_to_sensed_cell: true
+  voxel_size: 0.2
+  n_uavs: 10
+
+
+replanner:
+  inflation_bonus: 0.2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# monitored_area_origin:
+#   x: 0.0
+#   y: 0.0
+#   z: 0.0
+
+
+# final_positions: # defined with respect to monitored_area_origin
+
+#   uav1:
+#     x: 15.0
+#     y: 0
+#     z: 3.0
+
+#   uav2:
+#     x: 12.13
+#     y: 8.81
+#     z: 3.0
+
+#   uav3:
+#     x: 4.63
+#     y: 14.26
+#     z: 3.0
+  
+#   uav4:
+#     x: -4.63
+#     y: 14.26
+#     z: 3.0
+
+#   uav5:
+#     x: -12.13
+#     y: 8.81
+#     z: 3.0
+
+#   uav6:
+#     x: -15.0
+#     y: 0.0
+#     z: 3.0
+
+#   uav7:
+#     x: -12.13
+#     y: -8.81
+#     z: 3.0
+    
+#   uav8:
+#     x: -4.63
+#     y: -14.26
+#     z: 3.0
+
+#   uav9:
+#     x: 4.63
+#     y: -14.26
+#     z: 3.0
+
+#   uav10:
+#     x: 12.13
+#     y: -8.81
+#     z: 3.0
+
+
+
+# initial_positions: # defined with respect to monitored_area_origin
+
+#   uav1:
+#     x: -15.0
+#     y: 0.0
+#     z: 3.0
+
+#   uav2:
+#     x: -12.13
+#     y: -8.81
+#     z: 3.0
+
+#   uav3:
+#     x: -4.63
+#     y: -14.26
+#     z: 3.0
+  
+#   uav4:
+#     x: 4.63
+#     y: -14.26
+#     z: 3.0
+
+#   uav5:
+#     x: 12.13
+#     y: -8.81
+#     z: 3.0
+
+#   uav6:
+#     x: 15.0
+#     y: -0.0
+#     z: 3.0
+
+#   uav7:
+#     x: 12.13
+#     y: 8.81
+#     z: 3.0
+    
+#   uav8:
+#     x: 4.63
+#     y: 14.26
+#     z: 3.0
+
+#   uav9:
+#     x: -4.63
+#     y: 14.26
+#     z: 3.0
+
+#   uav10:
+#     x: -12.13
+#     y: 8.81
+#     z: 3.0

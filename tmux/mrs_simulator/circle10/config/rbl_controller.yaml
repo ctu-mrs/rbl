@@ -1,6 +1,7 @@
 group_odoms:
   enable: true
   add_to_pcl: true
+  size: 9
 
 odometry_topic: estimation_manager/odom_main
 
