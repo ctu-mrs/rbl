@@ -20,8 +20,8 @@ rbl_controller:
   d6: 1.5
   d7: 1.5
   radius: 8.0 # max planning horizon
-  betaD: 3.5
-  beta_min: 0.20
+  betaD: 0.5
+  beta_min: 0.10
   dt: 0.1
   step_size: 0.2
   encumbrance: 0.5
@@ -32,8 +32,8 @@ rbl_controller:
   replanner: false 
   limited_fov: false
   ciri: true
-  boundary_threshold: 1.5
-  boundary_threshold_speed: 0.0
+  boundary_threshold: 0.2
+  boundary_threshold_speed: 0.5
   lidar_tilt: 20.0 # [deg]
   lidar_fov: 59.0 #[deg]
   move_centroid_to_sensed_cell: true
