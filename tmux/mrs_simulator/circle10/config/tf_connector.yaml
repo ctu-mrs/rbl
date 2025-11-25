@@ -32,7 +32,6 @@ connections:
 
   - root_frame_id: "uav10/fcu"
     equal_frame_id: "uav10/world_origin"
-    
 
   - root_frame_id: "simulator_origin"
     equal_frame_id: "simulator_origin"
