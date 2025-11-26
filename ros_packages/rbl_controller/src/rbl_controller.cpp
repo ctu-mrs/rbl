@@ -674,10 +674,10 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<<
   // seed_b[1]<<" , "<< seed_b[2] << std::endl; std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<<
   // c1[2] << std::endl; Eigen::Vector3d seed_b;
+  //
   Eigen::Vector3d v   = c1 - seed_b;
   double          n   = v.norm();
   double          eps = 1e-8;
-  seed_b              = agent_pos;  // seed_b + 2 * params_.dt * v / (n + eps);
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   double          dist_agent_seed = (seed_b - agent_pos).norm();

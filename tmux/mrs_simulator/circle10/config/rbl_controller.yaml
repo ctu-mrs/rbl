@@ -31,10 +31,10 @@ rbl_controller:
   cwvd_obs: 0.9
   cwvd_rob: 0.9
   use_garmin_alt: false
-  replanner: true
+  replanner: false
   limited_fov: true
-  ciri: true
-  boundary_threshold: 2.5
+  ciri: false
+  boundary_threshold: 0.2
   boundary_threshold_speed: 0.1
   lidar_tilt: 20.0 # [deg]
   lidar_fov: 59.0 #[deg]
