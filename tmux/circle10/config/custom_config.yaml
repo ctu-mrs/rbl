@@ -77,3 +77,24 @@ mrs_uav_trajectory_generation:
 
 
 
+
+# mrs_uav_status:
+
+#   colorblind_mode: True # Set True to change green color to blue
+
+#   enable_profiler: False
+
+#   start_minimized: False
+
+#   turbo_remote_constraints: "fast"
+
+#   # List of topics to monitor, format is:
+#   # topic_name Displayed name (can be multiple words) expected_frequency
+#   # if "/" is provided at the beginning of topic_name, the topic name is considered as written,
+#   # if there is no "/" at the beginning, UAV_NAME is automatically added in from of the topic name (/uav1/topic_name)
+#   want_hz: [
+#         # "garmin/range Garmin 100",
+#         # "bluefox/image_raw Bluefox 100",
+#         "odometry/uav_state uav state 100",
+#         ]
+
