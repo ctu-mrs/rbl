@@ -22,19 +22,19 @@ rbl_controller:
   d6: 1.5
   d7: 1.5
   radius: 5.0 # max planning horizon
-  betaD: 1.5
-  beta_min: 0.20
+  betaD: 0.5
+  beta_min: 0.10
   dt: 0.1
   step_size: 0.1
-  encumbrance: 0.6
+  encumbrance: 0.5
   use_z_rule: false
   cwvd_obs: 0.9
   cwvd_rob: 0.9
   use_garmin_alt: false
   replanner: false
   limited_fov: true
-  ciri: false
-  boundary_threshold: 0.2
+  ciri: true
+  boundary_threshold: 0.4
   boundary_threshold_speed: 0.1
   lidar_tilt: 20.0 # [deg]
   lidar_fov: 59.0 #[deg]

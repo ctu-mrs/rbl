@@ -49,7 +49,7 @@ uav1:
     x: 15.00
     y: 0.00
     z: 5.00
-    heading: -0.05
+    heading: 3.1416
 
 uav2:
   type: "x500"
@@ -57,7 +57,7 @@ uav2:
     x: 12.14
     y: 8.82
     z: 5.00
-    heading: -0.04
+    heading: -2.5130
 
 uav3:
   type: "x500"
@@ -65,7 +65,7 @@ uav3:
     x: 4.64
     y: 14.27
     z: 5.00
-    heading: -0.03
+    heading: -1.8858
 
 uav4:
   type: "x500"
@@ -73,7 +73,7 @@ uav4:
     x: -4.64
     y: 14.27
     z: 5.00
-    heading: -0.02
+    heading: -1.2560
 
 uav5:
   type: "x500"
@@ -81,7 +81,7 @@ uav5:
     x: -12.14
     y: 8.82
     z: 5.00
-    heading: -0.01
+    heading: -0.6280
 
 uav6:
   type: "x500"
@@ -89,7 +89,7 @@ uav6:
     x: -15.00
     y: 0.00
     z: 5.00
-    heading: -0.00
+    heading: 0.0000
 
 uav7:
   type: "x500"
@@ -97,7 +97,7 @@ uav7:
     x: -12.14
     y: -8.82
     z: 5.00
-    heading: 0.01
+    heading: 0.6280
 
 uav8:
   type: "x500"
@@ -105,7 +105,7 @@ uav8:
     x: -4.64
     y: -14.27
     z: 5.00
-    heading: 0.02
+    heading: 1.2560
 
 uav9:
   type: "x500"
@@ -113,7 +113,7 @@ uav9:
     x: 4.64
     y: -14.27
     z: 5.00
-    heading: 0.03
+    heading: 1.8858
 
 uav10:
   type: "x500"
@@ -121,7 +121,4 @@ uav10:
     x: 12.14
     y: -8.82
     z: 5.00
-    heading: 0.04
-
-
-
+    heading: 2.5130

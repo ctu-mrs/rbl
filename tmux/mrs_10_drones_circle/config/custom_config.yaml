@@ -31,6 +31,20 @@ mrs_uav_managers:
       failsafe_threshold: 6.0 # [m], position error triggering failsafe land
       odometry_innovation_threshold: 1.5 # [m], position odometry innovation threshold
 
+  takeoff:
+
+    rate: 10 # [Hz]
+
+    during_takeoff:
+      controller: "MpcController"
+      tracker: "LandoffTracker"
+
+    after_takeoff:
+      controller: "MpcController"
+      tracker: "MpcTracker"
+
+    takeoff_height: 5
+
 mrs_uav_trackers:
 
   mpc_tracker:

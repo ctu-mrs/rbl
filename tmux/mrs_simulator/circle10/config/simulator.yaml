@@ -43,13 +43,14 @@ uav_names: [
   "uav10",
 ]
 
+
 uav1:
   type: "x500"
   spawn:
     x: 15.00
     y: 0.00
     z: 5.00
-    heading: -0.05
+    heading: -3.14
 
 uav2:
   type: "x500"
@@ -57,7 +58,7 @@ uav2:
     x: 12.14
     y: 8.82
     z: 5.00
-    heading: -0.04
+    heading: -3.77
 
 uav3:
   type: "x500"
@@ -65,7 +66,7 @@ uav3:
     x: 4.64
     y: 14.27
     z: 5.00
-    heading: -0.03
+    heading: -4.40
 
 uav4:
   type: "x500"
@@ -73,7 +74,7 @@ uav4:
     x: -4.64
     y: 14.27
     z: 5.00
-    heading: -0.02
+    heading: -5.03
 
 uav5:
   type: "x500"
@@ -81,7 +82,7 @@ uav5:
     x: -12.14
     y: 8.82
     z: 5.00
-    heading: -0.01
+    heading: -5.65
 
 uav6:
   type: "x500"
@@ -89,7 +90,7 @@ uav6:
     x: -15.00
     y: 0.00
     z: 5.00
-    heading: -0.00
+    heading: -6.28
 
 uav7:
   type: "x500"
@@ -97,7 +98,7 @@ uav7:
     x: -12.14
     y: -8.82
     z: 5.00
-    heading: 0.01
+    heading: -6.91
 
 uav8:
   type: "x500"
@@ -105,7 +106,7 @@ uav8:
     x: -4.64
     y: -14.27
     z: 5.00
-    heading: 0.02
+    heading: -7.54
 
 uav9:
   type: "x500"
@@ -113,7 +114,7 @@ uav9:
     x: 4.64
     y: -14.27
     z: 5.00
-    heading: 0.03
+    heading: -8.17
 
 uav10:
   type: "x500"
@@ -121,7 +122,4 @@ uav10:
     x: 12.14
     y: -8.82
     z: 5.00
-    heading: 0.04
-
-
-
+    heading: -8.80

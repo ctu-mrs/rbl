@@ -70,7 +70,7 @@ windows:
         - export UAV_NAME=uav8; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
         - export UAV_NAME=uav9; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
         - export UAV_NAME=uav10; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
-  - goto_start:
+  - goto_end:
       layout: tiled
       synchronize: after
       panes:
@@ -85,7 +85,7 @@ windows:
         - 'history -s rosservice call /uav9/rbl_controller/goto \"goal: \[-4.64, 14.27, 5.00, 0.0\]\"'
         - 'history -s rosservice call /uav10/rbl_controller/goto \"goal: \[-12.14, 8.82, 5.00, 0.0\]\"'
 
-  - goto_finish:
+  - goto_start:
       layout: tiled
       synchronize: after
       panes:

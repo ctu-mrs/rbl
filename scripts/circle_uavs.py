@@ -7,11 +7,11 @@ def main():
 
     print("\n--- UAV Spawns ---\n")
     for i in range(n):
-        angle = 2 * math.pi * i / n
+        angle = 2 * math.pi * (i) / n
         x = r * math.cos(angle)
         y = r * math.sin(angle)
-        heading = math.radians(math.atan2(-y, -x))  # towards center
-
+        heading = -(math.pi + angle)
+        # print(i , "   " , angle)
         print(f"uav{i+1}:")
         print(f"  type: \"x500\"")
         print(f"  spawn:")
@@ -22,7 +22,7 @@ def main():
 
     print("\n--- First rosservice calls after takeoff to get to correct height ---\n")
     for i in range(n):
-        angle = 2 * math.pi * i / n
+        angle = 2 * math.pi * (i) / n
         x = r * math.cos(angle)
         y = r * math.sin(angle)
         print(f"- 'history -s rosservice call /uav{i+1}/rbl_controller/goto \\\"goal: \\[{x:.2f}, {y:.2f}, {z:.2f}, 0.0\\]\\\"'")
