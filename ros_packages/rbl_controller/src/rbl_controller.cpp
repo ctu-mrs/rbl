@@ -271,7 +271,9 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                params_.d7,
                params_.betaD,
                params_.beta_min,
-               params_.dt);
+               params_.dt,
+              threshold_active
+               );
   }
   else {
     computeCentroid(c1_,
@@ -303,7 +305,8 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                     goal_,
                     waypoint_fixed_distance_,
                     beta_,
-                    flag_threshold);
+                    flag_threshold
+                    );
     applyRules(beta_,
                th_,
                ph_,
@@ -322,7 +325,9 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                params_.d7,
                params_.betaD,
                params_.beta_min,
-               params_.dt);
+               params_.dt,
+               threshold_active
+               );
   }
   Eigen::Vector3d c1_full_cell = c1_;
   if (params_.move_centroid_to_sensed_cell) {
@@ -635,7 +640,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        const std::vector<Eigen::Vector3d>&              neighbors,
                                        std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
                                        Eigen::Vector3d&                                 c1,
-                                       Eigen::Vector3d&                                 seed_b)
+                                       Eigen::Vector3d&                                 seed_b,
+                                       bool&                                            threshold_active_)
 {
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
@@ -681,7 +687,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   // result = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
   double          dist_agent_seed = (seed_b - agent_pos).norm();
-  Eigen::Vector3d direction_vec   = (agent_pos - seed_b) / dist_agent_seed;
+  Eigen::Vector3d direction_vec   = (agent_pos - seed_b) / (dist_agent_seed+eps);
 
   //   for (int i = 1; i < segments; ++i) {
   for (int i = 0; i < segments; ++i) {
@@ -932,8 +938,9 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
                                     Eigen::Vector3d&              destination,
                                     Eigen::Vector3d&              goal,
                                     double&                       beta,
-                                    bool                          flag_threshold)
-{
+                                    bool                          flag_threshold,
+                                    bool                          threshold_active)
+                                    {
   std::vector<double> x_in, y_in, z_in;
   for (const auto& point : cell) {
     x_in.push_back(point[0]);
@@ -981,9 +988,9 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) +
   // std::pow((centroid[2] - ), 2));
-
   if (min_distance < params_.boundary_threshold && beta < 1.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
     beta = beta + 0.1;
+    threshold_active = true;
     // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " <<
     // min_distance << std::endl;
     computeCentroid(centroid,
@@ -1042,7 +1049,9 @@ void RBLController::applyRules(double&                beta,  // //{
                                const double&          d7,
                                const double&          betaD,
                                const double&          beta_min,
-                               const double&          dt)
+                               const double&          dt,
+                               bool&                  threshold_active
+                               )
 {
   double current_j_x = agent_pos[0];
   double current_j_y = agent_pos[1];
@@ -1172,6 +1181,8 @@ void RBLController::applyRules(double&                beta,  // //{
     double distance  = sqrt(pow((goal[0] - current_j_x), 2) + pow((goal[1] - current_j_y), 2));
     destination[0]   = current_j_x + distance * cos(new_angle);
     destination[1]   = current_j_y + distance * sin(new_angle);
+
+    std::cout << "theta: " << th << ", beta: " << beta << std::endl;
   }
 }  // //}
 

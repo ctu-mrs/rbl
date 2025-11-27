@@ -126,6 +126,7 @@ bool inputsHealthy( const Eigen::Vector3d&                                      
 private:
   RBLParams                                                 params_;
   bool                                                      flag_threshold;
+  bool                                                      threshold_active_ = false;
   double                                                    radius_sensing_;
   double                                                    altitude_;
   double                                                    beta_;
@@ -187,11 +188,11 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> downSamplePcl(std::shared_ptr<pc
   Eigen::Matrix3d Ry(double angle);
   Eigen::Matrix3d Rz(double angle);
   Eigen::Vector3d movePointToCell(const Eigen::Vector3d& point, const std::vector<Eigen::Vector3d>& cell);
-  void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, Eigen::Vector3d& goal, double& beta, bool flag_threshold);
+  void computeCentroid(Eigen::Vector3d& centroid, Eigen::Vector3d& agent_pos, Eigen::Vector3d& agent_vel, std::vector<Eigen::Vector3d>& cell, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, Eigen::Vector3d& destination, Eigen::Vector3d& goal, double& beta, bool flag_threshold, bool& threshold_active_);
   void computeScalarValue(std::vector<double>& scalar_values, const std::vector<double>& x_test, const std::vector<double>& y_test, const std::vector<double>& z_test, const Eigen::Vector3d &destination, const Eigen::Vector3d &goal, double beta);
-  void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d destination, 
+  void applyRules(double& beta, double& th, double& ph, Eigen::Vector3d& seed_b, Eigen::Vector3d destination, 
                   const Eigen::Vector3d goal, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& c1, const Eigen::Vector3d& c2, const Eigen::Vector3d& c1_no_rot,
-                  const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
+                  const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt, bool& threshold_active_);
   Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, Eigen::Vector3d& waypoint);
   Eigen::Vector3d determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
   void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& c1_full, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
