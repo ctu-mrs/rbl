@@ -1002,10 +1002,10 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
     min_distance = params_.radius - (agent_pos - centroid).norm();
   }
 
-  std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << ", threshold "<< threshold_active << std::endl;
+  // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << ", threshold "<< threshold_active << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) +
   // std::pow((centroid[2] - ), 2));
-  if (min_distance < params_.boundary_threshold && beta < 1.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
+  if (min_distance < params_.boundary_threshold && beta < 4.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
     beta = beta + 0.1;
     threshold_active = true;
     // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " <<
