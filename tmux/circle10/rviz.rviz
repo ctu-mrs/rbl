@@ -19,6 +19,9 @@ Panels:
         - /Encumbrances1/UAV101
         - /PointCloud21
         - /PointCloud22
+        - /Marker1
+        - /PointCloud23
+        - /Odometry1
       Splitter Ratio: 0.560869574546814
     Tree Height: 743
   - Class: rviz/Selection
@@ -672,8 +675,44 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 7.800000190734863
-        Min Value: 3.200000047683716
+        Max Value: 6.800000190734863
+        Min Value: 1.600000023841858
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: AxisColor
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.019999999552965164
+      Style: Flat Squares
+      Topic: /uav7/rbl_controller/viz/actively_sensed_A
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /uav7/rbl_controller/viz/centroid
+      Name: Marker
+      Namespaces:
+        centroid: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 5.5
+        Min Value: -0.5
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -690,20 +729,80 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.019999999552965164
+      Size (m): 0.10000000149011612
       Style: Flat Squares
-      Topic: /uav9/rbl_controller/viz/actively_sensed_A
+      Topic: /uav7/rbl_controller/viz/cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Class: rviz/Marker
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Keep: 1
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /uav7/control_manager/control_reference
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
       Enabled: true
-      Marker Topic: /uav9/rbl_controller/viz/centroid
-      Name: Marker
-      Namespaces:
-        centroid: true
-      Queue Size: 100
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /uav7/control_manager/mpc_tracker/current_trajectory_point
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /uav7/control_manager/mpc_tracker/predicted_trajectory_debugging
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -733,7 +832,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 92.44274139404297
+      Distance: 41.75608825683594
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -741,17 +840,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.8200232982635498
-        Y: 10.624368667602539
+        X: 1.2234941720962524
+        Y: 8.771317481994629
         Z: 9.5367431640625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.560397982597351
+      Pitch: 1.1697965860366821
       Target Frame: common_origin
-      Yaw: 1.610397458076477
+      Yaw: 1.390397071838379
     Saved: ~
 Window Geometry:
   Displays:

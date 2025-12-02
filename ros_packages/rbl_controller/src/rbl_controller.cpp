@@ -698,7 +698,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     double n = v.norm();
     double eps = 1e-8;
     seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
-    seed_b = agent_pos;
+    // seed_b = agent_pos;
 
   double dist_agent_seed = (seed_b - agent_pos).norm();
   Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
@@ -1350,12 +1350,12 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
       p_ref.position.z = agent_pos[2];
     }
 
-    if ((c1 - c1_full).norm() < 0.5) {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
-    }
-    else {
+    // if ((c1 - c1_full).norm() < 0.5) {
+    //   desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    // }
+    // else {
       desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
-    }
+    // }
     p_ref.heading = desired_heading;
 
     if ((agent_pos - goal).norm() <= 0.3) {  // Arived at goal pos

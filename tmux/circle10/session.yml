@@ -133,7 +133,7 @@ windows:
       layout: tiled
       panes:
         - export UAV_NAME=uav1; waitForControl; rosrun rviz rviz -d ./rviz.rviz
-  - layout:
-      layout: tiled
-      panes:
-        - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
+  # - layout:
+  #     layout: tiled
+  #     panes:
+  #       - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json

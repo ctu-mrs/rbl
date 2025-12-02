@@ -1,0 +1,224 @@
+# do not modify these
+root: ./
+name: simulation
+socket_name: mrs
+attach: false
+tmux_options: -f /etc/ctu-mrs/tmux.conf
+# you can modify these
+pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=a300; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml
+startup_window: goto
+windows:
+  - roscore:
+      layout: tiled
+      panes:
+        - roscore
+  - simulator:
+      layout: tiled
+      panes:
+        - waitForRos; roslaunch mrs_multirotor_simulator multirotor_simulator.launch custom_config:=./config/simulator.yaml
+  - hw_api:
+      layout: tiled
+      panes:
+        - waitForTime; export UAV_NAME=uav1; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav2; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav3; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav4; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav5; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav6; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav7; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav8; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav9; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+        - waitForTime; export UAV_NAME=uav10; roslaunch mrs_multirotor_simulator hw_api.launch custom_config:=./config/hw_api.yaml nodelet_manager_name:=$UAV_NAME\_nodelet_manager
+  - control:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav2; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav3; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav4; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav5; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav6; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav7; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav8; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav9; waitForTime; roslaunch mrs_uav_core core.launch
+        - export UAV_NAME=uav10; waitForTime; roslaunch mrs_uav_core core.launch
+  - automatic_start:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav2; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav3; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav4; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav5; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav6; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav7; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav8; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav9; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+        - export UAV_NAME=uav10; waitForTime; roslaunch mrs_uav_autostart automatic_start.launch custom_config:=./config/automatic_start.yaml; exit
+  - rbl_controller:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav2; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav3; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav4; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav5; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav6; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav7; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav8; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav9; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav10; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
+
+  - activation:
+      layout: tiled
+      synchronize: after
+      panes:
+        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+        - export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation
+          
+  - fly_to_start:
+      layout: tiled
+      synchronize: after
+      panes:
+        - export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+        - export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/fly_to_start
+       
+  - goto:
+      layout: tiled
+      panes:
+        - 'history -s ./goto.py'
+        - 'history -s ./get_mutual_dist.py'
+        - 'history -s rosbag record -e ".*(tf|estimation_manager|orca|tracker_cmd).*"'
+        - 'history -s rosbag record -e ".*(estimation_manager/odom_main|orca/uav_state/min_mutual_dist|orca/number_of_collisions|orca/tracker_output|orca/overall_min_dist).*"'
+  - takeoff:
+      layout: tiled
+      panes:
+        - export UAV_NAME=uav1; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav2; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav3; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav4; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav5; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav6; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav7; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav8; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav9; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+        - export UAV_NAME=uav10; waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard; exit
+  - altitude:
+      layout: tiled
+      synchronize: after
+      panes:
+        - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10
+        - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav3; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav4; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav5; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav6; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav7; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav8; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav9; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10 
+        - export UAV_NAME=uav10; history -s rosservice call /$UAV_NAME/control_manager/goto_altitude 10
+  # - delay_messages:
+  #     layout: tiled
+  #     panes:
+  #       - export UAV_NAME=uav1; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav2; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav3; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav4; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav5; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav6; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav7; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav8; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav9; waitForTime; ./delay_messages.py $UAV_NAME 
+  #       - export UAV_NAME=uav10; waitForTime; ./delay_messages.py $UAV_NAME
+  # - set_delay:
+  #     layout: tiled
+  #     synchronize: after
+  #     panes:
+  #       - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50
+  #       - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav3; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav4; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav5; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav6; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav7; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav8; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav9; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50 
+  #       - export UAV_NAME=uav10; history -s rosservice call /$UAV_NAME/orca/set_message_delay 50
+  # - filter_messages:
+  #     layout: tiled
+  #     panes:
+  #       - export UAV_NAME=uav1; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav2; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav3; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav4; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav5; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav6; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav7; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav8; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav9; waitForTime; ./decrease_frequency.py $UAV_NAME 
+  #       - export UAV_NAME=uav10; waitForTime; ./decrease_frequency.py $UAV_NAME
+  # - set_frequency:
+  #     layout: tiled
+  #     synchronize: after
+  #     panes:
+  #       - export UAV_NAME=uav1; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50
+  #       - export UAV_NAME=uav2; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav3; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav4; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav5; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav6; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav7; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav8; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav9; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50 
+  #       - export UAV_NAME=uav10; history -s rosservice call /$UAV_NAME/orca/target_sharing_frequency 50
+  - tf_connector:
+      layout: tiled
+      panes:
+        - waitForTime; roslaunch mrs_tf_connector tf_connector.launch custom_config:=./config/tf_connector.yaml
+  - rviz:
+      layout: tiled
+      panes:
+        - waitForControl; rosrun rviz rviz -d ./rviz.rviz
+        - export UAV_NAME=uav1; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav2; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav3; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav4; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav5; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav6; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav7; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav8; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav9; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+        - export UAV_NAME=uav10; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
+  # - rviz_uav_models:
+  #     layout: tiled
+  #     panes:
+  #       - export UAV_NAME=uav1; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav2; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav3; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav4; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav5; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav6; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav7; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav8; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav9; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  #       - export UAV_NAME=uav10; export UAV_TYPE=x500; waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+  - layout:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json

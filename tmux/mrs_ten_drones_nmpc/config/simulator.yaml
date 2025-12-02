@@ -1,0 +1,126 @@
+simulation_rate: 100.0
+clock_rate: 100.0
+realtime_factor: 0.15
+
+iterate_without_input: true
+
+individual_takeoff_platform:
+  enabled: false
+
+collisions:
+  enabled: false
+  crash: false
+
+  # if crash==false, then the collisions are elastic
+  rebounce: 100.0
+
+# randomization of the initial conditions around the desired spawn point
+randomization:
+
+  enabled: false
+
+  bounds:
+    x: 15.0
+    y: 15.0
+    z: 15.0
+
+ground:
+  enabled: true
+  z: 0.0 # [m]
+
+uav_names: [
+  "uav1",
+  "uav2",
+  "uav3",
+  "uav4",
+  "uav5",
+  "uav6",
+  "uav7",
+  "uav8",
+  "uav9",
+  "uav10",
+]
+
+
+uav1:
+  type: "a300"
+  spawn:
+    x: 15.00
+    y: 0.00
+    z: 5.00
+    heading: -3.14
+
+uav2:
+  type: "a300"
+  spawn:
+    x: 12.14
+    y: 8.82
+    z: 5.00
+    heading: -3.77
+
+uav3:
+  type: "a300"
+  spawn:
+    x: 4.64
+    y: 14.27
+    z: 5.00
+    heading: -4.40
+
+uav4:
+  type: "a300"
+  spawn:
+    x: -4.64
+    y: 14.27
+    z: 5.00
+    heading: -5.03
+
+uav5:
+  type: "a300"
+  spawn:
+    x: -12.14
+    y: 8.82
+    z: 5.00
+    heading: -5.65
+
+uav6:
+  type: "a300"
+  spawn:
+    x: -15.00
+    y: 0.00
+    z: 5.00
+    heading: -6.28
+
+uav7:
+  type: "a300"
+  spawn:
+    x: -12.14
+    y: -8.82
+    z: 5.00
+    heading: -6.91
+
+uav8:
+  type: "a300"
+  spawn:
+    x: -4.64
+    y: -14.27
+    z: 5.00
+    heading: -7.54
+
+uav9:
+  type: "a300"
+  spawn:
+    x: 4.64
+    y: -14.27
+    z: 5.00
+    heading: -8.17
+
+uav10:
+  type: "a300"
+  spawn:
+    x: 12.14
+    y: -8.82
+    z: 5.00
+    heading: -8.80
+
+
+

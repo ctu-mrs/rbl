@@ -4,6 +4,7 @@ group_odoms:
   size: 9
 
 odometry_topic: estimation_manager/odom_main
+# odometry_topic: "estimation_manager/ground_truth/odom"
 
 rate:
   timer_set_ref: 10
