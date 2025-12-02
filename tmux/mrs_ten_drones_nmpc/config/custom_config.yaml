@@ -5,11 +5,10 @@ mrs_uav_managers:
     # loaded state estimator plugins
     state_estimators: [
       "gps_baro",
-      "ground_truth",
       # "rtk",
     ]
 
-    initial_state_estimator: "ground_truth" # will be used as the first state estimator
+    initial_state_estimator: "gps_baro" # will be used as the first state estimator
     agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
 
   control_manager:
@@ -30,15 +29,15 @@ mrs_uav_managers:
       yaw_error_eland:
         enabled: false
 
-    ExampleTracker:
-      address: "example_tracker_plugin/ExampleTracker"
-      namespace: "example_tracker"
-      human_switchable: true
+    # ExampleTracker:
+    #   address: "example_tracker_plugin/ExampleTracker"
+    #   namespace: "example_tracker"
+    #   human_switchable: true
 
-    # list of names of dynamically loaded trackers
-    trackers : [
-      "ExampleTracker",
-    ]
+    # # list of names of dynamically loaded trackers
+    # trackers : [
+    #   "ExampleTracker",
+    # ]
 
     NmpcController:
       address: "controller_module/ControllerModule"
@@ -69,13 +68,18 @@ mrs_uav_managers:
   uav_manager:
 
     takeoff:
+
+      rate: 10 # [Hz]
+
+      during_takeoff:
+        controller: "NmpcController"
+        tracker: "LandoffTracker"
+
       after_takeoff:
         controller: "NmpcController"
-        tracker: "ExampleTracker"
+        tracker: "MpcTracker"
 
-    midair_activation:
-      after_activation:
-        tracker: "ExampleTracker"
+      takeoff_height: 5
 
     min_height_checking:
       enabled: false
@@ -108,10 +112,10 @@ mrs_uav_managers:
           snap: 1000.0
 
       heading:
-        speed: 2.0
-        acceleration: 2.0
-        jerk: 40.0
-        snap: 40.0
+        speed: 40.0
+        acceleration: 40.0
+        jerk: 1000.0
+        snap: 1000.0
 
       angular_speed:
         roll: 6000.0

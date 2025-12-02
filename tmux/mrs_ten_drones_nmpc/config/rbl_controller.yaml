@@ -22,7 +22,7 @@ rbl_controller:
   # lidar_tilt: 20.0 # [deg]
   # lidar_fov: 360.0 #[deg]
   step_size: 0.2
-  boundary_threshold: 2.0
+  boundary_threshold: 1.0
   z_min: 0.0
   z_max: 10.0
   z_ref: 5.0

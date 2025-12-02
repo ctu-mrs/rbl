@@ -5,7 +5,7 @@ input_mode:
   attitude:              true
   acceleration_hdg_rate: false
   acceleration_hdg:      false
-  velocity_hdg_rate:     false
+  velocity_hdg_rate:     true  
   velocity_hdg:          false
   position:              false
 
@@ -25,4 +25,4 @@ outputs:
   velocity:             true
   angular_velocity:     true
   odometry:             false
-  ground_truth:         true
+  ground_truth:         false
