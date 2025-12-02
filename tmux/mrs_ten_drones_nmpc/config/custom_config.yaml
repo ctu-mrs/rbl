@@ -57,7 +57,7 @@ mrs_uav_managers:
         acceleration_hdg:      false
         velocity_hdg_rate:     false
         velocity_hdg:          false
-        position:              false
+        position:              false 
 
     # list of names of dynamically loaded controllers
     controllers : [
@@ -112,8 +112,8 @@ mrs_uav_managers:
           snap: 1000.0
 
       heading:
-        speed: 40.0
-        acceleration: 40.0
+        speed: 4.0
+        acceleration: 4.0
         jerk: 1000.0
         snap: 1000.0
 
@@ -164,3 +164,62 @@ mrs_uav_trackers:
     collision_avoidance:
 
       enabled:           false # disabling this will stop this UAV to react to others, but it will still transmit data to others
+
+mrs_uav_controllers:
+
+  controller_module:
+
+    nmpc:
+
+      uav_configuration:
+
+        mass: 1.21        # [kg]
+        # arm_length: 0.15  # [m]
+        mot0_pos: [ 0.15,  -0.15]
+        mot1_pos: [-0.15,  0.15]
+        mot2_pos: [-0.15, -0.15]
+        mot3_pos: [ 0.15,  0.15]
+        inertia: [0.007, 0.007, 0.010] # diag(xx, yy, zz)
+        ctau: 0.012 # [] thrust torque coefficient
+        drag: [0.38, 0.47, 1.5] # [] linear air drag coefficient
+        voltage_based_thrustmap: True
+        propulsion_module_config: src/propulsion_module/scripts/motor_science/alien_a300.yaml
+
+
+        # acados settings
+      solver:
+
+        ac_num_iter: 20 # [-]
+        ac_horizon: 1 # [s]
+        ac_time_steps: [0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05]
+
+      costs:
+
+        Q_position_xy: 100
+        Q_position_z: 100
+        Q_rotation_xy: 26
+        Q_rotation_z: 100
+        Q_velocity: 6
+        Q_omega: 26
+        # R_matrix: (relative importance)
+        R_thrust: 4
+
+      uav_constraints:
+
+        thrust_max: 17 # [N] per motor, max for a300 is rather 20
+        thrust_min: 0.5 # [N] per motor
+        thrust_total_max: 53.4 # [N]
+        thrust_total_min: 2.0 # [N]
+        max_rot_speed: [6.0, 6.0, 3] # roll, pitch, yaw [rad/s]
+
+    rk4:
+
+      controller_dt: 0.01 # [s]
+      mem_num: 0 # number of integration in feed forward.
+
+    optional:
+
+      verbose: False
+      warn_too_high_body_rates: False
+      warn_body_rates: [5,5,1]
+

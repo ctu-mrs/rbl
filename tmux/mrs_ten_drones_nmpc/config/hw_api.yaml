@@ -6,8 +6,8 @@ input_mode:
   acceleration_hdg_rate: false
   acceleration_hdg:      false
   velocity_hdg_rate:     true  
-  velocity_hdg:          false
-  position:              false
+  velocity_hdg:          true
+  position:              true
 
   feedforward: true
 
