@@ -103,8 +103,8 @@ void RBLController::onInit() {
   /* create multiple subscribers to read uav odometries */
   // iterate through drones except this drone and target
   for (int i = 0; i < _uav_names_.size(); i++) {
-     std::string topic_name = std::string("/") + _uav_names_[i] + std::string("/") + _odometry_topic_name_; 
-     other_uav_odom_subscribers_.push_back(nh.subscribe<nav_msgs::Odometry>(topic_name.c_str(), 1, boost::bind(&RBLController::odomCallback, this, _1, i)));
+     // std::string topic_name = std::string("/") + _uav_names_[i] + std::string("/") + _odometry_topic_name_; 
+     // other_uav_odom_subscribers_.push_back(nh.subscribe<nav_msgs::Odometry>(topic_name.c_str(), 1, boost::bind(&RBLController::odomCallback, this, _1, i)));
      _uav_uvdar_ids_[_uvdar_ids_[i]] = i;
     /*   ROS_INFO("Subscribing to %s", topic_name.c_str()); */
   }

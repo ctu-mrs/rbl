@@ -56,10 +56,10 @@ windows:
         - export UAV_NAME=uav8; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
         - export UAV_NAME=uav9; waitForTime; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
 
-  # - uvdar:
-  #     layout: tiled
-  #     panes:
-  #       - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
+  - uvdar:
+      layout: tiled
+      panes:
+        - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
         
   - lidar:
       layout: tiled

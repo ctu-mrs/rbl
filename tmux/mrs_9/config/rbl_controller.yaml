@@ -5,19 +5,19 @@ odometry_topic: "estimation_manager/odom_main"
 uav_uvdar_ids: [1,2,3,4,5,6,7,8,9] # 0,1,2,3,4] #,"uav40","uav41"] #, \"uav11\"]\n
 
 set_reference_timer:
-  rate: 15 # [Hz]
+  rate: 50 # [Hz]
   
-size_neighbors1: 0.95
+size_neighbors1: 0.5
 size_obstacles1: 0.01 
-encumbrance: 0.95
-maximum_distance_conn: 10.0
+encumbrance: 0.5
+maximum_distance_conn: 5.0
 noisy_measurements: 0.0 #0.15
 noisy_angle: 0.0 #0.3
-threshold: 0.15
+threshold: 0.0
 window_length: 1 #10
 bias_error: 0.0 #0.5
-cwvd_obs: 0.99
-cwvd_rob: 0.99
+cwvd_obs: 0.9
+cwvd_rob: 0.9
 simulation: true
 refZ: 1.0
 max_obstacle_integration_dist: 9.0
@@ -53,9 +53,9 @@ d1: 0.5
 d2: 1.0
 d3: 0.5
 d4: 1.0
-radius: 3.5 
-betaD: 0.5 
-beta_min: 0.05
+radius: 5.0 
+betaD: 1.0 
+beta_min: 0.1
 dt: 0.10
 step_size: 0.1
 
