@@ -10,14 +10,14 @@ set_reference_timer:
 size_neighbors1: 0.5
 size_obstacles1: 0.01 
 encumbrance: 0.5
-maximum_distance_conn: 5.0
+maximum_distance_conn: 8.00
 noisy_measurements: 0.0 #0.15
 noisy_angle: 0.0 #0.3
 threshold: 0.0
 window_length: 1 #10
 bias_error: 0.0 #0.5
-cwvd_obs: 0.9
-cwvd_rob: 0.9
+cwvd_obs: 0.50
+cwvd_rob: 0.50
 simulation: true
 refZ: 1.0
 max_obstacle_integration_dist: 9.0
@@ -53,9 +53,9 @@ d1: 0.5
 d2: 1.0
 d3: 0.5
 d4: 1.0
-radius: 5.0 
-betaD: 1.0 
-beta_min: 0.1
+radius: 4.5 
+betaD: 0.5 
+beta_min: 0.01
 dt: 0.10
 step_size: 0.1
 
@@ -116,47 +116,47 @@ final_positions: # defined with respect to monitored_area_origin
 initial_positions: # defined with respect to monitored_area_origin
 
   uav1:
-    x: -6.0 #10
+    x: -3.0 #10
     y: -42.0 #0
     z: 2.0
 
   uav2:
-    x: -0.0 #6.2348980185873355
+    x: 3.0 #6.2348980185873355
     y: -42.0 #7.818314824680298
     z: 2.0
 
   uav3:
-    x: -3.0 #-2.22520933956314
+    x: 0.0 #-2.22520933956314
     y: -39.0 #9.7492791218
     z: 2.0
 
   uav4:
-    x: -3.0 #-2.22520933956314
+    x: 0.0 #-2.22520933956314
     y: -42.0 #9.7492791218
     z: 2.0
 
   uav5:
-    x: -6.0 #10
+    x: 3.0 #10
     y: -39.0 #0
     z: 2.0
 
   uav6:
-    x: -0.0 #6.2348980185873355
+    x: 3.0 #6.2348980185873355
     y: -39.0 #7.818314824680298
     z: 2.0
 
   uav7:
-    x: 0.0 #-2.22520933956314
+    x: 3.0 #-2.22520933956314
     y: -45.0 #9.7492791218
     z: 2.0
       
   uav8:
-    x: -3.0 #10
+    x: 0.0 #10
     y: -45.0 #0
     z: 2.0
 
   uav9:
-    x: -6.0 #6.2348980185873355
+    x: -3.0 #6.2348980185873355
     y: -45.0 #7.818314824680298
     z: 2.0
 

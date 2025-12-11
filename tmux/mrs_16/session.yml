@@ -118,22 +118,23 @@ windows:
       layout: tiled
       synchronize: after
       panes:
-        - "export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav11; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav12; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav13; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav14; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav15; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
-        - "export UAV_NAME=uav16; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation_params '\"{x: 0.0, y: 0.0, z: 5.0, betaD: 1.0, beta_min: 0.5, radius: 3.0, encumbrance: 0.5, connectivity: false, cwvd: 0.99}\"'"
+        - "export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav11; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav12; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav13; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav14; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav15; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav16; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+
 
   - fly_to_start:
       layout: tiled
@@ -210,5 +211,7 @@ windows:
       panes:
         - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
 
-
-
+  - uvdar:
+      layout: tiled
+      panes:
+        - waitForControl; roslaunch uvdar_multirobot_simulator example.launch

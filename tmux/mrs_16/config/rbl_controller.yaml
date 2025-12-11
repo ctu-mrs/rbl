@@ -5,19 +5,19 @@ odometry_topic: "estimation_manager/odom_main"
 uav_uvdar_ids: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] # 0,1,2,3,4] #,"uav40","uav41"] #, \"uav11\"]\n
 
 set_reference_timer:
-  rate: 15 # [Hz]
+  rate: 50 # [Hz]
   
-size_neighbors1: 1.0
-size_obstacles1: 0.05 
-encumbrance: 1.0 
-maximum_distance_conn: 10.0
+size_neighbors1: 0.5
+size_obstacles1: 0.01 
+encumbrance: 0.5 
+maximum_distance_conn: 8.0
 noisy_measurements: 0.0 #0.15
 noisy_angle: 0.0 #0.3
-threshold: 0.0 
+threshold: 0.80
 window_length: 1 #10
 bias_error: 0.0 #0.5
-cwvd_obs: 0.9
-cwvd_rob: 0.9
+cwvd_obs: 1.0
+cwvd_rob: 1.0
 simulation: true
 refZ: 1.0
 max_obstacle_integration_dist: 9.0
@@ -52,10 +52,10 @@ d1: 0.5
 d2: 1.0
 d3: 0.5
 d4: 1.0
-radius: 3.5 
+radius: 4.5 
 betaD: 0.5 
-beta_min: 0.03
-dt: 0.15
+beta_min: 0.01
+dt: 0.10
 step_size: 0.1
 
 monitored_area_origin:
@@ -67,18 +67,18 @@ monitored_area_origin:
 final_positions: # defined with respect to monitored_area_origin
 
   uav1:
-    x: -3.0
+    x: -4.0
     y: 40.0
     z: 1.0
 
   uav2:
-    x: 3.0
+    x: 4.0
     y: 40.0
     z: 1.0
       
   uav3:
     x: 0.0
-    y: 43.0
+    y: 44.0
     z: 1.0
 
   uav4:
@@ -87,63 +87,63 @@ final_positions: # defined with respect to monitored_area_origin
     z: 1.0
 
   uav5:
-    x: -3.0
-    y: 43.0
+    x: -4.0
+    y: 44.0
     z: 1.0
 
   uav6:
-    x: 3.0
-    y: 43.0
+    x: 4.0
+    y: 44.0
     z: 1.0
 
   uav7:
-    x: 3.0
-    y: 37.0
+    x: 4.0
+    y: 36.0
     z: 1.0
 
   uav8:
     x: 0.0
-    y: 37.0
+    y: 36.0
     z: 1.0
       
   uav9:
-    x: -3.0
-    y: 37.0
+    x: -4.0
+    y: 36.0
     z: 1.0
 
   uav10:
-    x: 3.0
-    y: 34.0
+    x: 4.0
+    y: 32.0
     z: 1.0
 
   uav11:
     x: 0.0
-    y: 34.0
+    y: 32.0
     z: 1.0
 
   uav12:
-    x: -3.0
-    y: 34.0
+    x: -4.0
+    y: 32.0
     z: 1.0
 
   uav13:
-    x: -6.0 
-    y: 34.0 
+    x: -8.0 
+    y: 32.0 
     z: 1.0
 
   uav14:
-    x: -6.0
-    y: 37.0
+    x: -8.0
+    y: 36.0
     z: 1.0
       
   uav15:
-    x: -6.0
+    x: -8.0
     y: 40.0
     z: 1.0
 
   uav16:
-    x: -6.0
-    y: 43.0
+    x: -8.0
+    y: 44.0
     z: 1.0
 
 initial_positions: # defined with respect to monitored_area_origin

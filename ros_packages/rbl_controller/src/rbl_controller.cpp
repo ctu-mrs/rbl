@@ -559,12 +559,12 @@ std::vector<std::pair<double, double>> RBLController::communication_constraint(c
     double dy            = mean_y - robot_pos.second;
     double distance_1    = std::sqrt(dx * dx + dy * dy);
     double bearing_angle = std::atan2(dy, dx);
-    if (distance_1 > maximum_distance_conn) {
-      // Project the neighbor position in the same direction but at maximum_distance_conn
-      mean_x = robot_pos.first + (maximum_distance_conn - threshold) * std::cos(bearing_angle);
-      mean_y = robot_pos.second + (maximum_distance_conn - threshold) * std::sin(bearing_angle);
-      /* std::cout << "distance!!!!! :  " << distance_1 << "meanX: " << mean_x << " mean_y: " << mean_y << std::endl; */
-    }
+    // if (distance_1 > maximum_distance_conn) {
+    //   // Project the neighbor position in the same direction but at maximum_distance_conn
+    //   mean_x = robot_pos.first + (maximum_distance_conn - threshold) * std::cos(bearing_angle);
+    //   mean_y = robot_pos.second + (maximum_distance_conn - threshold) * std::sin(bearing_angle);
+    //   /* std::cout << "distance!!!!! :  " << distance_1 << "meanX: " << mean_x << " mean_y: " << mean_y << std::endl; */
+    // }
 
     new_neighbors.push_back({mean_x, mean_y});
   }

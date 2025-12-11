@@ -36,7 +36,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -54,7 +54,7 @@ Visualization Manager:
       Show Trail: false
       Value: false
     - Alpha: 0.20000000298023224
-      Cell Size: 2.5
+      Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -719,7 +719,7 @@ Visualization Manager:
       Marker Topic: /uav1/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -727,7 +727,7 @@ Visualization Manager:
       Marker Topic: /uav2/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -735,7 +735,7 @@ Visualization Manager:
       Marker Topic: /uav3/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -743,7 +743,7 @@ Visualization Manager:
       Marker Topic: /uav4/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -751,7 +751,7 @@ Visualization Manager:
       Marker Topic: /uav6/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -759,7 +759,7 @@ Visualization Manager:
       Marker Topic: /uav7/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -767,7 +767,7 @@ Visualization Manager:
       Marker Topic: /uav8/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -775,7 +775,7 @@ Visualization Manager:
       Marker Topic: /uav9/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -783,7 +783,7 @@ Visualization Manager:
       Marker Topic: /uav5/rbl_controller/line_vis
       Name: Marker
       Namespaces:
-        neighbors: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -883,7 +883,7 @@ Visualization Manager:
       Marker Topic: /uav1/rbl_controller/hull_vis
       Name: MarkerArray
       Namespaces:
-        hull_voro: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -931,10 +931,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 67.25313568115234
+      Scale: 31.586441040039062
       Target Frame: uav1/fcu
-      X: 0.40420687198638916
-      Y: 1.4607689380645752
+      X: 4.2666215896606445
+      Y: 6.399594306945801
     Saved: ~
 Window Geometry:
   Displays:
