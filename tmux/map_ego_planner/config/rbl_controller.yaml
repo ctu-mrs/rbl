@@ -4,7 +4,7 @@ group_odoms:
 odometry_topic: estimation_manager/odom_main
 
 rate:
-  timer_set_ref: 20
+  timer_set_ref: 100
   timer_diagnostics: 10
 
 rbl_controller:

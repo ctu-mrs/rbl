@@ -1295,10 +1295,11 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     // if (params_.replanner) {
     //   desired_heading = determineYaw(agent_pos, waypoint, path, rpy);
     // } else {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
+      // desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
     // }
      
-    double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
+    // double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
+    double heading_to_centroid = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] -agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
     if (std::abs(difference) < M_PI / 2){ //+-90 deg
@@ -1311,11 +1312,11 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
       p_ref.position.z = agent_pos[2];
     }
 
-    if ((c1 - c1_full).norm() < 0.5) {
-      desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
-    }else {
+    // if ((c1 - c1_full).norm() < 0.5) {
+    //   desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]); 
+    // }else {
       desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
-    }
+    // }
     p_ref.heading = desired_heading;
 
     if ((agent_pos - goal).norm() <= 0.3) { //Arived at goal pos
