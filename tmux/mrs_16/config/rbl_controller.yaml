@@ -7,17 +7,18 @@ uav_uvdar_ids: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] # 0,1,2,3,4] #,"uav40","
 set_reference_timer:
   rate: 50 # [Hz]
   
-size_neighbors1: 0.5
+
 size_obstacles1: 0.01 
-encumbrance: 0.5 
-maximum_distance_conn: 8.0
+encumbrance: 0.2
+size_neighbors1: 0.2
+maximum_distance_conn: 10.00
 noisy_measurements: 0.0 #0.15
 noisy_angle: 0.0 #0.3
-threshold: 0.80
+threshold: 0.0
 window_length: 1 #10
 bias_error: 0.0 #0.5
-cwvd_obs: 1.0
-cwvd_rob: 1.0
+cwvd_obs: 0.5
+cwvd_rob: 0.5
 simulation: true
 refZ: 1.0
 max_obstacle_integration_dist: 9.0
@@ -48,15 +49,15 @@ max_distance_to_initial_position: 2.0
 
 
 
-d1: 0.5
+d1: 1.0
 d2: 1.0
-d3: 0.5
+d3: 1.0
 d4: 1.0
-radius: 4.5 
-betaD: 0.5 
+radius: 5.0 
+betaD: 0.15 
 beta_min: 0.01
 dt: 0.10
-step_size: 0.1
+step_size: 0.07
 
 monitored_area_origin:
   x: 0.0

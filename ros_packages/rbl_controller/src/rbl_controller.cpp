@@ -816,14 +816,14 @@ std::tuple<std::pair<double, double>, std::pair<double, double>, std::pair<doubl
       }
       centroid = std::make_pair(sum_x_in_times_scalar_values1 / sum_scalar_values1, sum_y_in_times_scalar_values1 / sum_scalar_values1);
       distance = euclideanDistance(p, centroid);
-      // std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
       // std::cout << "size cell " << voronoi_circle_intersection_connectivity.size() << std::endl;
       // std::cout << "size cell " << voronoi_circle_intersection.size() << std::endl;
 
       // auto centroids = RBLController::get_centroid(robot_pos, radius, step_size, neighbors, size_neighbors, neighbors_and_obstacles,
       // size_neighbors_and_obstacles, encumbrance, destination, beta, dist_windows, angle_windows);
       // break;
-      if (beta > 20.0) {
+      if (beta > 5.0) {
+        std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
         break;
       }
     }
@@ -876,7 +876,7 @@ void RBLController::apply_rules(double &beta, const std::vector<double> &c1, con
     beta = beta - dt * (beta - betaD);
   }
 
-   std::cout <<  "distp_c1 = " << sqrt(pow((current_j_x - c1[0]), 2) + pow((current_j_y - c1[1]), 2)) << std::endl;
+   // std::cout <<  "distp_c1 = " << sqrt(pow((current_j_x - c1[0]), 2) + pow((current_j_y - c1[1]), 2)) << std::endl;
 
   // second condition
   bool dist_c1_c2_d4 = dist_c1_c2 > d4;
@@ -1503,12 +1503,12 @@ void RBLController::callbackTimerSetReference([[maybe_unused]] const ros::TimerE
     ROS_ERROR_THROTTLE(3.0, "Failed to call service ref_pos_out");
   }
 
-  if (!flag_stop && robot_pos.second > 30.0) {
-    flag_stop                    = true;
-    ros::Time     end_time_1     = ros::Time::now();
-    ros::Duration elapsed_time_1 = end_time_1 - start_time_1;
-    ROS_INFO("Elapsed time: %.2f seconds", elapsed_time_1.toSec());
-  }
+  // if (!flag_stop && robot_pos.second > 30.0) {
+  //   flag_stop                    = true;
+  //   ros::Time     end_time_1     = ros::Time::now();
+  //   ros::Duration elapsed_time_1 = end_time_1 - start_time_1;
+  //   ROS_INFO("Elapsed time: %.2f seconds", elapsed_time_1.toSec());
+  // }
 }
 //}
 

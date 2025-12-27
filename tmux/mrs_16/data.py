@@ -255,8 +255,8 @@ print("sim =", args.sim)
 # -----------------------------
 # Parameters
 # -----------------------------
-CSV_FILE = "sim1_/rbl_odom_" + str(args.sim) + ".bag.csv"
-OUTPUT_FILE = "sim1_/uav_metrics_summary" + str(args.sim) + ".csv"
+CSV_FILE = "sim2_1/rbl_odom_" + str(args.sim) + ".bag.csv"
+OUTPUT_FILE = "sim2_1/uav_metrics_summary" + str(args.sim) + ".csv"
 DIST_THRESHOLD = 0.2   # Goal threshold [m] — only used to determine arrival, not to truncate
 SPEED_THRESHOLD = 0.1  # Minimum speed to start moving [m/s]
 WINDOW_LENGTH = 11
@@ -487,11 +487,126 @@ ax2.grid(True)
 ax3 = plt.subplot(3,1,3)
 for uav, dist_list in inter_uav_distances.items():
     ax3.plot(all_times, dist_list, label=uav)
-ax3.axhline(y=1.0, linestyle='--', label='Threshold 1 m')
+ax3.axhline(y=0.4, linestyle='--', label='Threshold 1 m')
 ax3.set_xlabel("Time [s]")
 ax3.set_ylabel("Distance to Closest UAV [m]")
 ax3.set_title("Inter-UAV Distance over Time (full trajectories)")
 ax3.grid(True)
 
 plt.tight_layout()
+
+import numpy as np
+
+# -----------------------------
+# Compute inter-UAV distances (FULL trajectories)
+# -----------------------------
+
+# Collect global time vector
+all_times = np.unique(np.concatenate([v["t_full"] for v in uav_groups.values()]))
+
+uav_list = list(uav_groups.keys())
+num_uav = len(uav_list)
+num_t = len(all_times)
+
+# -----------------------------
+# Interpolate UAV positions to common timeline
+# -----------------------------
+positions = np.zeros((num_t, num_uav, 3))
+
+for ui, uav in enumerate(uav_list):
+    data = uav_groups[uav]
+    t = np.asarray(data["t_full"])
+    x = np.asarray(data["x_full"])
+    y = np.asarray(data["y_full"])
+    z = np.asarray(data["z_full"])
+
+    # Ensure monotonic timestamps
+    if np.any(np.diff(t) < 0):
+        order = np.argsort(t)
+        t = t[order]
+        x = x[order]
+        y = y[order]
+        z = z[order]
+
+    positions[:, ui, 0] = np.interp(all_times, t, x)
+    positions[:, ui, 1] = np.interp(all_times, t, y)
+    positions[:, ui, 2] = np.interp(all_times, t, z)
+
+# -----------------------------
+# Compute pairwise distance matrix
+# dist_matrix[t, i, j] = distance between UAV i and j at time t
+# -----------------------------
+dist_matrix = np.linalg.norm(
+    positions[:, :, None, :] - positions[:, None, :, :],
+    axis=-1
+)
+
+# Set self-distances to infinity
+dist_matrix[:, np.arange(num_uav), np.arange(num_uav)] = np.inf
+
+# -----------------------------
+# Store FULL pairwise distance time series
+# -----------------------------
+inter_uav_distances_all = {}
+
+for i in range(num_uav):
+    for j in range(i + 1, num_uav):
+        uav_i = uav_list[i]
+        uav_j = uav_list[j]
+        inter_uav_distances_all[(uav_i, uav_j)] = dist_matrix[:, i, j]
+
+# -----------------------------
+# Minimum distance per UAV over time
+# -----------------------------
+min_dist_per_uav_time = dist_matrix.min(axis=2)
+
+inter_uav_distances = {
+    uav_list[i]: min_dist_per_uav_time[:, i]
+    for i in range(num_uav)
+}
+
+# -----------------------------
+# Store minimum distance per UAV
+# -----------------------------
+for i, uav in enumerate(uav_list):
+    min_val = np.nanmin(min_dist_per_uav_time[:, i]) if num_t > 0 else np.nan
+    if np.isinf(min_val):
+        min_val = np.nan
+    metrics_list[uav]["MinDistanceToOtherUAV_m"] = float(min_val)
+
+# -----------------------------
+# Store minimum distance per UAV pair
+# -----------------------------
+min_dist_per_pair = {}
+
+for i in range(num_uav):
+    for j in range(i + 1, num_uav):
+        uav_i = uav_list[i]
+        uav_j = uav_list[j]
+        min_dist_per_pair[(uav_i, uav_j)] = float(
+            np.nanmin(dist_matrix[:, i, j])
+        )
+
+# -----------------------------
+# OPTIONAL: Store per-UAV distances to all other UAVs
+# -----------------------------
+for i, uav in enumerate(uav_list):
+    metrics_list[uav]["DistancesToOtherUAVs_m"] = {}
+    for j, other_uav in enumerate(uav_list):
+        if i == j:
+            continue
+        metrics_list[uav]["DistancesToOtherUAVs_m"][other_uav] = dist_matrix[:, i, j]
+
+
+plt.figure(figsize=(10, 6))
+
+for (uav_i, uav_j), dist_ts in inter_uav_distances_all.items():
+    plt.plot(all_times, dist_ts, label=f"{uav_i}–{uav_j}")
+
+plt.xlabel("Time")
+plt.ylabel("Distance [m]")
+plt.title("Inter-UAV Distances Over Time")
+plt.grid(True)
+plt.tight_layout()
 plt.show()
+

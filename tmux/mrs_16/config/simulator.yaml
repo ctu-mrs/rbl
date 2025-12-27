@@ -1,6 +1,6 @@
 simulation_rate: 100.0
 clock_rate: 100.0
-realtime_factor: 0.5
+realtime_factor: 0.6
 
 iterate_without_input: true
 
@@ -8,11 +8,11 @@ individual_takeoff_platform:
   enabled: false
 
 collisions:
-  enabled: true
-  crash: true
+  enabled: false
+  crash: false
 
   # if crash==false, then the collisions are elastic
-  rebounce: 100.0
+  rebounce: 0.0
 
 # randomization of the initial conditions around the desired spawn point
 randomization:
