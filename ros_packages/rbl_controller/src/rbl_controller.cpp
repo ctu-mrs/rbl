@@ -823,7 +823,7 @@ std::tuple<std::pair<double, double>, std::pair<double, double>, std::pair<doubl
       // size_neighbors_and_obstacles, encumbrance, destination, beta, dist_windows, angle_windows);
       // break;
       if (beta > 5.0) {
-        std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
+        // std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
         break;
       }
     }

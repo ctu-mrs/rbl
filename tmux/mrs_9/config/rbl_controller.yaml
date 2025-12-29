@@ -13,7 +13,7 @@ size_neighbors1: 0.2
 maximum_distance_conn: 10.00
 noisy_measurements: 0.0 #0.15
 noisy_angle: 0.0 #0.3
-threshold: 1.0
+threshold: 1.1
 window_length: 1 #10
 bias_error: 0.0 #0.5
 cwvd_obs: 1.0
@@ -55,8 +55,8 @@ d4: 1.0
 radius: 5.0 
 betaD: 0.15 
 beta_min: 0.01
-dt: 0.10
-step_size: 0.07
+dt: 0.20
+step_size: 0.1
 
 
 monitored_area_origin:

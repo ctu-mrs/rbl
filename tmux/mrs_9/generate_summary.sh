@@ -1,0 +1,50 @@
+# python3 data.py --sim 1
+# python3 data.py --sim 2
+# python3 data.py --sim 3
+# python3 data.py --sim 4
+# python3 data.py --sim 5
+# python3 data.py --sim 6
+# python3 data.py --sim 7
+# python3 data.py --sim 8
+# python3 data.py --sim 9
+# python3 data.py --sim 10
+# python3 data.py --sim 11
+# python3 data.py --sim 12
+# python3 data.py --sim 13
+# python3 data.py --sim 14
+# python3 data.py --sim 15
+# python3 data.py --sim 16
+# python3 data.py --sim 17
+# python3 data.py --sim 18
+# python3 data.py --sim 19
+# python3 data.py --sim 20
+# python3 data.py --sim 21
+python3 data.py --sim 22
+python3 data.py --sim 23
+python3 data.py --sim 24
+python3 data.py --sim 25
+# python3 data.py --sim 26
+# python3 data.py --sim 27
+# python3 data.py --sim 28
+# python3 data.py --sim 29
+# python3 data.py --sim 30
+# python3 data.py --sim 31
+# python3 data.py --sim 32
+# python3 data.py --sim 33
+# python3 data.py --sim 34
+# python3 data.py --sim 35
+# python3 data.py --sim 36
+# python3 data.py --sim 37
+# python3 data.py --sim 38
+# python3 data.py --sim 39
+# python3 data.py --sim 40
+# python3 data.py --sim 41
+# python3 data.py --sim 42
+# python3 data.py --sim 43
+# python3 data.py --sim 44
+# python3 data.py --sim 45
+# python3 data.py --sim 46
+# python3 data.py --sim 47
+# python3 data.py --sim 48
+# python3 data.py --sim 49
+# python3 data.py --sim 50

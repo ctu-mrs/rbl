@@ -255,8 +255,8 @@ print("sim =", args.sim)
 # -----------------------------
 # Parameters
 # -----------------------------
-CSV_FILE = "sim2_1/rbl_odom_" + str(args.sim) + ".bag.csv"
-OUTPUT_FILE = "sim2_1/uav_metrics_summary" + str(args.sim) + ".csv"
+CSV_FILE = "sim3_1/rbl_odom_" + str(args.sim) + ".bag.csv"
+OUTPUT_FILE = "sim3_1/uav_metrics_summary" + str(args.sim) + ".csv"
 DIST_THRESHOLD = 0.2   # Goal threshold [m] — only used to determine arrival, not to truncate
 SPEED_THRESHOLD = 0.1  # Minimum speed to start moving [m/s]
 WINDOW_LENGTH = 11

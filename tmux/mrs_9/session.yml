@@ -162,5 +162,26 @@ windows:
       panes:
         - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
 
+  - rosbag:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 5; ./record_rbl.sh ${SIM_ID} 
 
+  - goal_monitoring:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 5; rosrun rbl_controller monitor_goal.py _goals_file:=/home/manuel/rbl_2d_workspace/src/rbl_controller/tmux/mrs_9/config/rbl_controller.yaml
 
+  - activation_auto:
+      layout: tiled
+      synchronize: after
+      panes:
+        - "export UAV_NAME=uav1; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav2; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav3; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav4; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav5; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav6; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav7; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav8; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav9; waitForControl; sleep 5;   rosservice call /$UAV_NAME/rbl_controller/activation"
