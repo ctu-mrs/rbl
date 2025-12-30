@@ -822,8 +822,8 @@ std::tuple<std::pair<double, double>, std::pair<double, double>, std::pair<doubl
       // auto centroids = RBLController::get_centroid(robot_pos, radius, step_size, neighbors, size_neighbors, neighbors_and_obstacles,
       // size_neighbors_and_obstacles, encumbrance, destination, beta, dist_windows, angle_windows);
       // break;
-      if (beta > 5.0) {
-        // std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
+      if (beta > 15.0) {
+        std::cout << "Distance is less than the threshold, dist: " << distance << " beta: " << beta << std::endl;
         break;
       }
     }

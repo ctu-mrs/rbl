@@ -4,7 +4,7 @@ import yaml
 import math
 from nav_msgs.msg import Odometry
 
-TOL = 0.3  # meters
+TOL = 8.0  # meters
 
 class GoalMonitor:
     def __init__(self):

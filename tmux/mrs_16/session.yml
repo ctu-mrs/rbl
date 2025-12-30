@@ -114,26 +114,26 @@ windows:
   #       - export UAV_NAME=uav8; waitForControl; roslaunch replanner example.launch
   #       - export UAV_NAME=uav9; waitForControl; roslaunch replanner example.launch
 
-  - activation:
-      layout: tiled
-      synchronize: after
-      panes:
-        - "export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav11; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav12; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav13; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav14; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav15; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
-        - "export UAV_NAME=uav16; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  # - activation:
+  #     layout: tiled
+  #     synchronize: after
+  #     panes:
+  #       - "export UAV_NAME=uav1; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav2; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav3; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav4; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav5; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav6; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav7; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav8; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav9; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav10; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav11; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav12; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav13; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav14; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav15; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
+  #       - "export UAV_NAME=uav16; waitForControl; history -s rosservice call /$UAV_NAME/rbl_controller/activation"
 
 
   - fly_to_start:
@@ -202,10 +202,11 @@ windows:
       layout: tiled
       panes:
         - waitForTime; roslaunch mrs_tf_connector tf_connector.launch custom_config:=./config/tf_connector.yaml
-  - rviz:
-      layout: tiled
-      panes:
-        - waitForControl; rosrun rviz rviz -d ./rviz.rviz
+  # - rviz:
+  #     layout: tiled
+  #     panes:
+  #       - waitForControl; rosrun rviz rviz -d ./rviz.rviz
+        
   - layout:
       layout: tiled
       panes:
@@ -215,3 +216,35 @@ windows:
       layout: tiled
       panes:
         - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
+
+  - rosbag:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 5; ./record_rbl.sh ${SIM_ID} 
+
+  - goal_monitoring:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 5; rosrun rbl_controller monitor_goal.py _goals_file:=/home/manuel/rbl_2d_workspace/src/rbl_controller/tmux/mrs_16/config/rbl_controller.yaml
+
+
+  - activation:
+      layout: tiled
+      synchronize: after
+      panes:
+        - "export UAV_NAME=uav1; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav2; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav3; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav4; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav5; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav6; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav7; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav8; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav9; waitForTakeoff;  sleep 5 ;rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav10; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav11; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav12; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav13; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav14; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav15; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"
+        - "export UAV_NAME=uav16; waitForTakeoff; sleep 5 ; rosservice call /$UAV_NAME/rbl_controller/activation"

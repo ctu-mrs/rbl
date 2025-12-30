@@ -9,9 +9,22 @@ mrs_uav_managers:
     ]
 
     initial_state_estimator: "gps_baro" # will be used as the first state estimator
-    agl_height_estimator: ""# only slightly filtered height for checking min height (not used in control feedback)
+    agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
 
   uav_manager:
+
+
+    takeoff:
+
+      rate: 10 # [Hz]
+
+      during_takeoff:
+        controller: "MpcController"
+        tracker: "LandoffTracker"
+
+      after_takeoff:
+        controller: "Se3Controller"
+        tracker: "MpcTracker"
 
     min_height_checking:
       enabled: false
@@ -57,7 +70,7 @@ mrs_uav_managers:
 
       tilt: 80.0 # [deg]
     default_constraints:
-      gps_baro: "fast"
+      gps_baro: "slow"
 
   control_manager:
 

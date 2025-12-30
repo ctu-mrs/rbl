@@ -1,7 +1,7 @@
 #!/bin/bash
 
-START=26
-END=30
+START=36
+END=50
 
 for N in $(seq $START $END); do
   echo "Starting simulation $N"
