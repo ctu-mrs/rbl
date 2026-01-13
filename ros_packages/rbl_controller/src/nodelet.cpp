@@ -30,6 +30,9 @@
 class WrapperRosRBL : public nodelet::Nodelet  // //{
 {
 public:
+
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> last_obstacle_cloud_;
+  bool pcl_loaded_ = false;
   virtual void onInit();
   bool         is_initialized_ = false;
   bool         is_activated_   = false;
@@ -351,31 +354,76 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
       rbl_controller_->setGroupStates(group_states);
     }
 
-    std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    if (sh_pcl_.getNumPublishers() > 0 && sh_pcl_.newMsg()) {
+    // std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    // if (sh_pcl_.getNumPublishers() > 0 && sh_pcl_.newMsg()) {
 
+    //   auto msg = sh_pcl_.getMsg();
+    //   if (msg->header.frame_id != _frame_) {
+    //     ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
+    //     return;
+    //   }
+
+    //   if (msg) {
+    //     pcl::PointCloud<pcl::PointXYZ> temp_cloud;
+    //     pcl::fromROSMsg(*msg, temp_cloud);
+    //     cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
+    //   }
+    // }
+
+    // if (!pcl_loaded_ && sh_pcl_.newMsg()) {
+    //   auto msg = sh_pcl_.getMsg();
+    //   if (msg->header.frame_id != _frame_) {
+    //     ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
+    //     return;
+    //   }
+    //   rbl_controller_->setPCL(msg);
+    //   pcl_loaded_ = true;
+    // }
+
+    if (!pcl_loaded_ && sh_pcl_.newMsg()) {
       auto msg = sh_pcl_.getMsg();
-      if (msg->header.frame_id != _frame_) {
-        ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_.c_str());
-        return;
-      }
+      // if (msg->header.frame_id != _frame_) {
+      //   ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_);
+      //   return;
+      // }
 
-      if (msg) {
-        pcl::PointCloud<pcl::PointXYZ> temp_cloud;
-        pcl::fromROSMsg(*msg, temp_cloud);
-        cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_cloud);
-      }
+      pcl::PointCloud<pcl::PointXYZ> tmp;
+      pcl::fromROSMsg(*msg, tmp);
+      last_obstacle_cloud_ =
+        std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(tmp);
+
+      pcl_loaded_ = true;
+
+      rbl_controller_->setPCL1(last_obstacle_cloud_);
     }
+
+    auto cloud =
+      std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*last_obstacle_cloud_);
 
     if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
-      cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
+      cloud = addAgents2PCL(cloud,
+                            group_states,
+                            rbl_params_.voxel_size,
+                            rbl_params_.encumbrance);
     }
+
     if (cloud->empty()) {
       ROS_ERROR("[WrapperRosRBL]: PCL is empty");
       return;
     }
+
     rbl_controller_->setPCL(cloud);
     pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
+
+    // if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
+    //   cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
+    // }
+    // if (cloud->empty()) {
+    //   ROS_ERROR("[WrapperRosRBL]: PCL is empty");
+    //   return;
+    // }
+    // rbl_controller_->setPCL(cloud);
+    // pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
     auto ret = rbl_controller_->getNextRef();
     if (!ret) {

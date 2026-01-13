@@ -97,6 +97,7 @@ public:
   void setCurrentVelocity(const Eigen::Vector3d& point);
   void setGroupStates(const std::vector<State>& states);
     void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
+    void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
@@ -154,6 +155,7 @@ private:
   std::vector<Eigen::Vector3d>                              injected_points_map_;
   std::vector<Eigen::Vector3d>                              path_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_obs_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;
   std::shared_ptr<CIRI>                                     ciri_solver_;
   std::future<std::vector<Eigen::Vector3d>>                 replanner_future_;

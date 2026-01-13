@@ -34,7 +34,7 @@ mrs_uav_managers:
         controller: "NmpcController"
         tracker: "MpcTracker"
 
-      takeoff_height: 5
+      takeoff_height: 1.0
   constraint_manager:
 
     constraints: [
@@ -83,7 +83,7 @@ mrs_uav_managers:
       tilt: 90.0 # [deg]
 
     default_constraints:
-      gps_baro: "custom"
+      gps_baro: "slow"
 
   # gain_manager:
 

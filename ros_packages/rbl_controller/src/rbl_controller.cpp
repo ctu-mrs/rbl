@@ -49,7 +49,13 @@ void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
 {
   cloud_ = cloud;
 }  // //}
+   //
 
+void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
+{
+  cloud_obs_ = cloud;
+}  // //}
+   
 void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
 {
   goal_        = point;
@@ -160,7 +166,8 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
     return std::nullopt;
   }
 
-  cloud_ = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+  // cloud_ = getGroundCleanCloud(cloud_, agent_pos_, altitude_);
+  // cloud_obs_ = getGroundCleanCloud(cloud_obs_, agent_pos_, altitude_);
   if (!cloud_) {
     return std::nullopt;
   }
@@ -172,7 +179,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
         rbl_replanner_->setAltitude(altitude_);
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
-        rbl_replanner_->setPCL(cloud_);
+        rbl_replanner_->setPCL(cloud_obs_);
         auto                        new_path = rbl_replanner_->plan();
         std::lock_guard<std::mutex> lock(replanner_mutex_);
         inflated_map_ = rbl_replanner_->getInflatedCloud();

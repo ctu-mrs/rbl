@@ -1,6 +1,6 @@
 simulation_rate: 100.0
 clock_rate: 100.0
-realtime_factor: 0.4 
+realtime_factor: 0.8 
 
 iterate_without_input: true
 
@@ -49,7 +49,7 @@ uav1:
   spawn:
     x: 15.00
     y: 0.00
-    z: 5.00
+    z: 1.00
     heading: -3.14
 
 uav2:
@@ -57,7 +57,7 @@ uav2:
   spawn:
     x: 12.14
     y: 8.82
-    z: 5.00
+    z: 1.00
     heading: -3.77
 
 uav3:
@@ -65,7 +65,7 @@ uav3:
   spawn:
     x: 4.64
     y: 14.27
-    z: 5.00
+    z: 1.00
     heading: -4.40
 
 uav4:
@@ -73,7 +73,7 @@ uav4:
   spawn:
     x: -4.64
     y: 14.27
-    z: 5.00
+    z: 1.00
     heading: -5.03
 
 uav5:
@@ -81,7 +81,7 @@ uav5:
   spawn:
     x: -12.14
     y: 8.82
-    z: 5.00
+    z: 1.00
     heading: -5.65
 
 uav6:
@@ -89,7 +89,7 @@ uav6:
   spawn:
     x: -15.00
     y: 0.00
-    z: 5.00
+    z: 1.00
     heading: -6.28
 
 uav7:
@@ -97,7 +97,7 @@ uav7:
   spawn:
     x: -12.14
     y: -8.82
-    z: 5.00
+    z: 1.00
     heading: -6.91
 
 uav8:
@@ -105,7 +105,7 @@ uav8:
   spawn:
     x: -4.64
     y: -14.27
-    z: 5.00
+    z: 1.00
     heading: -7.54
 
 uav9:
@@ -113,7 +113,7 @@ uav9:
   spawn:
     x: 4.64
     y: -14.27
-    z: 5.00
+    z: 1.00
     heading: -8.17
 
 uav10:
@@ -121,5 +121,5 @@ uav10:
   spawn:
     x: 12.14
     y: -8.82
-    z: 5.00
+    z: 1.00
     heading: -8.80

@@ -36,6 +36,8 @@ connections:
   - root_frame_id: "simulator_origin"
     equal_frame_id: "simulator_origin"
 
+  - root_frame_id: "map"
+    equal_frame_id: "map"
  
   # you can add further connections here:
   # - root_frame_id: "another_root"
