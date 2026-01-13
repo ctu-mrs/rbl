@@ -698,7 +698,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     double n = v.norm();
     double eps = 1e-8;
     seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
-    // seed_b = agent_pos;
+    seed_b = agent_pos;
 
   double dist_agent_seed = (seed_b - agent_pos).norm();
   Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
