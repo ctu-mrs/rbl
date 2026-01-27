@@ -4,15 +4,17 @@
     <arg name="map_size_x" default="20" />
     <arg name="map_size_y" default="20" />
     <arg name="map_size_z" default="4" />
-    <arg name="map_resolution" value="0.05"/>
+    <arg name="map_resolution" value="0.1"/>
     <arg name="map_obs_num" default="5"/>
     <arg name="map_circle_num" default="0"/>
 
     <arg name="ObstacleShape_seed" value="1"/>
     <arg name="ObstacleShape_lower_rad" value="0.5"/>
     <arg name="ObstacleShape_upper_rad" value="1.0"/>
-    <arg name="ObstacleShape_lower_hei" value="0.5"/>
-    <arg name="ObstacleShape_upper_hei" value="5.0"/>
+    <!-- <arg name="ObstacleShape_lower_hei" value="6.5"/> -->
+    <!-- <arg name="ObstacleShape_upper_hei" value="10.0"/> -->
+    <arg name="ObstacleShape_lower_hei" value="0.1"/>
+    <arg name="ObstacleShape_upper_hei" value="0.2"/>
 
     <arg name="ObstacleShape_radius_l" value="0.7"/>
     <arg name="ObstacleShape_radius_h" value="0.5"/>

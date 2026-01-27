@@ -173,36 +173,75 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
   }
 
   if (params_.replanner) {
-    // Trigger replanner asynchronously
-    if (rbl_replanner_->replanTimer()) {
+
+    // Launch replanner only if not already running
+    if (rbl_replanner_->replanTimer() &&
+        (!replanner_future_.valid() ||
+         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)) {
+
       replanner_future_ = std::async(std::launch::async, [this]() {
         rbl_replanner_->setAltitude(altitude_);
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
         rbl_replanner_->setPCL(cloud_obs_);
-        auto                        new_path = rbl_replanner_->plan();
+
+        auto new_path = rbl_replanner_->plan();
+
         std::lock_guard<std::mutex> lock(replanner_mutex_);
         inflated_map_ = rbl_replanner_->getInflatedCloud();
         return new_path;
       });
     }
 
-    // Check if replanner finished and update path_
+    // Consume planner result if ready (non-blocking)
     if (replanner_future_.valid() &&
         replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+
       std::lock_guard<std::mutex> lock(replanner_mutex_);
-      path_ = replanner_future_.get();
+      path_ = replanner_future_.get();   // latch new path
     }
 
-    if (path_.empty()) {
-      p_ref = pRefAgent(agent_pos_, rpy_[2]);
-      return p_ref;
+    // Use path if available, otherwise keep moving
+    if (!path_.empty()) {
+      waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+      waypoint_                = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+      destination_             = waypoint_;
+    } else {
+      // Fallback behavior — DO NOT return
+      destination_ = goal_;   // or keep previous destination_
     }
-
-    waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
-    waypoint_                = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
-    destination_             = waypoint_;
   }
+  // if (params_.replanner) {
+  //   // Trigger replanner asynchronously
+  //   if (rbl_replanner_->replanTimer()) {
+  //     replanner_future_ = std::async(std::launch::async, [this]() {
+  //       rbl_replanner_->setAltitude(altitude_);
+  //       rbl_replanner_->setCurrentPosition(agent_pos_);
+  //       rbl_replanner_->setGoal(goal_);
+  //       rbl_replanner_->setPCL(cloud_obs_);
+  //       auto                        new_path = rbl_replanner_->plan();
+  //       std::lock_guard<std::mutex> lock(replanner_mutex_);
+  //       inflated_map_ = rbl_replanner_->getInflatedCloud();
+  //       return new_path;
+  //     });
+  //   }
+
+  //   // Check if replanner finished and update path_
+  //   if (replanner_future_.valid() &&
+  //       replanner_future_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+  //     std::lock_guard<std::mutex> lock(replanner_mutex_);
+  //     path_ = replanner_future_.get();
+  //   }
+
+  //   if (path_.empty()) {
+  //     p_ref = pRefAgent(agent_pos_, rpy_[2]);
+  //     return p_ref;
+  //   }
+
+  //   waypoint_fixed_distance_ = determineWaypointFixedDistance(path_, agent_pos_, goal_);
+  //   waypoint_                = determineWaypoint(path_, agent_pos_, goal_, waypoint_);
+  //   destination_             = waypoint_;
+  // }
 
   std::vector<Eigen::Vector3d> group_positions;
   for (const auto& state : group_states_) {
