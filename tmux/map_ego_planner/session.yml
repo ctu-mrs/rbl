@@ -5,7 +5,7 @@ socket_name: mrs
 attach: false
 tmux_options: -f /etc/ctu-mrs/tmux.conf
 # you can modify these
-pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=x500; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml; export MAP_LENGTH=30.0; export MAP_WIDTH=15.0; export MAP_HEIGHT=10.0; export MAP_OBS_NUM=90; export MAP_CIRCLE_NUM=0
+pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=x500; export BOND=false; export CUSTOM_CONFIG=./config/custom_config.yaml; export WORLD_CONFIG=./config/world_config.yaml; export NETWORK_CONFIG=./config/network_config.yaml; export PLATFORM_CONFIG=`rospack find mrs_multirotor_simulator`/config/mrs_uav_system/$UAV_TYPE.yaml; export MAP_LENGTH=30.0; export MAP_WIDTH=15.0; export MAP_HEIGHT=10.0; export MAP_OBS_NUM=10; export MAP_CIRCLE_NUM=0
 # 150
 startup_window: rbl_controller
 windows:
@@ -56,7 +56,8 @@ windows:
       layout: tiled
       panes:
           # -
-        - waitForRos; roslaunch ego_planner.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT map_obs_num:=$MAP_OBS_NUM map_circle_num:=$MAP_CIRCLE_NUM
+        - waitForRos; roslaunch ego_planner swarm_comparison.launch map_size_x:=$MAP_LENGTH map_size_y:=$MAP_WIDTH map_size_z:=$MAP_HEIGHT map_obs_num:=$MAP_OBS_NUM map_circle_num:=$MAP_CIRCLE_NUM
+
   - goto:
       layout: tiled
       panes:
