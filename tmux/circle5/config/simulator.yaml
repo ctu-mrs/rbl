@@ -1,8 +1,6 @@
 simulation_rate: 100.0
 clock_rate: 100.0
-realtime_factor: 0.8 
-
-iterate_without_input: true
+realtime_factor: 1.0
 
 individual_takeoff_platform:
   enabled: false
@@ -36,13 +34,17 @@ uav_names: [
   "uav3",
   "uav4",
   "uav5",  
+  # "uav6",
+  # "uav7",
+  # "uav8",  
+  # "uav9",
+  # "uav10",
 ]
-
 
 uav1:
   type: "x500"
   spawn:
-    x: 15.00
+    x: 10.00
     y: 0.00
     z: 5.00
     heading: -3.14
@@ -50,32 +52,33 @@ uav1:
 uav2:
   type: "x500"
   spawn:
-    x: 12.14
-    y: 8.82
+    x: 3.09
+    y: 9.51
     z: 5.00
-    heading: -3.77
+    heading: -4.40
 
 uav3:
   type: "x500"
   spawn:
-    x: 4.64
-    y: 14.27
+    x: -8.09
+    y: 5.88
     z: 5.00
-    heading: -4.40
+    heading: -5.65
 
 uav4:
   type: "x500"
   spawn:
-    x: -4.64
-    y: 14.27
+    x: -8.09
+    y: -5.88
     z: 5.00
-    heading: -5.03
+    heading: -6.91
 
 uav5:
   type: "x500"
   spawn:
-    x: -12.14
-    y: 8.82
+    x: 3.09
+    y: -9.51
     z: 5.00
-    heading: -5.65
+    heading: -8.17
+
 

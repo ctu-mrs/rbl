@@ -31,6 +31,7 @@ class WrapperRosRBL : public nodelet::Nodelet  // //{
 {
 public:
 
+  std::vector<State> group_states_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> last_obstacle_cloud_;
   bool pcl_loaded_ = false;
   virtual void onInit();
@@ -42,7 +43,6 @@ public:
   int         _group_odoms_size_    = 0;
   std::string _agent_name_;
   std::string _frame_;
-
 
   std::mutex                     mtx_rbl_;
   std::shared_ptr<RBLController> rbl_controller_;
@@ -318,23 +318,28 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
       rbl_controller_->setAltitude(alt->range);
     }
 
-    std::vector<State> group_states;
-    if (!sh_group_odoms_.empty()) {
 
-      for (auto& tmp_sh : sh_group_odoms_) {
+
+    if (!sh_group_odoms_.empty()) {
+      // make sure the vector has the right size
+      if (group_states_.size() != sh_group_odoms_.size())
+        group_states_.resize(sh_group_odoms_.size());
+
+      for (size_t i = 0; i < sh_group_odoms_.size(); ++i) {
+        auto& tmp_sh = sh_group_odoms_[i];
 
         if (tmp_sh.newMsg()) {
-          State                       tmp_state;
-          auto                        odom = tmp_sh.getMsg();
+          auto odom = tmp_sh.getMsg();
+
+          State tmp_state;
           geometry_msgs::PointStamped tmp_pt;
           tmp_pt.header = odom->header;
-          tmp_pt.point  = odom->pose.pose.position;
+          tmp_pt.point = odom->pose.pose.position;
 
           auto res = transformer_->transformSingle(tmp_pt, _frame_);
-
           if (!res) {
             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
-            return;
+            continue;
           }
           tmp_state.position = pointToEigen(res.value().point);
 
@@ -345,14 +350,94 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
           auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
           if (!vel_res) {
             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
-            return;
+            continue;
           }
           tmp_state.velocity = vectorToEigen(vel_res->vector);
-          group_states.emplace_back(tmp_state);
+
+          group_states_[i] = tmp_state;  // update only this agent
         }
       }
-      rbl_controller_->setGroupStates(group_states);
+
+      rbl_controller_->setGroupStates(group_states_);  // always has last known states
     }
+
+
+
+//     // std::vector<State> group_states;
+//     if (!sh_group_odoms_.empty()) {
+
+//       for (auto& tmp_sh : sh_group_odoms_) {
+
+//         if (tmp_sh.newMsg()) {
+//           State                       tmp_state;
+//           auto                        odom = tmp_sh.getMsg();
+//           geometry_msgs::PointStamped tmp_pt;
+//           tmp_pt.header = odom->header;
+//           tmp_pt.point  = odom->pose.pose.position;
+
+//           auto res = transformer_->transformSingle(tmp_pt, _frame_);
+
+//           if (!res) {
+//             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
+//             return;
+//           }
+//           tmp_state.position = pointToEigen(res.value().point);
+
+//           geometry_msgs::Vector3Stamped tmp_vel;
+//           tmp_vel.header = odom->header;
+//           tmp_vel.vector = odom->twist.twist.linear;
+
+//           auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+//           if (!vel_res) {
+//             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
+//             return;
+//           }
+//           tmp_state.velocity = vectorToEigen(vel_res->vector);
+//           group_states.emplace_back(tmp_state);
+//         }
+//       }
+//       rbl_controller_->setGroupStates(group_states);
+//     }
+
+    // for (size_t i = 0; i < sh_group_odoms_.size(); ++i) {
+    //     auto& tmp_sh = sh_group_odoms_[i];
+
+    //     if (tmp_sh.hasMsg()) {
+    //         auto odom = tmp_sh.getMsg();
+
+    //         geometry_msgs::PointStamped tmp_pt;
+    //         tmp_pt.header = odom->header;
+    //         tmp_pt.point = odom->pose.pose.position;
+
+    //         auto res = transformer_->transformSingle(tmp_pt, _frame_);
+    //         if (!res) {
+    //             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
+    //             continue;
+    //         }
+
+    //         geometry_msgs::Vector3Stamped tmp_vel;
+    //         tmp_vel.header = odom->header;
+    //         tmp_vel.vector = odom->twist.twist.linear;
+
+    //         auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+    //         if (!vel_res) {
+    //             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
+    //             continue;
+    //         }
+
+    //         State tmp_state;
+    //         tmp_state.position = pointToEigen(res.value().point);
+    //         tmp_state.velocity = vectorToEigen(vel_res->vector);
+
+    //         // update persistent state
+    //         if (group_states.size() <= i)
+    //             group_states.resize(sh_group_odoms_.size());
+    //         group_states[i] = tmp_state;
+    //     }
+    // }
+
+    // now always use last known states
+    // rbl_controller_->setGroupStates(group_states);
 
     // std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     // if (sh_pcl_.getNumPublishers() > 0 && sh_pcl_.newMsg()) {
@@ -402,7 +487,7 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
 
     if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
       cloud = addAgents2PCL(cloud,
-                            group_states,
+                            group_states_,
                             rbl_params_.voxel_size,
                             rbl_params_.encumbrance);
     }

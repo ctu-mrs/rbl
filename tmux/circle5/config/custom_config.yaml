@@ -4,163 +4,164 @@ mrs_uav_managers:
 
     # loaded state estimator plugins
     state_estimators: [
-      # "gps_garmin",
       "gps_baro",
+      # "rtk",
     ]
 
-    
     initial_state_estimator: "gps_baro" # will be used as the first state estimator
     agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
 
 
+  constraint_manager:
+
+    superfast:
+
+      horizontal:
+        speed: 2.0        # [m/s]
+        acceleration: 40.0 # [m/s^2]
+        jerk: 600.0        # [m/s^3]
+        snap: 600.0        # [m/s^4]
+
+      vertical:
+
+        ascending:
+          speed: 2.0        # [m/s]
+          acceleration: 20.0 # [m/s^2]
+          jerk: 600.0        # [m/s^3]
+          snap: 600.0        # [m/s^4]
+
+        descending:
+          speed: 2.0        # [m/s]
+          acceleration: 20.0 # [m/s^2]
+          jerk: 600.0        # [m/s^3]
+          snap: 600.0        # [m/s^4]
+
+      heading:
+        speed: 2.0        # [rad/s]
+        acceleration: 2.0 # [rad/s^2]
+        jerk: 400.0        # [rad/s^3]
+        snap: 400.0        # [rad/s^4]
+
+      angular_speed:
+        roll: 60.0  # [rad/s]
+        pitch: 60.0 # [rad/s]
+        yaw: 10.0   # [rad/s]
+
+      tilt: 60.0 # [deg]
+
   control_manager:
 
-  #   # list of names of dynamically loaded trackers
-   
+    safety:
+
+      tilt_limit:
+
+        eland:
+          enabled: false
+
+        disarm:
+          enabled: false
+
+      tilt_error_disarm:
+        enabled: false
+
+      yaw_error_eland:
+        enabled: false
+
+    # ExampleTracker:
+    #   address: "example_tracker_plugin/ExampleTracker"
+    #   namespace: "example_tracker"
+    #   human_switchable: true
+
+    # # list of names of dynamically loaded trackers
     trackers : [
-      LineTracker
+      "LineTracker",
     ]
 
-  #   # list of names of dynamically loaded controllers
-  #   controllers :  "MpcController"
+    NmpcController:
+      address: "controller_module/ControllerModule"
+      namespace: "controller_module"
+      eland_threshold: 0.0 # [m], position error triggering eland
+      failsafe_threshold: 0.0 # [m], position error triggering failsafe land
+      odometry_innovation_threshold: 0 # [m], position odometry innovation threshold
+      human_switchable: true
+
+      # which outputs the controller can provide
+      outputs:
+        actuators:             false
+        control_group:         false
+        attitude_rate:         true
+        attitude:              true
+        acceleration_hdg_rate: true
+        acceleration_hdg:      true
+        velocity_hdg_rate:     true 
+        velocity_hdg:          true
+        position:              true
+
+    # list of names of dynamically loaded controllers
+    controllers : [
+      "NmpcController",
+    ]
+
+
   uav_manager:
 
     takeoff:
 
       rate: 10 # [Hz]
 
-      # during_takeoff:
-      #   controller: "MpcController"
-      #   tracker: "LandoffTracker"
+      during_takeoff:
+        controller: "MpcController"
+        tracker: "LandoffTracker"
 
-      # after_takeoff:
-      #   controller: "NmpcController"
-      #   tracker: "LineTracker"
-      takeoff_height: 5.0
+      after_takeoff:
+        controller: "MpcController"
+        tracker: "MpcTracker"
 
-    midair_activation:
+      takeoff_height: 5
 
-      after_activation:
-        controller: "NmpcController"
-        tracker: "LineTracker"
+    min_height_checking:
+      enabled: false
 
-      takeoff_height: 5.0
-  constraint_manager:
+    max_height_checking:
+      enabled: false
+
+
+
+
+    estimator_types: [
+      "gps_baro",
+      "other",
+      "ground_truth",
+      "passthrough",
+    ]
 
     constraints: [
       "slow",
       "medium",
       "fast",
-      "custom",
+      "superfast",
     ]
+
+    # list of allowed constraints per odometry mode
     allowed_constraints:
-      gps_baro: ["slow", "medium", "fast", "custom"]
+      gps_garmin: ["slow", "medium", "fast", "superfast"]
+      gps_baro: ["slow", "medium", "fast", "superfast"]
+      rtk: ["slow", "medium", "fast"]
+      rtk_garmin: ["slow", "medium", "fast"]
+      other: ["slow"]
+      ground_truth: ["slow", "medium", "fast", "superfast"]
+      passthrough: ["slow", "medium", "fast", "superfast"]
 
-
-    custom:
-
-      horizontal:
-        speed: 8.0        # [m/s]
-        acceleration: 20.0 # [m/s^2]
-        jerk: 800.0        # [m/s^3]
-        snap: 800.0        # [m/s^4]
-
-      vertical:
-
-        ascending:
-          speed: 4.0        # [m/s]
-          acceleration: 20.0 # [m/s^2]
-          jerk: 600.0        # [m/s^3]
-          snap: 600.0        # [m/s^4]
-
-        descending:
-          speed: 4.0        # [m/s]
-          acceleration: 20.0 # [m/s^2]
-          jerk: 600.0        # [m/s^3]
-          snap: 600.0        # [m/s^4]
-
-      heading:
-        speed: 4.0        # [rad/s]
-        acceleration: 20.0 # [rad/s^2]
-        jerk: 400.0        # [rad/s^3]
-        snap: 400.0        # [rad/s^4]
-
-      angular_speed:
-        roll: 120.0  # [rad/s]
-        pitch: 120.0 # [rad/s]
-        yaw: 10.0   # [rad/s]
-
-      tilt: 90.0 # [deg]
-
+    # those constraints will be used automatically when a localization mode switches
+    # and the current constraints are not in the allowed list (next paragraphs)
     default_constraints:
-      gps_baro: "custom"
-
-  # gain_manager:
-
-  #   soft:
-
-  #     horizontal:
-  #       kp: 6.0
-  #       kv: 3.0
-  #       ka: 2.0
-
-  #       kib: 0.1
-  #       kib_lim: 5.0
-
-  #       kiw: 0.1
-  #       kiw_lim: 5.0
-
-  #     vertical:
-  #       kp: 15.0
-  #       kv: 8.0
-  #       ka: 2.0
-
-  #     attitude:
-  #       kq_roll_pitch: 5.0
-  #       kq_yaw: 5.0
-
-  #     mass_estimator:
-  #       km: 0.5
-
-  #       # the maximum estimated uav mass difference
-  #       km_lim: 20.0 # [kg, at least 1/2 of the UAVs mass to allow landing detection]
-mrs_uav_trajectory_generation:
-
-  # execution time limiter
-  max_time: 0.5 # [s]
-
-  # check and fix the max deviation between the input path and the output trajectory
-  # by subsampling the original path with more waypoints
-  
-  # check_trajectory_deviation:
-  #   max_deviation: 0.20 # [m]
-
-  # allows to neglect waypoints in the original path if the new path
-  # does not violate max distance from the original path.
-  # This makes for similar but sparser paths, which are easier for the
-  # trajectory generator to work with.
-  # path_straightener:
-  #   enabled: true
-  #   max_deviation: 0.20 # [m]
-
-
+      gps_garmin: "medium"
+      gps_baro: "superfast"
+      other: "slow"
+      ground_truth: "superfast"
+      passthrough: "medium"
 
 mrs_uav_trackers:
-
-  mpc_tracker:
-
-    wiggle:
-      enabled: false
-      amplitude: 0.5 # [m]
-      frequency: 0.2 # [Hz]
-
-    # mrs collision avoidance
-    collision_avoidance:
-
-      enabled:           false # disabling this will stop this UAV to react to others, but it will still transmit data to others
-      enabled_passively: false # disabling this will stop this uav to even transmit its data to others (only if enabled: false)
-      radius: 5.0 # [m]
-      correction: 3.0 # [m]
 
   line_tracker:
 
@@ -177,3 +178,69 @@ mrs_uav_trackers:
     heading_tracker:
       heading_gain: 1.0
       heading_rate: 0.5
+
+  mpc_tracker:
+    # mrs collision avoidance
+    collision_avoidance:
+
+      enabled:           false # disabling this will stop this UAV to react to others, but it will still transmit data to others
+      enabled_passively: false # disabling this will stop this uav to even transmit its data to others (only if enabled: false)
+
+# mrs_uav_controllers:
+
+#   controller_module:
+
+#     nmpc:
+
+#       uav_configuration:
+
+#         mass: 1.21        # [kg]
+#         # arm_length: 0.15  # [m]
+#         mot0_pos: [ 0.15,  -0.15]
+#         mot1_pos: [-0.15,  0.15]
+#         mot2_pos: [-0.15, -0.15]
+#         mot3_pos: [ 0.15,  0.15]
+#         inertia: [0.007, 0.007, 0.010] # diag(xx, yy, zz)
+#         ctau: 0.012 # [] thrust torque coefficient
+#         drag: [0.38, 0.47, 1.5] # [] linear air drag coefficient
+#         voltage_based_thrustmap: True
+#         propulsion_module_config: src/propulsion_module/scripts/motor_science/alien_a300.yaml
+
+
+#         # acados settings
+#       solver:
+
+#         ac_num_iter: 20 # [-]
+#         ac_horizon: 1 # [s]
+#         ac_time_steps: [0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05]
+
+#       costs:
+
+#         Q_position_xy: 100
+#         Q_position_z: 100
+#         Q_rotation_xy: 26
+#         Q_rotation_z: 100
+#         Q_velocity: 6
+#         Q_omega: 26
+#         # R_matrix: (relative importance)
+#         R_thrust: 4
+
+#       uav_constraints:
+
+#         thrust_max: 17 # [N] per motor, max for a300 is rather 20
+#         thrust_min: 0.5 # [N] per motor
+#         thrust_total_max: 53.4 # [N]
+#         thrust_total_min: 2.0 # [N]
+#         max_rot_speed: [6.0, 6.0, 3] # roll, pitch, yaw [rad/s]
+
+#     rk4:
+
+#       controller_dt: 0.01 # [s]
+#       mem_num: 0 # number of integration in feed forward.
+
+#     optional:
+
+#       verbose: False
+#       warn_too_high_body_rates: False
+#       warn_body_rates: [5,5,1]
+

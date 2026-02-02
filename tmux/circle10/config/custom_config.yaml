@@ -14,73 +14,42 @@ mrs_uav_managers:
 
   control_manager:
 
-    safety:
-
-      tilt_limit:
-
-        eland:
-          enabled: false
-
-        disarm:
-          enabled: false
-
-      tilt_error_disarm:
-        enabled: false
-
-      yaw_error_eland:
-        enabled: false
-
-    NmpcController:
-      address: "controller_module/ControllerModule"
-      namespace: "controller_module"
-      eland_threshold: 0.0 # [m], position error triggering eland
-      failsafe_threshold: 0.0 # [m], position error triggering failsafe land
-      odometry_innovation_threshold: 0.0 # [m], position odometry innovation threshold
-      human_switchable: true
-
-      # which outputs the controller can provide
-      outputs:
-        actuators:             false
-        control_group:         false
-        attitude_rate:         true
-        attitude:              true
-        acceleration_hdg_rate: false
-        acceleration_hdg:      false
-        velocity_hdg_rate:     true
-        velocity_hdg:          true
-        position:              true
-
-
-    controllers : [
-      "NmpcController",
-    ]
   #   # list of names of dynamically loaded trackers
    
     trackers : [
-      "LineTracker",
+      LineTracker
     ]
 
+  #   # list of names of dynamically loaded controllers
+  #   controllers :  "MpcController"
+  #
+  #
+    Se3Controller:
+      eland_threshold: 2.5 # [m], position error triggering eland
+      failsafe_threshold: 2.5 # [m], position error triggering failsafe land
+      odometry_innovation_threshold: 1.5 # [m], position odometry innovation threshold
   uav_manager:
 
     takeoff:
 
       rate: 10 # [Hz]
 
-      during_takeoff:
-        controller: "MpcController"
-        tracker: "LandoffTracker"
+      # during_takeoff:
+      #   controller: "MpcController"
+      #   tracker: "LandoffTracker"
 
-      after_takeoff:
-        controller: "MpcController"
-        tracker: "LineTracker"
+      # after_takeoff:
+      #   controller: "NmpcController"
+      #   tracker: "LineTracker"
       takeoff_height: 5.0
 
-    # midair_activation:
+    midair_activation:
 
-    #   after_activation:
-    #     controller: "Se3Controller"
-    #     tracker: "LineTracker"
+      after_activation:
+        controller: "Se3Controller"
+        tracker: "MpcTracker"
 
+      takeoff_height: 5.0
   constraint_manager:
 
     constraints: [
@@ -96,7 +65,7 @@ mrs_uav_managers:
     custom:
 
       horizontal:
-        speed: 8.0        # [m/s]
+        speed: 2.0        # [m/s]
         acceleration: 20.0 # [m/s^2]
         jerk: 800.0        # [m/s^3]
         snap: 800.0        # [m/s^4]
@@ -104,32 +73,32 @@ mrs_uav_managers:
       vertical:
 
         ascending:
-          speed: 4.0        # [m/s]
+          speed: 2.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
 
         descending:
-          speed: 4.0        # [m/s]
+          speed: 2.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
 
       heading:
-        speed: 4.0        # [rad/s]
-        acceleration: 20.0 # [rad/s^2]
-        jerk: 400.0        # [rad/s^3]
-        snap: 400.0        # [rad/s^4]
+        speed: 2.0        # [rad/s]
+        acceleration: 2.0 # [rad/s^2]
+        jerk: 40.0        # [rad/s^3]
+        snap: 40.0        # [rad/s^4]
 
       angular_speed:
-        roll: 120.0  # [rad/s]
-        pitch: 120.0 # [rad/s]
+        roll: 60.0  # [rad/s]
+        pitch: 60.0 # [rad/s]
         yaw: 10.0   # [rad/s]
 
-      tilt: 90.0 # [deg]
+      tilt: 60.0 # [deg]
 
     default_constraints:
-      gps_baro: "fast"
+      gps_baro: "custom"
 
   # gain_manager:
 
@@ -181,35 +150,35 @@ mrs_uav_trajectory_generation:
 
 
 
-# mrs_uav_trackers:
+mrs_uav_trackers:
 
-#   mpc_tracker:
+  mpc_tracker:
 
-#     wiggle:
-#       enabled: false
-#       amplitude: 0.5 # [m]
-#       frequency: 0.2 # [Hz]
+    wiggle:
+      enabled: false
+      amplitude: 0.5 # [m]
+      frequency: 0.2 # [Hz]
 
-#     # mrs collision avoidance
-#     collision_avoidance:
+    # mrs collision avoidance
+    collision_avoidance:
 
-#       enabled:           false # disabling this will stop this UAV to react to others, but it will still transmit data to others
-#       enabled_passively: false # disabling this will stop this uav to even transmit its data to others (only if enabled: false)
-#       radius: 5.0 # [m]
-#       correction: 3.0 # [m]
+      enabled:           false # disabling this will stop this UAV to react to others, but it will still transmit data to others
+      enabled_passively: false # disabling this will stop this uav to even transmit its data to others (only if enabled: false)
+      radius: 5.0 # [m]
+      correction: 3.0 # [m]
 
-  # line_tracker:
+  line_tracker:
 
-  #   tracker_loop_rate: 100 # [Hz]
+    tracker_loop_rate: 100 # [Hz]
 
-  #   horizontal_tracker:
-  #     horizontal_speed: 8.0
-  #     horizontal_acceleration: 20.0
+    horizontal_tracker:
+      horizontal_speed: 8.0
+      horizontal_acceleration: 20.0
 
-  #   vertical_tracker:
-  #     vertical_speed: 8.0
-  #     vertical_acceleration: 20.0
+    vertical_tracker:
+      vertical_speed: 8.0
+      vertical_acceleration: 20.0
 
-  #   heading_tracker:
-  #     heading_gain: 10.0
-  #     heading_rate: 5
+    heading_tracker:
+      heading_gain: 10.0
+      heading_rate: 5

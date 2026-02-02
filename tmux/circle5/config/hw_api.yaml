@@ -1,18 +1,18 @@
 input_mode:
   actuators:             false
   control_group:         false
-  attitude_rate:         false
-  attitude:              false
-  acceleration_hdg_rate: false
-  acceleration_hdg:      false
-  velocity_hdg_rate:     true
-  velocity_hdg:          false
-  position:              false
+  attitude_rate:         true
+  attitude:              true
+  acceleration_hdg_rate: true
+  acceleration_hdg:      true
+  velocity_hdg_rate:     true  
+  velocity_hdg:          true
+  position:              true
 
   feedforward: true
 
 outputs:
-  distance_sensor:      false
+  distance_sensor:      true
   gnss:                 true
   rtk:                  false
   imu:                  false

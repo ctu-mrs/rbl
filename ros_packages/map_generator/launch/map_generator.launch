@@ -11,10 +11,10 @@
     <arg name="ObstacleShape_seed" value="1"/>
     <arg name="ObstacleShape_lower_rad" value="0.5"/>
     <arg name="ObstacleShape_upper_rad" value="1.0"/>
-    <!-- <arg name="ObstacleShape_lower_hei" value="6.5"/> -->
-    <!-- <arg name="ObstacleShape_upper_hei" value="10.0"/> -->
-    <arg name="ObstacleShape_lower_hei" value="0.1"/>
-    <arg name="ObstacleShape_upper_hei" value="0.2"/>
+    <!-- <arg name="ObstacleShape_lower_hei" value="0.05"/> -->
+    <!-- <arg name="ObstacleShape_upper_hei" value="0.06"/> -->
+    <arg name="ObstacleShape_lower_hei" value="10.0"/>
+    <arg name="ObstacleShape_upper_hei" value="10.0"/>
 
     <arg name="ObstacleShape_radius_l" value="0.7"/>
     <arg name="ObstacleShape_radius_h" value="0.5"/>

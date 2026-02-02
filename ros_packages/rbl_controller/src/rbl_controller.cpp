@@ -270,7 +270,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
 
   std::vector<Eigen::Vector3d> emptyVec;
   if (params_.replanner) {
-    computeCentroid(c1_,
+    computeCentroid(c1_full_,
                     agent_pos_,
                     agent_vel_,
                     cell_A_,
@@ -307,6 +307,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                th_,
                ph_,
                destination_,
+               seed_b_,
                waypoint_,
                agent_pos_,
                c1_,
@@ -324,7 +325,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                params_.dt);
   }
   else {
-    computeCentroid(c1_,
+    computeCentroid(c1_full_,
                     agent_pos_,
                     agent_vel_,
                     cell_A_,
@@ -361,6 +362,7 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                th_,
                ph_,
                destination_,
+               seed_b_,
                goal_,
                agent_pos_,
                c1_,
@@ -377,12 +379,12 @@ std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
                params_.beta_min,
                params_.dt);
   }
-  Eigen::Vector3d c1_full_cell = c1_;
-  if (params_.move_centroid_to_sensed_cell) {
-    c1_ = movePointToCell(c1_, sensed_cell_A_);
-  }
+  // Eigen::Vector3d c1_full_cell = c1_;
+  // if (params_.move_centroid_to_sensed_cell) {
+    c1_ = movePointToCell(c1_full_, sensed_cell_A_);
+  // }
   // if c1_ is very close to uav.
-  determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, c1_full_cell, rpy_, path_);
+  determineNextRef(p_ref, agent_pos_, waypoint_, goal_, c1_, c1_full_, rpy_, path_);
 
   return p_ref;
 }  // //}
@@ -721,7 +723,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // direction_vec[0] = cos(p_ref.heading);
   // direction_vec[1] = sin(p_ref.heading);
   // direction_vec[2] = 0;
-  int                                                      segments = 10;
+  int                                                      segments = 5;
   bool                                                     result   = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
@@ -737,38 +739,41 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     waypoint_ = agent_pos;
   }
   // std::cout << "[RBLController]: threshold_active " << threshold_active << std::endl;
-  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<< seed_b[1]<<" , "<< seed_b[2] << std::endl;
+  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() <<  std::endl;
   // std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
   // Eigen::Vector3d seed_b;
     Eigen::Vector3d v = c1 - seed_b;
     double n = v.norm();
     double eps = 1e-8;
-    seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
-    seed_b = agent_pos;
+    
+    // seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
+    // seed_b = agent_pos;
+    seed_b = c1;
 
-  double dist_agent_seed = (seed_b - agent_pos).norm();
-  Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
+//   double dist_agent_seed = (seed_b - agent_pos).norm();
+//   Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
 
+//   //   for (int i = 1; i < segments; ++i) {
+//   for (int i = 0; i < segments; ++i) {
+//     seed_b = seed_b + i * direction_vec * (dist_agent_seed / segments);
+//     // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
+//     result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+//     plane_data = ciri_solver_->getPlaneData();
 
-  //   for (int i = 1; i < segments; ++i) {
-  for (int i = 0; i < segments; ++i) {
-    seed_b = seed_b + i * direction_vec * (dist_agent_seed / segments);
-    // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
+//     // if (plane_data.size() > 50) {
+//     //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
+//     //   result = false;
+//     // }
+
     result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
     plane_data = ciri_solver_->getPlaneData();
-
-    // if (plane_data.size() > 50) {
-    //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
-    //   result = false;
+    // if (result) {
+    //   break;
     // }
-
-    if (result) {
-      break;
-    }
-    else {
-      // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
-    }
-  }
+    // else {
+    //   // std::cout << "[RBLController]: Moving seed closer to the uav for ciri." << std::endl;
+    // }
+   // }
 
   if (result) {
     // std::cout << "[RBLController]: Convex decomposition was successful." << std::endl;
@@ -892,8 +897,10 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
   else {  // 3D case
     pointsInsideSphere(cell_S, agent_pos, params_.radius, params_.step_size, altitude);
   }
-
-  if (!group_states_.empty() || (cloud && cloud->size() > 0)) {
+  if (group_states_.empty()) {
+      std::cout << "[RBLController]: group states empty." << std::endl;
+  }
+  // if (!group_states_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
       bool success = partitionCellACiri(cell_A,
                                         cell_S,
@@ -915,10 +922,10 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
     else {
       partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
     }
-  }
-  else {
-    cell_A = cell_S;
-  }
+  // }
+  // else {
+  //   cell_A = cell_S;
+  // }
   sensed_cell_A = computeActivelySensedCell(cell_A, agent_pos, rpy);
 }  // //}
 
@@ -1051,8 +1058,8 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << ", threshold "<< threshold_active << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) +
   // std::pow((centroid[2] - ), 2));
-  if (min_distance < params_.boundary_threshold && beta < 4.5 && agent_vel_.norm() > params_.boundary_threshold_speed) {
-    beta = beta + 0.1;
+  if (min_distance < params_.boundary_threshold && beta < 20.0 && agent_vel_.norm() > params_.boundary_threshold_speed) {
+    beta = beta + 1.0;
     threshold_active = true;
     // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " <<
     // min_distance << std::endl;
@@ -1101,6 +1108,7 @@ void RBLController::applyRules(double&                beta,  // //{
                                double&                th,
                                double&                ph,
                                Eigen::Vector3d        destination,
+                               Eigen::Vector3d&       seed_b_,
                                const Eigen::Vector3d  goal,
                                const Eigen::Vector3d& agent_pos,
                                const Eigen::Vector3d& c1,
@@ -1128,11 +1136,16 @@ void RBLController::applyRules(double&                beta,  // //{
         sqrt(pow(current_j_x - c1[0], 2) + pow(current_j_y - c1[1], 2) + pow(current_j_z - c1[2], 2));
     if (dist_c1_c2 > d2 && dist_current_c1 < d1) {
       beta = std::max(beta - dt, beta_min);  //  std::max(beta - dt * (epsilon), beta_min);
+      // seed_b_ = goal;
+      // seed_b_ = seed_b_ - 2 * dt * (seed_b_ - (agent_pos + 0.5*(destination-agent_pos)/(destination-agent_pos).norm()));
+      // seed_b_ =  c1;
     }
     else {
       beta = std::max(beta - dt * (beta - betaD), beta_min);
+      // seed_b_ = agent_pos;
+      // seed_b_ = seed_b_ -  dt * (seed_b_ - agent_pos);
     }
-
+    // seed_b_ = c1;
     // second condition
     double dist_c1_c2_plane_xy      = sqrt(pow((c1[0] - c2[0]), 2) + pow((c1[1] - c2[1]), 2));
     double dist_current_c1_plane_xy = sqrt(pow(current_j_x - c1[0], 2) + pow(current_j_y - c1[1], 2));
@@ -1220,9 +1233,13 @@ void RBLController::applyRules(double&                beta,  // //{
     double dist_c1_c2 = sqrt(pow((c1[0] - c2[0]), 2) + pow((c1[1] - c2[1]), 2));
     if (dist_c1_c2 > d2 && sqrt(pow((current_j_x - c1[0]), 2) + pow((current_j_y - c1[1]), 2)) < d1) {
       beta = std::max(beta - dt, beta_min);
+      // seed_b_ = seed_b_ - 2 * dt * (seed_b_ - goal);
+      seed_b_ = goal;
     }
     else {
       beta = beta - dt * (beta - betaD);
+      // seed_b_ = seed_b_ - 2 * dt * (seed_b_ - agent_pos);
+      seed_b_ = agent_pos;
     }
 
     // second condition
@@ -1378,10 +1395,10 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
     // if (params_.replanner) {
     //   desired_heading = determineYaw(agent_pos, waypoint, path, rpy);
     // } else {
-    desired_heading = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    // desired_heading = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
     // }
 
-    double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] - agent_pos[0]);
+    double heading_to_centroid = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]);
     double diff                = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference          = (diff < -M_PI) ? diff + 2 * M_PI : diff;
 

@@ -53,25 +53,25 @@ windows:
         - export UAV_NAME=uav3; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
         - export UAV_NAME=uav4; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
         - export UAV_NAME=uav5; waitForTakeoff; roslaunch rbl_controller controller.launch custom_config:=./config/rbl_controller.yaml
-  - goto_end:
-      layout: tiled
-      synchronize: after
-      panes:
-        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[-15.00, 0.00, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[-12.14, -8.82, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav3/rbl_controller/goto \"goal: \[-4.64, -14.27, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav4/rbl_controller/goto \"goal: \[4.64, -14.27, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav5/rbl_controller/goto \"goal: \[12.14, -8.82, 5.00, 0.0\]\"'
-
   - goto_start:
       layout: tiled
       synchronize: after
       panes:
-        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[15.00, 0.00, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[12.14, 8.82, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav3/rbl_controller/goto \"goal: \[4.64, 14.27, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav4/rbl_controller/goto \"goal: \[-4.64, 14.27, 5.00, 0.0\]\"'
-        - 'history -s rosservice call /uav5/rbl_controller/goto \"goal: \[-12.14, 8.82, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[10.00, 0.00, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[3.09, 9.51, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav3/rbl_controller/goto \"goal: \[-8.09, 5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav4/rbl_controller/goto \"goal: \[-8.09, -5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav5/rbl_controller/goto \"goal: \[3.09, -9.51, 5.00, 0.0\]\"'
+
+  - goto_end:
+      layout: tiled
+      synchronize: after
+      panes:
+        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[-10.00, 0.00, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[-3.09, -9.51, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav3/rbl_controller/goto \"goal: \[8.09, -5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav4/rbl_controller/goto \"goal: \[8.09, 5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav5/rbl_controller/goto \"goal: \[-3.09, 9.51, 5.00, 0.0\]\"'
   - automatic_start:
       layout: tiled
       panes:
@@ -105,7 +105,7 @@ windows:
   - rosbag:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForControl; sleep 5; ./record_rbl.sh ${SIM_ID} 
+        - export UAV_NAMl=uav1; rosparam set use_sim_time true;waitForControl; sleep 5; ./record_rbl.sh ${SIM_ID} 
 
   - goal_monitoring:
       layout: tiled
@@ -115,12 +115,17 @@ windows:
       layout: tiled
       synchronize: after
       panes:
-        - "export UAV_NAME=uav1; waitForTakeoff; sleep 15; rosservice call /uav1/rbl_controller/goto 'goal: [-15.00, 0.00, 5.00, 0.0]'"
-        - "export UAV_NAME=uav2; waitForTakeoff; sleep 15; rosservice call /uav2/rbl_controller/goto 'goal: [-12.14, -8.82, 5.00, 0.0]'"
-        - "export UAV_NAME=uav3; waitForTakeoff; sleep 15; rosservice call /uav3/rbl_controller/goto 'goal: [-4.64, -14.27, 5.00, 0.0]'"
-        - "export UAV_NAME=uav4; waitForTakeoff; sleep 15; rosservice call /uav4/rbl_controller/goto 'goal: [4.64, -14.27, 5.00, 0.0]'"
-        - "export UAV_NAME=uav5; waitForTakeoff; sleep 15; rosservice call /uav5/rbl_controller/goto 'goal: [12.14, -8.82, 5.00, 0.0]'"
-  # - activation_auto:
+        - 'history -s rosservice call /uav1/rbl_controller/goto \"goal: \[10.00, 0.00, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav2/rbl_controller/goto \"goal: \[3.09, 9.51, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav3/rbl_controller/goto \"goal: \[-8.09, 5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav4/rbl_controller/goto \"goal: \[-8.09, -5.88, 5.00, 0.0\]\"'
+        - 'history -s rosservice call /uav5/rbl_controller/goto \"goal: \[3.09, -9.51, 5.00, 0.0\]\"'
+        # - "export UAV_NAME=uav1; waitForTakeoff; sleep 15; rosservice call /uav1/rbl_controller/goto 'goal: [-15.00, 0.00, 5.00, 0.0]'"
+        # - "export UAV_NAME=uav2; waitForTakeoff; sleep 15; rosservice call /uav2/rbl_controller/goto 'goal: [-12.14, -8.82, 5.00, 0.0]'"
+        # - "export UAV_NAME=uav3; waitForTakeoff; sleep 15; rosservice call /uav3/rbl_controller/goto 'goal: [-4.64, -14.27, 5.00, 0.0]'"
+        # - "export UAV_NAME=uav4; waitForTakeoff; sleep 15; rosservice call /uav4/rbl_controller/goto 'goal: [4.64, -14.27, 5.00, 0.0]'"
+        # - "export UAV_NAME=uav5; waitForTakeoff; sleep 15; rosservice call /uav5/rbl_controller/goto 'goal: [12.14, -8.82, 5.00, 0.0]'"
+ # - activation_auto:
   #     layout: tiled
   #     synchronize: after
   #     panes:

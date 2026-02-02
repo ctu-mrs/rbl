@@ -10,18 +10,18 @@ rate:
   timer_diagnostics: 10
 
 rbl_controller:
-  # limited_fov: true 
-  # only_2d: false
-  # ciri: true
-  # lidar_tilt: 20.0 # [deg]
-  # lidar_fov: 59.0 #[deg]
-  limited_fov: false
+  limited_fov: true 
   only_2d: false
-  ciri: true 
-  lidar_tilt: 0.0 # [deg]
-  lidar_fov: 360.0 #[deg]
+  ciri: true
+  lidar_tilt: 20.0 # [deg]
+  lidar_fov: 59.0 #[deg]
+  # limited_fov: false
+  # only_2d: false
+  # ciri: true 
+  # lidar_tilt: 0.0 # [deg]
+  # lidar_fov: 360.0 #[deg]
   step_size: 0.2
-  boundary_threshold: 0.2 
+  boundary_threshold: 0.5
   z_min: 0.0
   z_max: 25.0
   z_ref: 1.0
