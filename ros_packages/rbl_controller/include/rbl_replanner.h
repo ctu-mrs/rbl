@@ -94,7 +94,7 @@ public:
   void setCurrentPosition(const Eigen::Vector3d& point);
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
-  void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
+  void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
 
   std::vector<Eigen::Vector3d> getInflatedCloud();
 
@@ -110,7 +110,7 @@ private:
   double                                                    altitude_;
   Eigen::Vector3d                                           agent_pos_;
   Eigen::Vector3d                                           goal_;
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>           cloud_;
   std::vector<Eigen::Vector3d>                              path_;
   std::vector<Eigen::Vector3d>                              smooth_path_;
   std::chrono::high_resolution_clock::time_point            last_replan;
@@ -135,8 +135,8 @@ private:
   Eigen::Vector3d gridIdxToWorldCoords(const std::tuple<int, int, int>& _point);
   Eigen::Vector3d gridIdxToWorldCoords(const int& x, const int& y, const int& z);
   std::tuple<int, int, int> worldCoordsToGridIdx(const Eigen::Vector3d& point);
-  std::tuple<int, int, int> worldCoordsToGridIdx(const pcl::PointXYZ& point);
-  void fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
+  std::tuple<int, int, int> worldCoordsToGridIdx(const pcl::PointXYZI& point);
+  void fillAndInflateGrid(std::optional<VoxelGrid>& grid, const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
   void calculateClearanceGrid(std::optional<VoxelGrid>& clearance_grid, const std::optional<VoxelGrid>& input_grid);
   void calculate1dSquaredDistance(std::vector<int>& data, int length, int stride);
   std::vector<Eigen::Vector3d> gridPathToWorldPath(std::vector<std::tuple<int, int ,int>>& _path);

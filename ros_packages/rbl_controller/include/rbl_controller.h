@@ -96,8 +96,8 @@ public:
   void setCurrentPosition(const Eigen::Vector3d& point);
   void setCurrentVelocity(const Eigen::Vector3d& point);
   void setGroupStates(const std::vector<State>& states);
-    void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
-    void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud);
+    void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
+    void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
   void setGoal(const Eigen::Vector3d& point);
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
@@ -106,7 +106,7 @@ public:
 bool inputsHealthy( const Eigen::Vector3d&                                            agent_pos, 
                     const Eigen::Vector3d&                                            agent_vel, 
                     const std::vector<State>&   group_states,
-                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&                  cloud, 
+                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>&                  cloud, 
                     Eigen::Vector3d&                                                  goal, 
                     double&                                                           altitude, 
                     Eigen::Vector3d&                                                  rpy);
@@ -121,7 +121,7 @@ bool inputsHealthy( const Eigen::Vector3d&                                      
   std::vector<Eigen::Vector3d>                  getCellA();
   std::vector<Eigen::Vector3d>                  getSensedCellA();
   std::vector<Eigen::Vector3d>                  getInflatedMap();
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getPCL();
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> getPCL();
   std::vector<Eigen::Vector3d>                  getPath();
 
 private:
@@ -155,15 +155,15 @@ private:
   std::vector<Eigen::Vector3d>                              inflated_map_;
   std::vector<Eigen::Vector3d>                              injected_points_map_;
   std::vector<Eigen::Vector3d>                              path_;
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_;
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>           cloud_obs_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>           cloud_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>           cloud_obs_;
   std::shared_ptr<RBLReplanner>                             rbl_replanner_;
   std::shared_ptr<CIRI>                                     ciri_solver_;
   std::future<std::vector<Eigen::Vector3d>>                 replanner_future_;
   std::mutex                                                replanner_mutex_;
 
-  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud, const Eigen::Vector3d& agent_pos, const double& altitude);
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,  // //{
                                 double                                           voxel_size);
   std::vector<Eigen::Vector3d> getpointsInsideCircle(const Eigen::Vector3d& center, const double& radius, const double& step_size);
   void pointsInsideSphere(std::vector<Eigen::Vector3d>& sphere, const Eigen::Vector3d& center, const double& radius, const double& step_size, const double& altitude);
@@ -173,7 +173,7 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> downSamplePcl(std::shared_ptr<pc
                       std::vector<Eigen::Vector3d>&                             plane_points,
                       const Eigen::Vector3d&                                    agent_pos,
                       const std::vector<Eigen::Vector3d>&                       neighbors,
-                      std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>&          cloud);
+                      std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>&          cloud);
   bool partitionCellACiri(std::vector<Eigen::Vector3d>&                    cell_A,
                           std::vector<Eigen::Vector3d>&                    cell_S,
                           std::vector<Eigen::Vector3d>&                    plane_normals,
@@ -181,13 +181,13 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> downSamplePcl(std::shared_ptr<pc
                           const Eigen::Vector3d&                           agent_pos,
                           const Eigen::Vector3d&                           waypoint,
                           const std::vector<Eigen::Vector3d>&              neighbors,
-                          std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                          std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,
                           Eigen::Vector3d&                                 c1,
                           Eigen::Vector3d&                                 seed_b,
                           bool&                                            threshold_active);
   void convertPlaneData(const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& plane_data, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos);
   void closestPointOnVoxel(Eigen::Vector3d& point, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& voxel_center, const double& voxel_size);
-  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& sensed_cell_A_, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud, const double& altitude, Eigen::Vector3d& c1, Eigen::Vector3d& seed_b, bool& threshold_active );
+  void createAndPartitionCellA(std::vector<Eigen::Vector3d>& cell_A, std::vector<Eigen::Vector3d>& sensed_cell_A_, std::vector<Eigen::Vector3d>& cell_S, std::vector<Eigen::Vector3d>& plane_normals, std::vector<Eigen::Vector3d>& plane_points, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& neighbors_pos, std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud, const double& altitude, Eigen::Vector3d& c1, Eigen::Vector3d& seed_b, bool& threshold_active );
   std::vector<Eigen::Vector3d> computeActivelySensedCell(std::vector<Eigen::Vector3d>& cell_A, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& rpy);
   Eigen::Matrix3d Rx(double angle);
   Eigen::Matrix3d Ry(double angle);

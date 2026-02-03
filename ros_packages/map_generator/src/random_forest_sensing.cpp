@@ -18,8 +18,8 @@
 
 using namespace std;
 
-// pcl::search::KdTree<pcl::PointXYZ> kdtreeLocalMap;
-pcl::KdTreeFLANN<pcl::PointXYZ> kdtreeLocalMap;
+// pcl::search::KdTree<pcl::PointXYZI> kdtreeLocalMap;
+pcl::KdTreeFLANN<pcl::PointXYZI> kdtreeLocalMap;
 vector<int> pointIdxRadiusSearch;
 vector<float> pointRadiusSquaredDistance;
 
@@ -59,15 +59,15 @@ uniform_real_distribution<double> rand_theta_tilt_;
 uniform_real_distribution<double> rand_z_;
 
 sensor_msgs::PointCloud2 globalMap_pcd;
-pcl::PointCloud<pcl::PointXYZ> cloudMap;
+pcl::PointCloud<pcl::PointXYZI> cloudMap;
 
 sensor_msgs::PointCloud2 localMap_pcd;
-pcl::PointCloud<pcl::PointXYZ> clicked_cloud_;
+pcl::PointCloud<pcl::PointXYZI> clicked_cloud_;
 
 std::string _frame_id_;
 
 bool checkCollision(const Eigen::Vector3d& pos, double radius) {
-    pcl::PointXYZ searchPoint;
+    pcl::PointXYZI searchPoint;
     searchPoint.x = pos.x();
     searchPoint.y = pos.y();
     searchPoint.z = pos.z();
@@ -141,7 +141,7 @@ double monteCarloTraversability(const Eigen::Vector3d& start, double radius, int
     return total_length / num_trials; // average free path length
 }
 void RandomMapGenerate() {
-  pcl::PointXYZ pt_random;
+  pcl::PointXYZI pt_random;
 
   rand_x = uniform_real_distribution<double>(_x_l, _x_h);
   rand_y = uniform_real_distribution<double>(_y_l, _y_h);
@@ -234,7 +234,7 @@ void RandomMapGenerate() {
 }
 
 void RandomMapGenerateCylinder() {
-  pcl::PointXYZ pt_random;
+  pcl::PointXYZI pt_random;
 
   vector<Eigen::Vector2d> obs_position;
 
@@ -360,7 +360,7 @@ void RandomMapGenerateCylinder() {
 }
 
 void RandomInclinedColumn() {
-  pcl::PointXYZ pt_random;
+  pcl::PointXYZI pt_random;
 
   vector<Eigen::Vector2d> obs_position;
 
@@ -440,7 +440,7 @@ void clickCallback(const geometry_msgs::PoseStamped &msg) {
   double y = msg.pose.position.y;
   double w = rand_w(eng);
   double h;
-  pcl::PointXYZ pt_random;
+  pcl::PointXYZI pt_random;
 
   x = floor(x / _resolution) * _resolution + _resolution / 2.0;
   y = floor(y / _resolution) * _resolution + _resolution / 2.0;

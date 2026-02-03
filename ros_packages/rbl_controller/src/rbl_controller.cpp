@@ -45,13 +45,13 @@ void RBLController::setGroupStates(const std::vector<State>& states)  // //{
   group_states_ = states;
 }  // //}
 
-void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
+void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   cloud_ = cloud;
 }  // //}
    //
 
-void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
+void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   cloud_obs_ = cloud;
 }  // //}
@@ -77,7 +77,7 @@ void RBLController::setRollPitchYaw(const Eigen::Vector3d& rpy)  // //{
 bool RBLController::inputsHealthy(const Eigen::Vector3d&                           agent_pos,
                                   const Eigen::Vector3d&                           agent_vel,
                                   const std::vector<State>&                        group_states,
-                                  std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,
                                   Eigen::Vector3d&                                 goal,
                                   double&                                          altitude,
                                   Eigen::Vector3d&                                 rpy)
@@ -434,7 +434,7 @@ std::vector<Eigen::Vector3d> RBLController::getInflatedMap()  // //{
   return inflated_map_;
 }  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> RBLController::getPCL()
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> RBLController::getPCL()
 {
   return cloud_;
 }
@@ -447,8 +447,8 @@ std::vector<Eigen::Vector3d> RBLController::getPath()  // //{
   return {};
 }  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
-RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>
+RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,  // //{
                                    const Eigen::Vector3d&                           agent_pos,
                                    const double&                                    altitude)
 {
@@ -474,7 +474,7 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
   //   }
   // }
 
-  pcl::PointCloud<pcl::PointXYZ> temp_no_ground_cloud;
+  pcl::PointCloud<pcl::PointXYZI> temp_no_ground_cloud;
   temp_no_ground_cloud.reserve(cloud->points.size());
 
   for (const auto& pt : cloud->points) {
@@ -483,7 +483,7 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
     }
   }
 
-  return std::make_shared<pcl::PointCloud<pcl::PointXYZ>>(temp_no_ground_cloud);
+  return std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(temp_no_ground_cloud);
 }  // //}
 
 std::vector<Eigen::Vector3d> RBLController::getpointsInsideCircle(const Eigen::Vector3d& center,  // //{
@@ -573,11 +573,11 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
                                    std::vector<Eigen::Vector3d>&                    plane_points,
                                    const Eigen::Vector3d&                           agent_pos,
                                    const std::vector<Eigen::Vector3d>&              neighbors,
-                                   std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)
+                                   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)
 {
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
 
   plane_normals.clear();
   plane_points.clear();
@@ -601,7 +601,7 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   //   plane_points.push_back(plane_point);
   // }
 
-  pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+  pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
 
   bool check_cloud = false;
   if (cloud->size() > 0) {
@@ -616,7 +616,12 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
     std::vector<int>   radius_indices;
     std::vector<float> radius_sqr_distances;
 
-    pcl::PointXYZ searchPoint(agent_pos.x(), agent_pos.y(), agent_pos.z());
+    pcl::PointXYZI searchPoint;
+    searchPoint.x = agent_pos.x();
+    searchPoint.y = agent_pos.y();
+    searchPoint.z = agent_pos.z();
+    searchPoint.intensity = 1.0f;
+    // pcl::PointXYZI searchPoint(agent_pos.x(), agent_pos.y(), agent_pos.z(), 1.0f);
     if (kdtree.radiusSearch(searchPoint, radius_sensing_, radius_indices, radius_sqr_distances) > 0) {
       for (size_t i = 0; i < radius_indices.size(); ++i) {
         const auto& current_voxel = boost_cloud->points[radius_indices[i]];
@@ -688,7 +693,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        const Eigen::Vector3d&                           agent_pos,
                                        const Eigen::Vector3d&                           waypoint,
                                        const std::vector<Eigen::Vector3d>&              neighbors,
-                                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                       std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,
                                        Eigen::Vector3d&                                 c1,
                                        Eigen::Vector3d&                                 seed_b,
                                        bool&                                            threshold_active)
@@ -699,11 +704,18 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     std::cout << "[RBLController]: Mapping cloud ptr to Eigen::Matrix3Xd not possible, cloud is empty." << std::endl;
     return false;
   }
-  Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(
-      reinterpret_cast<float*>(cloud->points.data()),
-      3,
-      num_points);
-  const Eigen::Matrix3Xf& pc = pcl_map;
+  // Safe copy of XYZ from PointXYZI to Eigen::Matrix3Xf
+  Eigen::Matrix3Xf pc(3, num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pc(0, i) = cloud->points[i].x;
+    pc(1, i) = cloud->points[i].y;
+    pc(2, i) = cloud->points[i].z;
+  }
+  // Eigen::Map<Eigen::Matrix<float, 3, Eigen::Dynamic>, 0, Eigen::Stride<4, 1>> pcl_map(
+  //     reinterpret_cast<float*>(cloud->points.data()),
+  //     3,
+  //     num_points);
+  // const Eigen::Matrix3Xf& pc = pcl_map;
 
   Eigen::MatrixX4f bd(6, 4);
   // Populate the boundary matrix with plane equations
@@ -727,7 +739,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   bool                                                     result   = false;
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> plane_data;
 
-  // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << "seed " << seed_b[0] <<" , "<<
+  std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() << std::endl;
   // seed_b[1]<<" , "<< seed_b[2] << std::endl; std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<<
   // c1[2] << std::endl; Eigen::Vector3d seed_b;
   //
@@ -748,7 +760,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
     
     // seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
     // seed_b = agent_pos;
-    seed_b = c1;
+
 
 //   double dist_agent_seed = (seed_b - agent_pos).norm();
 //   Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
@@ -767,6 +779,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
     result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
     plane_data = ciri_solver_->getPlaneData();
+    
     // if (result) {
     //   break;
     // }
@@ -885,12 +898,47 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
                                             const Eigen::Vector3d&                           rpy,
                                             const Eigen::Vector3d&                           waypoint,
                                             const std::vector<Eigen::Vector3d>&              neighbors_pos,
-                                            std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,
+                                            std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,
                                             const double&                                    altitude,
                                             Eigen::Vector3d&                                 c1,
                                             Eigen::Vector3d&                                 seed_b,
                                             bool&                                            threshold_active)
 {
+
+  // ---- INTENSITY-BASED SEED LOGIC ----
+  bool low_intensity_close = false;
+
+  constexpr float INTENSITY_THRESH = 0.99f;
+  double DIST_THRESH = params_.radius;
+
+  for (const auto& p : cloud->points) {
+    if (p.intensity >= INTENSITY_THRESH) {
+      Eigen::Vector3d pt(p.x, p.y, p.z);
+      if ((pt - agent_pos).norm() < DIST_THRESH ) {
+        low_intensity_close = true;
+        break;
+      }
+    }
+  }
+
+  // if (low_intensity_close) {
+  //   // std::cout << "1" << std::endl;
+  //   seed_b = c1;   
+  //   params_.ciri = false;
+  //   params_.boundary_threshold = 1.0;
+  // }
+  // else {
+  //   // std::cout << "2" << std::endl;
+  //   seed_b = c1;
+  //   params_.ciri = true;
+  //   params_.boundary_threshold = 0.1;
+  // }
+  // if (agent_vel_.norm() < 0.5){
+  //   seed_b = c1;
+  //   params_.ciri = true;
+  //   params_.boundary_threshold = 0.1;
+  //   std::cout << "slow: "<< agent_vel_.norm() << std::endl;
+  // }
   if (params_.only_2d) {  // 2D case
     cell_S = getpointsInsideCircle(agent_pos, params_.radius, params_.step_size);
   }
@@ -1011,6 +1059,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
                                     bool                          flag_threshold,
                                     bool&                         threshold_active)
                                     {
+
   std::vector<double> x_in, y_in, z_in;
   for (const auto& point : cell) {
     x_in.push_back(point[0]);
@@ -1058,9 +1107,11 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   // std::cout << "[RBLController]: vel: " << agent_vel_.norm() << ", beta: " << beta << ", threshold "<< threshold_active << std::endl;
   // double dist_centroid_to_boundary = std::sqrt(std::pow((centroid[0] - ), 2) + std::pow((centroid[1] - ), 2) +
   // std::pow((centroid[2] - ), 2));
+ 
   if (min_distance < params_.boundary_threshold && beta < 20.0 && agent_vel_.norm() > params_.boundary_threshold_speed) {
     beta = beta + 1.0;
     threshold_active = true;
+
     // std::cout << "[RBLController]: computing centroid again. new beta: " << beta << ", distance to boundary: " <<
     // min_distance << std::endl;
     computeCentroid(centroid,
@@ -1081,6 +1132,11 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   //   centroid = agent_pos;
   // }
 
+  // if (agent_vel_.norm() > params_.boundary_threshold_speed) {
+  //   threshold_active = true;
+  // }else{
+  //   threshold_active = false; 
+  // }
 
 }  // //}
 
@@ -1145,7 +1201,7 @@ void RBLController::applyRules(double&                beta,  // //{
       // seed_b_ = agent_pos;
       // seed_b_ = seed_b_ -  dt * (seed_b_ - agent_pos);
     }
-    // seed_b_ = c1;
+    seed_b_ = agent_pos;
     // second condition
     double dist_c1_c2_plane_xy      = sqrt(pow((c1[0] - c2[0]), 2) + pow((c1[1] - c2[1]), 2));
     double dist_current_c1_plane_xy = sqrt(pow(current_j_x - c1[0], 2) + pow(current_j_y - c1[1], 2));
@@ -1234,12 +1290,12 @@ void RBLController::applyRules(double&                beta,  // //{
     if (dist_c1_c2 > d2 && sqrt(pow((current_j_x - c1[0]), 2) + pow((current_j_y - c1[1]), 2)) < d1) {
       beta = std::max(beta - dt, beta_min);
       // seed_b_ = seed_b_ - 2 * dt * (seed_b_ - goal);
-      seed_b_ = goal;
+      // seed_b_ = goal;
     }
     else {
       beta = beta - dt * (beta - betaD);
       // seed_b_ = seed_b_ - 2 * dt * (seed_b_ - agent_pos);
-      seed_b_ = agent_pos;
+      // seed_b_ = agent_pos;
     }
 
     // second condition
@@ -1512,19 +1568,19 @@ double RBLController::normalizeAngle(double angle)  // //{
   return angle;
 }  // //}
 
-std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>
-RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud,  // //{
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>
+RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,  // //{
                              double                                           voxel_size)
 {
   // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>(*cloud);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
 
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
+  pcl::VoxelGrid<pcl::PointXYZI> sor;
   sor.setInputCloud(boost_cloud);
   sor.setLeafSize(static_cast<float>(voxel_size), static_cast<float>(voxel_size), static_cast<float>(voxel_size));
   sor.filter(*boost_voxelized_cloud);
 
-  return std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>(boost_voxelized_cloud.get(), [boost_voxelized_cloud](...) {});
+  return std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>(boost_voxelized_cloud.get(), [boost_voxelized_cloud](...) {});
 }  // //}

@@ -47,7 +47,7 @@ void RBLReplanner::setAltitude(const double& alt)  // //{
   altitude_ = alt;
 }  // //}
 
-void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
+void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   cloud_ = cloud;
 }  // //}
@@ -280,7 +280,7 @@ RBLReplanner::worldCoordsToGridIdx(const Eigen::Vector3d& point)  // //{
 std::tuple<int,
            int,
            int>
-RBLReplanner::worldCoordsToGridIdx(const pcl::PointXYZ& point)  // //{
+RBLReplanner::worldCoordsToGridIdx(const pcl::PointXYZI& point)  // //{
 {
   int x =
       static_cast<int>(std::round((point.x - agent_pos_.x()) / params_.replanner_vox_size)) + std::get<0>(_agent_pos_);
@@ -293,7 +293,7 @@ RBLReplanner::worldCoordsToGridIdx(const pcl::PointXYZ& point)  // //{
 }  // //}
 
 void RBLReplanner::fillAndInflateGrid(std::optional<VoxelGrid>&                              grid,
-                                      const std::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>& cloud)  // //{
+                                      const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   int                           x, y, z;
   std::vector<std::vector<int>> idx_to_inflate;
