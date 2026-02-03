@@ -904,22 +904,28 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
                                             Eigen::Vector3d&                                 seed_b,
                                             bool&                                            threshold_active)
 {
+std::vector<Eigen::Vector3d>                     cell_B;
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_high_intensity(new pcl::PointCloud<pcl::PointXYZI>());
+std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_low_intensity(new pcl::PointCloud<pcl::PointXYZI>());
 
-  // ---- INTENSITY-BASED SEED LOGIC ----
-  bool low_intensity_close = false;
+constexpr float INTENSITY_THRESH = 0.99f;
 
-  constexpr float INTENSITY_THRESH = 0.99f;
-  double DIST_THRESH = params_.radius;
-
-  for (const auto& p : cloud->points) {
-    if (p.intensity >= INTENSITY_THRESH) {
-      Eigen::Vector3d pt(p.x, p.y, p.z);
-      if ((pt - agent_pos).norm() < DIST_THRESH ) {
-        low_intensity_close = true;
-        break;
-      }
-    }
+for (const auto& p : cloud->points) {
+  if (p.intensity >= INTENSITY_THRESH) {
+    cloud_high_intensity->points.push_back(p);
+  } else {
+    cloud_low_intensity->points.push_back(p);
   }
+}
+std::cout << "cloud_high_intensity: " << cloud_high_intensity->points.size() << std::endl;
+std::cout << "cloud_low_intensity: " << cloud_low_intensity->points.size() << std::endl;
+
+// cloud_high_intensity->width  = cloud_high_intensity->points.size();
+// cloud_high_intensity->height = 1;
+
+// cloud_low_intensity->width  = cloud_low_intensity->points.size();
+// cloud_low_intensity->height = 1;
+
 
   // if (low_intensity_close) {
   //   // std::cout << "1" << std::endl;
@@ -950,19 +956,27 @@ void RBLController::createAndPartitionCellA(std::vector<Eigen::Vector3d>&       
   }
   // if (!group_states_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
+      // std::cout << "[RBLController]: cell_b "<< cell_B.size() << std::endl;
+      partitionCellA(cell_B, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud_high_intensity);
+      // std::cout << "[RBLController]: cell_b1 "<< cell_B.size() << std::endl;
       bool success = partitionCellACiri(cell_A,
-                                        cell_S,
+                                        cell_B,
                                         plane_normals,
                                         plane_points,
                                         agent_pos,
                                         waypoint,
                                         neighbors_pos,
-                                        cloud,
+                                        cloud_low_intensity,
                                         c1,
                                         seed_b,
                                         threshold_active);
+      if (cell_B == cell_A) {
+        std::cout << "[RBLController]: equal" << std::endl;
+      } 
+
       if (!success || cell_A.size() == 0) {
         std::cout << "[RBLController]: Ciri failed. Using classic partition." << std::endl;
+        cell_A.clear();
         partitionCellA(cell_A, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud);
         seed_b = agent_pos;
       }
