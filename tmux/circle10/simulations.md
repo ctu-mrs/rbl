@@ -1,0 +1,13 @@
+1 0.2 Mid360 FOV
+2 0.5 Mid360 FOV
+3 1.0 Mid360 FOV
+4 0.2 Camera FOV
+5 0.5 Camera FOV
+6 1.0 Camera FOV
+7 0.2 2 Mid360 FOV
+8 0.5 2 Mid360 FOV
+9 1.0 2 Mid360 FOV
+10 0.2 RPlidar FOV
+11 0.5 RPlidar FOV
+12 1.0 RPlidar FOV
+

@@ -12,22 +12,7 @@ mrs_uav_managers:
     initial_state_estimator: "gps_baro" # will be used as the first state estimator
     agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
 
-  control_manager:
-
-  #   # list of names of dynamically loaded trackers
    
-    trackers : [
-      LineTracker
-    ]
-
-  #   # list of names of dynamically loaded controllers
-  #   controllers :  "MpcController"
-  #
-  #
-    Se3Controller:
-      eland_threshold: 0.1 # [m], position error triggering eland
-      failsafe_threshold: 0.1 # [m], position error triggering failsafe land
-      odometry_innovation_threshold: 1.5 # [m], position odometry innovation threshold
   uav_manager:
 
     takeoff:
@@ -65,7 +50,7 @@ mrs_uav_managers:
     custom:
 
       horizontal:
-        speed: 1.0        # [m/s]
+        speed: 3.0        # [m/s]
         acceleration: 20.0 # [m/s^2]
         jerk: 800.0        # [m/s^3]
         snap: 800.0        # [m/s^4]
@@ -73,29 +58,29 @@ mrs_uav_managers:
       vertical:
 
         ascending:
-          speed: 1.0        # [m/s]
+          speed: 3.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
 
         descending:
-          speed: 1.0        # [m/s]
+          speed: 3.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
 
       heading:
         speed: 0.5        # [rad/s]
-        acceleration: 20.0 # [rad/s^2]
-        jerk: 400.0        # [rad/s^3]
-        snap: 400.0        # [rad/s^4]
+        acceleration: 2.0 # [rad/s^2]
+        jerk: 40.0        # [rad/s^3]
+        snap: 40.0        # [rad/s^4]
 
       angular_speed:
-        roll: 120.0  # [rad/s]
-        pitch: 120.0 # [rad/s]
+        roll: 60.0  # [rad/s]
+        pitch: 60.0 # [rad/s]
         yaw: 10.0   # [rad/s]
 
-      tilt: 90.0 # [deg]
+      tilt: 60.0 # [deg]
 
     default_constraints:
       gps_baro: "custom"
