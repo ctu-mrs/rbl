@@ -1074,6 +1074,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
                                     bool&                         threshold_active)
                                     {
 
+  std::cout << "destitnation" << destination << std::endl;
   std::vector<double> x_in, y_in, z_in;
   for (const auto& point : cell) {
     x_in.push_back(point[0]);

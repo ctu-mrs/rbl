@@ -43,7 +43,7 @@ rbl_controller:
   cwvd_obs: 0.5
   cwvd_rob: 0.5
   use_garmin_alt: false
-  replanner: true
+  replanner: false
   boundary_threshold_speed: 0.0
   move_centroid_to_sensed_cell: false
   pcl:
@@ -51,7 +51,7 @@ rbl_controller:
     voxel_size: 0.2
 
 replanner:
-  inflation_bonus: 0.3
+  inflation_bonus: 0.35
 
 final_positions: # defined with respect to monitored_area_origin
 

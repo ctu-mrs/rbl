@@ -277,7 +277,7 @@ def main(bag_file,pcd_file):
 
     obstacle_points = load_pcd_ascii(pcd_file)
 
-    # plot_trajectories_and_obstacles_3d(df, obstacle_points)
+    plot_trajectories_and_obstacles_3d(df, obstacle_points)
     # plot_trajectories_3d(data)
     plot_pairwise_distances(data)
 

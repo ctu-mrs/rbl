@@ -31,7 +31,7 @@ mrs_uav_managers:
     midair_activation:
 
       after_activation:
-        controller: "Se3Controller"
+        controller: "NmpcController"
         tracker: "MpcTracker"
 
       takeoff_height: 5.0
@@ -50,7 +50,7 @@ mrs_uav_managers:
     custom:
 
       horizontal:
-        speed: 3.0        # [m/s]
+        speed: 30.0        # [m/s]
         acceleration: 20.0 # [m/s^2]
         jerk: 800.0        # [m/s^3]
         snap: 800.0        # [m/s^4]
@@ -58,13 +58,13 @@ mrs_uav_managers:
       vertical:
 
         ascending:
-          speed: 3.0        # [m/s]
+          speed: 30.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
 
         descending:
-          speed: 3.0        # [m/s]
+          speed: 30.0        # [m/s]
           acceleration: 20.0 # [m/s^2]
           jerk: 600.0        # [m/s^3]
           snap: 600.0        # [m/s^4]
