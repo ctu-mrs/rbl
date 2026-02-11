@@ -6,24 +6,24 @@ group_odoms:
 odometry_topic: estimation_manager/odom_main
 
 rate:
-  timer_set_ref: 20
+  timer_set_ref: 15
   timer_diagnostics: 10
 
 rbl_controller:
-  # limited_fov: true 
-  # only_2d: false
-  # ciri: true
-  # lidar_tilt: 20.0 # [deg]
-  # lidar_fov: 59.0 #[deg]
-  # lidar_tilt: 90.0 # [deg]
-  # lidar_fov: 180.0 #[deg]
-  limited_fov: false
+  limited_fov: true 
   only_2d: false
   ciri: true
-  lidar_tilt: 0.0 # [deg]
-  lidar_fov: 360.0 #[deg]
+  # lidar_tilt: 20.0 # [deg]
+  # lidar_fov: 59.0 #[deg]
+  lidar_tilt: 90.0 # [deg]
+  lidar_fov: 180.0 #[deg]
+  # limited_fov: false
+  # only_2d: false
+  # ciri: true
+  # lidar_tilt: 0.0 # [deg]
+  # lidar_fov: 360.0 #[deg]
   step_size: 0.20
-  boundary_threshold: 0.3
+  boundary_threshold: 0.1
   z_min: 0.0
   z_max: 25.0
   z_ref: 1.0
@@ -48,10 +48,10 @@ rbl_controller:
   move_centroid_to_sensed_cell: false
   pcl:
     downsample: true
-    voxel_size: 0.2
+    voxel_size: 0.1
 
 replanner:
-  inflation_bonus: 0.35
+  inflation_bonus: 0.2
 
 final_positions: # defined with respect to monitored_area_origin
 

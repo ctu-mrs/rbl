@@ -19,12 +19,106 @@ plt.rcParams.update({'pdf.fonttype': 42})
 # ===============================
 # Settings
 # ===============================
-VEL_START_THRESHOLD = 0.2    # m/s (XY)
-GOAL_THRESHOLD = 0.2        # m
+VEL_START_THRESHOLD = 0.5    # m/s (XY)
+GOAL_THRESHOLD = 1.5        # m
 DISTANCE_THRESHOLD = 0.4     # m
 MAX_SYNC_DT = 0.1            # s
 TRAJ_CMAP = 'viridis'
 
+import open3d as o3d
+
+def load_pcd_clean(filename, z_min_clearance=0.5, voxel=0.15):
+
+    pcd = o3d.io.read_point_cloud(filename)
+
+    if pcd is None or len(pcd.points) == 0:
+        print("[WARN] Empty or unreadable PCD")
+        return None
+
+    points = np.asarray(pcd.points)
+
+    # Remove NaN / inf
+    mask = np.isfinite(points).all(axis=1)
+    points = points[mask]
+
+    if len(points) == 0:
+        print("[WARN] All points invalid")
+        return None
+
+    # -------- estimate ground level automatically --------
+    # take lowest 10% of points as ground candidates
+    z_sorted = np.sort(points[:,2])
+    ground_est = np.median(z_sorted[:int(0.1*len(z_sorted))])
+
+    # keep only points above clearance
+    points = points[points[:,2] > ground_est + z_min_clearance]
+
+    if len(points) == 0:
+        print("[WARN] After ground removal no points remain")
+        return None
+
+    # -------- voxel downsample (CRITICAL for Plotly + KDTree speed) --------
+    pcd2 = o3d.geometry.PointCloud()
+    pcd2.points = o3d.utility.Vector3dVector(points)
+
+    pcd2 = pcd2.voxel_down_sample(voxel_size=voxel)
+    points = np.asarray(pcd2.points)
+
+    print(f"[PCD] ground={ground_est:.2f}m | kept={len(points)} points")
+
+    return points
+def load_pcd(filename, min_points=1000, verbose=True):
+    """
+    Load a PCD safely.
+    Skips empty, NaN, corrupted or degenerate point clouds.
+    Returns None if unusable.
+    """
+
+    try:
+        pcd = o3d.io.read_point_cloud(filename)
+
+        # failed to read
+        if pcd is None:
+            if verbose:
+                print(f"[WARN] {filename}: Open3D returned None")
+            return None
+
+        points = np.asarray(pcd.points)
+
+        # empty
+        if points.size == 0:
+            if verbose:
+                print(f"[WARN] {filename}: empty point cloud")
+            return None
+
+        # remove NaN and Inf
+        mask = np.isfinite(points).all(axis=1)
+        points = points[mask]
+
+        if len(points) == 0:
+            if verbose:
+                print(f"[WARN] {filename}: all points invalid (NaN/Inf)")
+            return None
+
+        # remove crazy coordinates (corrupted frames sometimes produce 1e8 meters)
+        MAX_RANGE = 500.0  # meters
+        mask = np.linalg.norm(points, axis=1) < MAX_RANGE
+        points = points[mask]
+
+        if len(points) < min_points:
+            if verbose:
+                print(f"[WARN] {filename}: too few valid points ({len(points)})")
+            return None
+
+        # optional: remove duplicates (very common in RTABMAP)
+        points = np.unique(points, axis=0)
+
+        return points
+
+    except Exception as e:
+        if verbose:
+            print(f"[ERROR] Failed to load {filename}: {e}")
+        return None
 # ===============================
 # Load bag data
 # ===============================
@@ -93,12 +187,12 @@ def find_end_time(groups):
     arrival_times = {}
 
     for uav, g in groups.items():
-        final_pos = g[["x", "y", "z"]].values[-1]
+        final_pos = [80,0,3] #g[["x", "y", "z"]].values[-1]
         arrived = False
 
         for _, row in g.iterrows():
             pos = np.array([row["x"], row["y"], row["z"]])
-            if np.linalg.norm(pos - final_pos) < GOAL_THRESHOLD:
+            if np.linalg.norm(pos - final_pos) < GOAL_THRESHOLD : 
                 arrival_times[uav] = row["time"]
                 arrived = True
                 break
@@ -126,17 +220,45 @@ def path_length_xyz(x, y, z):
 def avg_velocity_xyz(df):
     return np.mean(np.sqrt(df["vx"]**2 + df["vy"]**2 + df["vz"]**2))
 
+def time_weighted_avg_velocity(g):
+    t = g["time"].values
+    v = np.sqrt(g["vx"]**2 + g["vy"]**2 + g["vz"]**2).values
+
+    dt = np.diff(t)
+
+    # integrate |v(t)| dt
+    integral = np.sum(v[:-1] * dt)
+
+    total_time = t[-1] - t[0]
+
+    return integral / total_time
 
 def extract_metrics(df_cut):
     metrics = {}
     for uav, g in df_cut.groupby("uav"):
+
+        speed = np.sqrt(g["vx"]**2 + g["vy"]**2 + g["vz"]**2)
+
         metrics[uav] = {
             "path_length": path_length_xyz(g["x"].values,
                                            g["y"].values,
                                            g["z"].values),
-            "avg_velocity": avg_velocity_xyz(g)
+            "avg_velocity1": time_weighted_avg_velocity(g),
+            "avg_velocity": np.mean(speed),
+            "max_velocity": np.max(speed),
+            "robust_max_velocity": np.percentile(speed, 95)  # IMPORTANT
         }
     return metrics
+# def extract_metrics(df_cut):
+#     metrics = {}
+#     for uav, g in df_cut.groupby("uav"):
+#         metrics[uav] = {
+#             "path_length": path_length_xyz(g["x"].values,
+#                                            g["y"].values,
+#                                            g["z"].values),
+#             "avg_velocity": avg_velocity_xyz(g)
+#         }
+#     return metrics
 
 # ===============================
 # Obstacles
@@ -200,7 +322,7 @@ def plot_tube_segment(ax, p0, p1, radius, color, n=12):
 # Plotting with proper depth using Plotly
 # ===============================
 
-def plot_trajectories_3d_p(df, obstacle_points, uav_radius=2.5,
+def plot_trajectories_3d_p(df, obstacle_points, uav_radius=0.7,
                            pdf_file="trajectories_3d.pdf", html_file="trajectories_3d.html"):
     import plotly.graph_objects as go
     import matplotlib
@@ -237,14 +359,14 @@ def plot_trajectories_3d_p(df, obstacle_points, uav_radius=2.5,
         ))
 
     # Plot obstacles
-    fig.add_trace(go.Scatter3d(
-        x=obstacle_points[:,0],
-        y=obstacle_points[:,1],
-        z=obstacle_points[:,2],
-        mode='markers',
-        marker=dict(size=2, color='gray', opacity=0.3),
-        name='Obstacles'
-    ))
+    # fig.add_trace(go.Scatter3d(
+    #     x=obstacle_points[:,0],
+    #     y=obstacle_points[:,1],
+    #     z=obstacle_points[:,2],
+    #     mode='markers',
+    #     marker=dict(size=2, color='gray', opacity=1),
+    #     name='Obstacles'
+    # ))
 
     # Colorbar for speed
     fig.add_trace(go.Scatter3d(
@@ -277,7 +399,7 @@ def plot_trajectories_3d_p(df, obstacle_points, uav_radius=2.5,
 
     # Save outputs
     fig.write_html(html_file)
-    fig.write_image(pdf_file)
+    # fig.write_image(pdf_file)
     print(f"Saved interactive HTML: {html_file}")
     print(f"Saved PDF: {pdf_file}")
 
@@ -314,14 +436,14 @@ def plot_trajectories_3d_pold(df, obstacle_points, pdf_file="trajectories_3d.pdf
         ))
 
     # Obstacles
-    fig.add_trace(go.Scatter3d(
-        x=obstacle_points[:,0],
-        y=obstacle_points[:,1],
-        z=obstacle_points[:,2],
-        mode='markers',
-        marker=dict(size=2, color='gray', opacity=0.3),
-        name='Obstacles'
-    ))
+    # fig.add_trace(go.Scatter3d(
+    #     x=obstacle_points[:,0],
+    #     y=obstacle_points[:,1],
+    #     z=obstacle_points[:,2],
+    #     mode='markers',
+    #     marker=dict(size=2, color='gray', opacity=0.3),
+    #     name='Obstacles'
+    # ))
 
     # Colorbar for speed
     fig.add_trace(go.Scatter3d(
@@ -372,18 +494,18 @@ def plot_trajectories_3d(df, obstacle_points):
     norm = Normalize(vmin=speeds.min(), vmax=speeds.max())
     cmap = plt.cm.get_cmap(TRAJ_CMAP)
 
-    ROBOT_RADIUS = 0.20  # meters (footprint radius)
+    ROBOT_RADIUS = 0.70  # meters (footprint radius)
 
     STEP = 1  # plot sphere every 2 points for speed
 
-    ax.scatter(obstacle_points[:,0],
-               obstacle_points[:,1],
-               obstacle_points[:,2],
-               s=1,
-               c='gray',
-               alpha=0.28,
-               depthshade=False,
-               zorder=1)
+    # ax.scatter(obstacle_points[:,0],
+    #            obstacle_points[:,1],
+    #            obstacle_points[:,2],
+    #            s=1,
+    #            c='gray',
+    #            alpha=0.28,
+    #            depthshade=False,
+    #            zorder=1)
 
     for uav, g in groups:
         x, y, z = g["x"].values, g["y"].values, g["z"].values
@@ -516,18 +638,30 @@ def main(bag_file, pcd_file):
 
     lengths = [m["path_length"] for m in metrics.values()]
     vels = [m["avg_velocity"] for m in metrics.values()]
+    vels1 = [m["avg_velocity1"] for m in metrics.values()]
+
+    # for uav, m in metrics.items():
+    #     print(f"{uav}: path={m['path_length']:.2f} m, avg v={m['avg_velocity']:.2f} m/s")
+
+    # print(f"\nMean path length: {np.mean(lengths):.2f} ± {np.std(lengths):.2f}")
+    # print(f"Mean avg velocity: {np.mean(vels):.2f} ± {np.std(vels):.2f}")
+
 
     for uav, m in metrics.items():
-        print(f"{uav}: path={m['path_length']:.2f} m, avg v={m['avg_velocity']:.2f} m/s")
-
-    print(f"\nMean path length: {np.mean(lengths):.2f} ± {np.std(lengths):.2f}")
-    print(f"Mean avg velocity: {np.mean(vels):.2f} ± {np.std(vels):.2f}")
-
+        print(
+            f"{uav}: "
+            f"path={m['path_length']:.2f} m | "
+            f"avg={m['avg_velocity']:.2f} m/s | "
+            f"avg1={m['avg_velocity1']:.2f} m/s | "
+            f"max={m['max_velocity']:.2f} m/s | "
+            f"robust_max={m['robust_max_velocity']:.2f} m/s"
+        )
     obstacle_points = load_pcd_ascii(pcd_file)
+    # obstacle_points = []
     plot_trajectories_3d(df_cut, obstacle_points)
 
-    min_dist, info = compute_min_pairwise_distance(data)
-    print(f"Min distance: {min_dist:.3f} m between {info[0]} and {info[1]}")
+    # min_dist, info = compute_min_pairwise_distance(data)
+    # print(f"Min distance: {min_dist:.3f} m between {info[0]} and {info[1]}")
 
 # ===============================
 # Entry point

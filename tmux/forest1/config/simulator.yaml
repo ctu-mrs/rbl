@@ -1,6 +1,6 @@
 simulation_rate: 100.0
 clock_rate: 100.0
-realtime_factor: 0.6 
+realtime_factor: 1.00
 
 iterate_without_input: true
 
@@ -48,7 +48,7 @@ uav1:
   type: "x500"
   spawn:
     x: -15.00
-    y: -6.00
+    y: 0.00
     z: 5.00
     heading: 0.0
 
