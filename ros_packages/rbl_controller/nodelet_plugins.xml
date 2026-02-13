@@ -1,9 +1,0 @@
-<library path="lib/libnodelet_rbl_controller">
-  <class name="WrapperRosRBL"
-         type="WrapperRosRBL"
-         base_class_type="nodelet::Nodelet">
-    <description>
-        This nodelet receives a message and publishes it.
-    </description>
-  </class>
-</library>
