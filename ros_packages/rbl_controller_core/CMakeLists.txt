@@ -11,6 +11,41 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
+
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+
+find_package(mrs_msgs REQUIRED)
+find_package(mrs_lib REQUIRED)
+
+add_library(rbl_controller_core
+  src/rbl_controller.cpp
+)
+
+target_include_directories(rbl_controller_core
+  PUBLIC
+    include
+    ${PCL_INCLUDE_DIRS}
+)
+
+target_link_libraries(rbl_controller_core
+  PUBLIC
+    Eigen3::Eigen
+    ${PCL_LIBRARIES}
+    rbl_replanner
+    ciri
+)
+
+target_link_directories(rbl_controller_core
+  PUBLIC
+    ${mrs_lib_LIBRARY_DIRS}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
