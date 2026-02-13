@@ -7,9 +7,42 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+
+include_directories(
+  ${PCL_INCLUDE_DIRS}
+)
+
+add_library(rbl_replanner 
+  src/replanner.cpp
+)
+
+target_include_directories(rbl_replanner PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(rbl_replanner
+  Eigen3::Eigen
+  ${PCL_LIBRARIES}
+)
+
+install(
+  TARGETS rbl_replanner
+  EXPORT export_rbl_replanner
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
