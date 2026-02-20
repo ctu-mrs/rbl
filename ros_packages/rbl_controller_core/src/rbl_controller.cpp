@@ -1,4 +1,4 @@
-#include "rbl_controller.h"
+#include "rbl_controller_core/rbl_controller.h"
 
 RBLController::RBLController(const RBLParams& params) : params_(params)  // //{
 {
