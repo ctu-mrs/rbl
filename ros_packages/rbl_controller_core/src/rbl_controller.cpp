@@ -157,9 +157,9 @@ bool RBLController::inputsHealthy(const Eigen::Vector3d&                        
   return healthy;
 }
 
-std::optional<mrs_msgs::Reference> RBLController::getNextRef()  // //{
+std::optional<mrs_msgs::msg::Reference> RBLController::getNextRef()  // //{
 {
-  mrs_msgs::Reference p_ref;
+  mrs_msgs::msg::Reference p_ref;
 
   if (!inputsHealthy(agent_pos_, agent_vel_, group_states_, cloud_, goal_, altitude_, rpy_)) {
     std::cout << "[RBLController]: Inputs are not ok. Cannot return next reference" << std::endl;
@@ -452,6 +452,7 @@ RBLController::getGroundCleanCloud(std::shared_ptr<pcl::PointCloud<pcl::PointXYZ
                                    const Eigen::Vector3d&                           agent_pos,
                                    const double&                                    altitude)
 {
+  (void)altitude;     // TODO - currently unused
 
   if (cloud->size() <= 0) {
     std::cout << "[RBLController]: PointCloud is empty. Can not clean ground" << std::endl;
@@ -575,9 +576,10 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
                                    const std::vector<Eigen::Vector3d>&              neighbors,
                                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)
 {
+  (void)neighbors;     // TODO - currently unused
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
-  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
 
   plane_normals.clear();
   plane_points.clear();
@@ -698,6 +700,10 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        Eigen::Vector3d&                                 seed_b,
                                        bool&                                            threshold_active)
 {
+  (void)waypoint;     // TODO - currently unused
+  (void)neighbors;     // TODO - currently unused
+  (void)threshold_active;     // TODO - currently unused
+
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
   if (num_points == 0) {
@@ -729,7 +735,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
       -(agent_pos.y() + params_.radius + 1.0), 0, -1, 0, (agent_pos.y() - params_.radius - 1.0), 0, 0, 1,
       -(agent_pos.z() + params_.radius + 1.0), 0, 0, -1, (agent_pos.z() - params_.radius - 1.0);
 
-  double dist_agent_c1 = (c1 - agent_pos).norm();
+  // double dist_agent_c1 = (c1 - agent_pos).norm();
   // Eigen::Vector3d direction_vec = (agent_pos - c1)/dist_agent_c1;
   // Eigen::Vector3d direction_vec;
   // direction_vec[0] = cos(p_ref.heading);
@@ -754,8 +760,8 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   // std::cout << "[RBLController]: seed_b: " << (seed_b - agent_pos).norm() <<  std::endl;
   // std::cout << "[RBLController]: c1: " << c1[0] <<" , "<< c1[1]<<" , "<< c1[2] << std::endl;
   // Eigen::Vector3d seed_b;
-    Eigen::Vector3d v = c1 - seed_b;
-    double n = v.norm();
+    // Eigen::Vector3d v = c1 - seed_b;
+    // double n = v.norm();
     double eps = 1e-8;
     
     // seed_b = seed_b + 2 * params_.dt * v / (n + eps); 
@@ -1072,7 +1078,8 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
                                     double&                       beta,
                                     bool                          flag_threshold,
                                     bool&                         threshold_active)
-                                    {
+{
+  (void)agent_vel;     // TODO - currently unused
 
   std::cout << "destitnation" << destination << std::endl;
   std::vector<double> x_in, y_in, z_in;
@@ -1099,7 +1106,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
 
   double min_distance        = std::numeric_limits<double>::max();
-  size_t closest_plane_index = -1;
+  int closest_plane_index = -1;
 
   for (size_t i = 0; i < plane_normals.size(); ++i) {
     const Eigen::Vector3d& normal         = plane_normals[i];
@@ -1111,7 +1118,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
 
     if (distance < min_distance) {
       min_distance        = distance;
-      closest_plane_index = i;
+      closest_plane_index = static_cast<int>(i);
     }
   }
 
@@ -1163,6 +1170,8 @@ void RBLController::computeScalarValue(std::vector<double>&       scalar_values,
                                        const Eigen::Vector3d&     goal,
                                        double                     beta)
 {
+  (void)goal;     // TODO - currently unused
+
   for (size_t i = 0; i < x_test.size(); ++i) {
     double distance = std::sqrt(std::pow((x_test[i] - destination[0]), 2) + std::pow((y_test[i] - destination[1]), 2) +
                                 std::pow((z_test[i] - destination[2]), 2));
@@ -1196,6 +1205,8 @@ void RBLController::applyRules(double&                beta,  // //{
                                const double&          beta_min,
                                const double&          dt) 
 {
+  (void)seed_b_;     // TODO - currently unused
+
   double current_j_x = agent_pos[0];
   double current_j_y = agent_pos[1];
   double current_j_z = agent_pos[2];
@@ -1243,8 +1254,8 @@ void RBLController::applyRules(double&                beta,  // //{
     double dist_current_c2_plane_xy = sqrt(pow(current_j_x - c2[0], 2) + pow(current_j_y - c2[1], 2));
 
     if (params_.use_z_rule) {
-      if (dist_c1_c2_z > d5 && dist_current_c1_z < d6 ||
-          (dist_current_c2_plane_xy - dist_current_c1_plane_xy) > d7) {  // modify phi up down based on some if
+      if (((dist_c1_c2_z > d5) && (dist_current_c1_z < d6)) ||
+          ((dist_current_c2_plane_xy - dist_current_c1_plane_xy) > d7)) {  // modify phi up down based on some if
         double direction_to_goal = std::atan2(goal[0] - current_j_x, goal[1] - current_j_y);  // [0, 2pi)
         if (direction_to_goal < 0) {
           direction_to_goal += 2 * M_PI;
@@ -1343,7 +1354,8 @@ Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<
                                                               const Eigen::Vector3d&              goal)
 {
   double min_dist_sq         = std::numeric_limits<double>::max();
-  int    closest_point_index = -1;
+  size_t    closest_point_index = 0;
+  bool found = false;
 
   // Find closest path point
   for (size_t i = 0; i < path.size(); ++i) {
@@ -1351,11 +1363,12 @@ Eigen::Vector3d RBLController::determineWaypointFixedDistance(const std::vector<
     if (dist_sq < min_dist_sq) {
       min_dist_sq         = dist_sq;
       closest_point_index = i;
+      found = true;
     }
   }
 
   // If we're at the end, return the goal
-  if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
+  if (!found || closest_point_index + 1 >= path.size()) {
     return path.back();
   }
 
@@ -1402,22 +1415,24 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
                                                  Eigen::Vector3d&                    waypoint)
 {
   double min_dist_sq         = std::numeric_limits<double>::max();
-  int    closest_point_index = -1;
+  size_t closest_point_index = -1;
+  bool found = false;
 
   for (size_t i = 0; i < path.size(); ++i) {
     double dist_sq = (path[i] - agent_pos).squaredNorm();
     if (dist_sq < min_dist_sq) {
       min_dist_sq         = dist_sq;
       closest_point_index = i;
+      found = true;
     }
   }
 
-  if (closest_point_index == -1 || closest_point_index >= path.size() - 1) {
+  if (!found || closest_point_index + 1 >= path.size()) {
     return path.back();
   }
 
   double          dist_agent_goal = (goal - agent_pos).norm();
-  Eigen::Vector3d closest_point   = path[closest_point_index];
+  // Eigen::Vector3d closest_point   = path[closest_point_index];
   Eigen::Vector3d next_point      = path[closest_point_index + 1];
   // Eigen::Vector3d direction_vector = (next_point - closest_point) / (next_point - closest_point).norm();
   Eigen::Vector3d direction_vector      = (next_point - agent_pos) / (next_point - agent_pos).norm();
@@ -1452,7 +1467,7 @@ Eigen::Vector3d RBLController::determineWaypoint(const std::vector<Eigen::Vector
   // return next_point;
 }  // //}
 
-void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref,  // //{
+void RBLController::determineNextRef(mrs_msgs::msg::Reference&                p_ref,  // //{
                                      const Eigen::Vector3d&              agent_pos,
                                      const Eigen::Vector3d&              waypoint,
                                      const Eigen::Vector3d&              goal,
@@ -1461,6 +1476,9 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
                                      const Eigen::Vector3d&              rpy,
                                      const std::vector<Eigen::Vector3d>& path)
 {
+  (void)waypoint;     // TODO - currently unused
+  (void)path;     // TODO - currently unused
+
   if (params_.limited_fov) {
     double desired_heading;
     // if (params_.replanner) {
@@ -1508,10 +1526,10 @@ void RBLController::determineNextRef(mrs_msgs::Reference&                p_ref, 
   }
 }  // //}
 
-mrs_msgs::Reference RBLController::pRefAgent(const Eigen::Vector3d& agent_pos,
+mrs_msgs::msg::Reference RBLController::pRefAgent(const Eigen::Vector3d& agent_pos,
                                              const double           yaw)  // //{
 {
-  mrs_msgs::Reference p_ref;
+  mrs_msgs::msg::Reference p_ref;
   p_ref.position.x = agent_pos.x();
   p_ref.position.y = agent_pos.y();
   p_ref.position.z = agent_pos.z();
@@ -1589,8 +1607,8 @@ RBLController::downSamplePcl(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
 {
   // std::cout << "[RBLController]: Voxelizing PointCloud to voxel size: " << voxel_size << std::endl; //TODO uncomment
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
-  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_voxelized_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr boost_voxelized_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
 
   pcl::VoxelGrid<pcl::PointXYZI> sor;
   sor.setInputCloud(boost_cloud);

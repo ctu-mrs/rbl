@@ -1,13 +1,18 @@
 #ifndef RBL_CONTROLLER_H
 #define RBL_CONTROLLER_H
 
-#include <stdio.h>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Eigen>
+// CUSTOM
+#include "rbl_replanner/replanner.h"
+#include "ciri/ciri.h"
+
+// MRS
+
 // #include <visualization_msgs/MarkerArray.h>
 // #include <geometry_msgs/Point.h>
-// #include <mrs_msgs/Reference.h>
+// #include <mrs_msgs/msg/control_manager_diagnostics.hpp>
+// #include <mrs_msgs/msg/float64_stamped.hpp>
+// #include <mrs_msgs/msg/reference_stamped.hpp>
+#include <mrs_msgs/msg/reference.hpp>
 // #include <std_msgs/String.h>
 // #include <std_srvs/Trigger.h>
 // #include <mrs_msgs/Vec4.h>
@@ -17,12 +22,22 @@
 // #include <mrs_lib/transformer.h>
 // #include <mrs_lib/scope_timer.h>
 // #include "rbl_controller/ActivateParams.h"
+
+// EIGEN
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+#include <Eigen/Eigen>
+
+// PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
+
+// Standard CPP libs
+#include <stdio.h>
 #include <filesystem>
 #include <boost/make_shared.hpp>
 #include <queue>
@@ -43,8 +58,6 @@
 #include <optional>
 #include <mutex>
 #include <future>
-#include "rbl_replanner/replanner.h"
-#include "ciri/ciri.h"
 
 
 
@@ -111,7 +124,7 @@ bool inputsHealthy( const Eigen::Vector3d&                                      
                     double&                                                           altitude, 
                     Eigen::Vector3d&                                                  rpy);
 
-  std::optional<mrs_msgs::Reference>            getNextRef();
+  std::optional<mrs_msgs::msg::Reference>            getNextRef();
   Eigen::Vector3d                               getGoal(); 
   Eigen::Vector3d                               getWaypoint();
   Eigen::Vector3d                               getCurrentPosition();
@@ -200,8 +213,8 @@ std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> downSamplePcl(std::shared_ptr<p
                   const double& d1, const double& d2, const double& d3, const double& d4, const double& d5, const double& d6, const double& d7, const double& betaD, const double& beta_min, const double& dt);
   Eigen::Vector3d determineWaypoint(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal, Eigen::Vector3d& waypoint);
   Eigen::Vector3d determineWaypointFixedDistance(const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& goal);
-  void determineNextRef(mrs_msgs::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& c1_full, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
-  mrs_msgs::Reference pRefAgent(const Eigen::Vector3d& agent_pos, const double yaw);
+  void determineNextRef(mrs_msgs::msg::Reference& p_ref, const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const Eigen::Vector3d& goal, const Eigen::Vector3d& c1, const Eigen::Vector3d& c1_full, const Eigen::Vector3d& rpy, const std::vector<Eigen::Vector3d>& path);
+  mrs_msgs::msg::Reference pRefAgent(const Eigen::Vector3d& agent_pos, const double yaw);
   double determineYaw(const Eigen::Vector3d& agent_pos, const Eigen::Vector3d& waypoint, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
   // double determineYaw(const Eigen::Vector3d& agent_pos, const std::vector<Eigen::Vector3d>& path, const Eigen::Vector3d& rpy);
   double normalizeAngle(double angle);

@@ -15,6 +15,7 @@ find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(rbl_replanner REQUIRED)
 find_package(ciri REQUIRED)
+find_package(mrs_msgs REQUIRED)
 
 # find_package(geometry_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
@@ -41,6 +42,7 @@ target_link_libraries(rbl_controller_core
   PUBLIC
     Eigen3::Eigen
     ${PCL_LIBRARIES}
+    ${mrs_msgs_TARGETS}
     rbl_replanner::rbl_replanner
     ciri::ciri
 )
