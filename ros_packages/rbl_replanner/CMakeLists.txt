@@ -22,6 +22,10 @@ add_library(rbl_replanner
   src/replanner.cpp
 )
 
+add_library(rbl_replanner::rbl_replanner
+  ALIAS rbl_replanner
+)
+
 target_include_directories(rbl_replanner PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>

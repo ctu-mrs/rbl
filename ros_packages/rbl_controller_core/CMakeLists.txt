@@ -47,6 +47,19 @@ target_link_libraries(rbl_controller_core
     ciri::ciri
 )
 
+install(
+  TARGETS rbl_controller_core
+  EXPORT export_rbl_controller_core
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
 
 # target_link_directories(rbl_controller_core
 #   PUBLIC
@@ -64,5 +77,9 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+ament_export_targets(export_rbl_controller_core HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_dependencies(Eigen3)
 
 ament_package()

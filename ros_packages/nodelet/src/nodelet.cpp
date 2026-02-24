@@ -1,35 +1,79 @@
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Vector3.h>
+// CUSTOM
+#include "rbl_controller_core/rbl_controller.h"
+// #include <rbl_controller/PoseVelocityArray.h>
+
+// MRS LIB
 #include <mrs_lib/mutex.h>
 #include <mrs_lib/param_loader.h>
 #include <mrs_lib/publisher_handler.h>
-#include <mrs_lib/subscribe_handler.h>
+#include <mrs_lib/subscriber_handler.h>
 #include <mrs_lib/transformer.h>
-#include <mrs_msgs/PoseWithCovarianceArrayStamped.h>
-#include <mrs_msgs/Reference.h>
-#include <mrs_msgs/ReferenceStampedSrv.h>
-#include <mrs_msgs/Vec4.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <nodelet/nodelet.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <rbl_controller/PoseVelocityArray.h>
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/Range.h>
-#include <std_srvs/Trigger.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <mrs_lib/node.h>
+#include <mrs_lib/service_server_handler.h>
+#include <mrs_lib/service_client_handler.h>
+
+// MRS MSGs
+#include <mrs_msgs/msg/pose_with_covariance_array_stamped.hpp>
+#include <mrs_msgs/msg/reference.hpp>
+#include <mrs_msgs/srv/reference_stamped_srv.hpp>
+#include <mrs_msgs/srv/vec4.hpp>
+// #include <mrs_msgs/msg/PoseWithCovarianceArrayStamped.hpp>
+// #include <mrs_msgs/msg/Reference.hpp>
+// #include <mrs_msgs/msg/ReferenceStampedSrv.hpp>
+// #include <mrs_msgs/msg/Vec4.hpp>
+
+// MSGS
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
+
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/range.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+
+// ROS 2
+#include <rclcpp/rclcpp.hpp>
+
+#include <std_srvs/srv/trigger.hpp>
+
+// EIGEN
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+
+
+// PCL
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+// Standard CPP libs
 #include <cmath>
 #include <string>
-#include "rbl_controller.h"
 
-class WrapperRosRBL : public nodelet::Nodelet  // //{
-{
+#if USE_ROS_TIMER == 1
+typedef mrs_lib::ROSTimer TimerType;
+#else
+typedef mrs_lib::ThreadTimer TimerType;
+#endif
+
+class WrapperRosRBL : public mrs_lib::Node {
 public: 
+  WrapperRosRBL(rclcpp::NodeOptions options);
+
+  void initialize();
+
+private:
+
+  rclcpp::Node::SharedPtr  node_;
+  rclcpp::Clock::SharedPtr clock_;
+
+  rclcpp::CallbackGroup::SharedPtr cbkgrp_subs_;
+  rclcpp::CallbackGroup::SharedPtr cbkgrp_sc_;
+  rclcpp::CallbackGroup::SharedPtr cbkgrp_ss_;
+  rclcpp::CallbackGroup::SharedPtr cbkgrp_timers_;
+
 
   std::vector<State> group_states_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_;
@@ -48,59 +92,102 @@ public:
   std::shared_ptr<RBLController> rbl_controller_;
   RBLParams                      rbl_params_;
 
-  ros::ServiceServer srv_activate_control_;
-  bool               cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
-                                          std_srvs::Trigger::Response&                 res);
-  ros::ServiceServer srv_deactivate_control_;
-  bool               cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
-                                            std_srvs::Trigger::Response&                 res);
-  ros::ServiceServer srv_goto_position_;
-  bool               cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,
-                                       mrs_msgs::Vec4::Response& res);
+  // | ----------------- sevice server callbacks ---------------- |
 
-  ros::ServiceClient sc_set_ref_;
+  bool cbSrvActivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
+  mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger> srv_activate_control_;
 
-  ros::Timer tm_set_ref_;
-  void       cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te);
-  ros::Timer tm_diagnostics_;
-  void       cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te);
+  bool cbSrvDeactivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
+  mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger> srv_deactivate_control_;
 
-  ros::Publisher                            pub_viz_cell_A_;
-  ros::Publisher                            pub_viz_cell_A_sensed_;
-  std::shared_ptr<sensor_msgs::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
+  bool cbSrvGotoPosition(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
+  mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger> srv_goto_position_;
+
+  // ros::ServiceServer srv_activate_control_;
+  // bool               cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
+  //                                         std_srvs::Trigger::Response&                 res);
+  // ros::ServiceServer srv_deactivate_control_;
+  // bool               cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
+  //                                           std_srvs::Trigger::Response&                 res);
+  // ros::ServiceServer srv_goto_position_;
+  // bool               cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,
+  //                                      mrs_msgs::Vec4::Response& res);
+
+
+  // | --------------------- service clients -------------------- |
+
+  mrs_lib::ServiceClientHandler<std_srvs::srv::Trigger> sc_set_ref_;
+
+  // ros::ServiceClient sc_set_ref_;
+
+  // | --------------------- timer callbacks -------------------- |
+
+  void cbTmSetRef();
+  std::shared_ptr<TimerType> tm_set_ref_;
+
+  void cbTmDiagnostics();
+  std::shared_ptr<TimerType> tm_diagnostics_;
+  // ros::Timer tm_set_ref_;
+  // void       cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te);
+  // ros::Timer tm_diagnostics_;
+  // void       cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te);
+
+
+  // | ----------------------- publishers ----------------------- |
+
+  mrs_lib::PublisherHandler<visualization_msgs::msg::Marker> pub_viz_position_;
+  mrs_lib::PublisherHandler<visualization_msgs::msg::Marker> pub_viz_centroid_;
+  mrs_lib::PublisherHandler<visualization_msgs::msg::Marker> pub_viz_seed_B_;
+  mrs_lib::PublisherHandler<visualization_msgs::msg::Marker> pub_viz_target_;
+  mrs_lib::PublisherHandler<visualization_msgs::msg::Marker> pub_viz_waypoint_;
+  mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2> pub_viz_cell_A_;
+  mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2> pub_viz_cell_A_sensed_;
+  mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2> pub_viz_inflated_map_;
+  mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2> pub_viz_cloud;
+  mrs_lib::PublisherHandler<nav_msgs::msg::Path> pub_viz_path_;
+  
+
+  // ros::Publisher                            pub_viz_cell_A_;
+  // ros::Publisher                            pub_viz_cell_A_sensed_;
+  std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                         const std::string&                  frame);
-  ros::Publisher                            pub_viz_inflated_map_;
-  std::shared_ptr<sensor_msgs::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
+  // ros::Publisher                            pub_viz_inflated_map_;
+  std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
                                                               const std::string&                  frame);
-  ros::Publisher                            pub_viz_cloud;
-  std::shared_ptr<sensor_msgs::PointCloud2>
+  // ros::Publisher                            pub_viz_cloud;
+  std::shared_ptr<sensor_msgs::msg::PointCloud2>
                              getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& pcl,  // //{
                                        const std::string&                                     frame);
-  ros::Publisher             pub_viz_path_;
-  nav_msgs::Path             getVizPath(const std::vector<Eigen::Vector3d>& path,
+  // ros::Publisher             pub_viz_path_;
+  nav_msgs::msg::Path             getVizPath(const std::vector<Eigen::Vector3d>& path,
                                         const std::string&                  frame);
-  ros::Publisher             pub_viz_position_;
-  visualization_msgs::Marker getVizPosition(const Eigen::Vector3d& point,
+  // ros::Publisher             pub_viz_position_;
+  visualization_msgs::msg::Marker getVizPosition(const Eigen::Vector3d& point,
                                             const double           scale,
                                             const std::string&     frame);
-  ros::Publisher             pub_viz_centroid_;
-  ros::Publisher             pub_viz_seed_B_;
-  visualization_msgs::Marker getVizCentroid(const Eigen::Vector3d& point,
+  // ros::Publisher             pub_viz_centroid_;
+  // ros::Publisher             pub_viz_seed_B_;
+  visualization_msgs::msg::Marker getVizCentroid(const Eigen::Vector3d& point,
                                             const std::string&     frame);
-  ros::Publisher             pub_viz_target_;
-  visualization_msgs::Marker getVizModGroupGoal(const Eigen::Vector3d& point,
+  // ros::Publisher             pub_viz_target_;
+  visualization_msgs::msg::Marker getVizModGroupGoal(const Eigen::Vector3d& point,
                                                 const double           scale,
                                                 const std::string&     frame);
-  ros::Publisher             pub_viz_waypoint_;
-  visualization_msgs::Marker getVizWaypoint(const Eigen::Vector3d& point,
+  // ros::Publisher             pub_viz_waypoint_;
+  visualization_msgs::msg::Marker getVizWaypoint(const Eigen::Vector3d& point,
                                             const double           scale,
                                             const std::string&     frame);
 
 
-  mrs_lib::SubscribeHandler<nav_msgs::Odometry>              sh_odom_;
-  mrs_lib::SubscribeHandler<sensor_msgs::Range>              sh_alt_;
-  mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>        sh_pcl_;
-  std::vector<mrs_lib::SubscribeHandler<nav_msgs::Odometry>> sh_group_odoms_;
+  // | ----------------------- subscribers ---------------------- |
+
+  mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
+  mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>              sh_alt_;
+  mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
+  std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
+
+
+
 
   std::shared_ptr<mrs_lib::Transformer> transformer_;
 
@@ -116,13 +203,29 @@ public:
                                                                 const double              encumbrance);
 };  // //}
 
-void WrapperRosRBL::onInit()  // //{
-{
-  ros::NodeHandle& nh = getPrivateNodeHandle();
-  NODELET_DEBUG("Initializing nodelet...");
-  ros::Time::waitForValid();
 
-  mrs_lib::ParamLoader param_loader(nh, "WrapperRosRBL");
+
+WrapperRosRBL::WrapperRosRBL(rclcpp::NodeOptions options) : Node("wrapper_ros_rbl", options) {
+  initialize();
+}
+
+
+void WrapperRosRBL::initialize()  // //{
+{
+  node_  = this->this_node_ptr();
+  clock_ = node_->get_clock();
+
+  cbkgrp_subs_   = this_node().create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  cbkgrp_sc_     = this_node().create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  cbkgrp_ss_     = this_node().create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  cbkgrp_timers_ = this_node().create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+
+  // ros::NodeHandle& nh = getPrivateNodeHandle();
+  // NODELET_DEBUG("Initializing nodelet...");
+  // ros::Time::waitForValid();
+
+  mrs_lib::ParamLoader param_loader(node_);
 
   param_loader.loadParam("uav_name", _agent_name_);
   param_loader.loadParam("control_frame", _frame_);
@@ -207,30 +310,93 @@ void WrapperRosRBL::onInit()  // //{
     } while (sh_group_odoms_.size() < _group_odoms_size_);
   }
 
-  sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
-  sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
-  sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
 
-  tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
-  tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
 
-  srv_activate_control_ = nh.advertiseService("control_activation_in", &WrapperRosRBL::cbSrvActivateControl, this);
-  srv_goto_position_    = nh.advertiseService("goto_in", &WrapperRosRBL::cbSrvGotoPosition, this);
-  srv_deactivate_control_ =
-      nh.advertiseService("control_deactivation_in", &WrapperRosRBL::cbSrvDeactivateControl, this);
+  // | ----------------------- subscribers ---------------------- |
 
-  sc_set_ref_ = nh.serviceClient<mrs_msgs::ReferenceStampedSrv>("ref_out");
+  mrs_lib::SubscriberHandlerOptions shopts;
+  shopts.node                                = node_;
+  shopts.node_name                           = "WrapperRosRBL";
+  shopts.threadsafe                          = true;
+  shopts.autostart                           = true;
+  shopts.subscription_options.callback_group = cbkgrp_subs_;
 
-  pub_viz_position_      = nh.advertise<visualization_msgs::Marker>("viz/position", 1, true);
-  pub_viz_centroid_      = nh.advertise<visualization_msgs::Marker>("viz/centroid", 1, true);
-  pub_viz_seed_B_        = nh.advertise<visualization_msgs::Marker>("viz/seed_B", 1, true);
-  pub_viz_cell_A_        = nh.advertise<sensor_msgs::PointCloud2>("viz/cell_a", 1, true);
-  pub_viz_cell_A_sensed_ = nh.advertise<sensor_msgs::PointCloud2>("viz/actively_sensed_A", 1, true);
-  pub_viz_inflated_map_  = nh.advertise<sensor_msgs::PointCloud2>("viz/inflated_map", 1, true);
-  pub_viz_cloud          = nh.advertise<sensor_msgs::PointCloud2>("viz/cloud", 1, true);
-  pub_viz_path_          = nh.advertise<nav_msgs::Path>("viz/path", 1, true);
-  pub_viz_target_        = nh.advertise<visualization_msgs::Marker>("viz/target", 1, true);
-  pub_viz_waypoint_      = nh.advertise<visualization_msgs::Marker>("viz/replanner_waypoint", 1, true);
+  sh_odom_            = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/odom_in");
+  sh_alt_             = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/alt_in");
+  sh_pcl_             = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/pcl_in");
+  sh_group_odoms_     = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/group_odoms_in");
+  
+
+
+  // mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
+  // mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>              sh_alt_;
+  // mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
+  // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
+
+
+
+  // sh_odom_ = mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, "odom_in");
+  // sh_alt_  = mrs_lib::SubscribeHandler<sensor_msgs::Range>(shopts, "alt_in");
+  // sh_pcl_  = mrs_lib::SubscribeHandler<sensor_msgs::PointCloud2>(shopts, "pcl_in");
+
+  // | ------------------------- timers ------------------------- |
+
+  mrs_lib::TimerHandlerOptions opts_autostart;
+
+  opts_autostart.node           = node_;
+  opts_autostart.autostart      = true;
+  opts_autostart.callback_group = cbkgrp_timers_;
+
+  {
+    std::function<void()> callback_fn = std::bind(&WrapperRosRBL::cbTmSetRef, this);
+    tm_set_ref_   = std::make_shared<TimerType>(opts_autostart, rclcpp::Rate(rate_tm_set_ref, clock_), callback_fn);
+  }
+
+  {
+    std::function<void()> callback_fn = std::bind(&WrapperRosRBL::cbTmDiagnostics, this);
+    tm_diagnostics_          = std::make_shared<TimerType>(opts_autostart, rclcpp::Rate(rate_tm_diagnostics, clock_), callback_fn);
+  }
+
+  // tm_set_ref_     = nh.createTimer(ros::Rate(rate_tm_set_ref), &WrapperRosRBL::cbTmSetRef, this);
+  // tm_diagnostics_ = nh.createTimer(ros::Rate(rate_tm_diagnostics), &WrapperRosRBL::cbTmDiagnostics, this);
+
+
+  // | --------------------- service servers -------------------- |
+
+  srv_activate_control_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
+      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvActivateControl, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
+  
+  srv_goto_position_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
+      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
+  srv_deactivate_control_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
+      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvDeactivateControl, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
+
+  // srv_activate_control_ = nh.advertiseService("control_activation_in", &WrapperRosRBL::cbSrvActivateControl, this);
+  // srv_goto_position_    = nh.advertiseService("goto_in", &WrapperRosRBL::cbSrvGotoPosition, this);
+  // srv_deactivate_control_ = nh.advertiseService("control_deactivation_in", &WrapperRosRBL::cbSrvDeactivateControl, this);
+
+  // | --------------------- service clients -------------------- |
+  
+  sc_set_ref_ = mrs_lib::ServiceClientHandler<std_srvs::srv::Trigger>(node_, "~/ref_out", cbkgrp_sc_);
+
+  // sc_set_ref_ = nh.serviceClient<mrs_msgs::ReferenceStampedSrv>("ref_out");
+
+  // | ----------------------- publishers ----------------------- |
+
+  // TODO remap in in launch.py
+  pub_viz_position_      = mrs_lib::PublisherHandler<visualization_msgs::msg::Marker>(node_, "~/position");
+  pub_viz_centroid_      = mrs_lib::PublisherHandler<visualization_msgs::msg::Marker>(node_, "~/centroid");
+  pub_viz_seed_B_        = mrs_lib::PublisherHandler<visualization_msgs::msg::Marker>(node_, "~/seed_B");
+  pub_viz_target_        = mrs_lib::PublisherHandler<visualization_msgs::msg::Marker>(node_, "~/target");
+  pub_viz_waypoint_      = mrs_lib::PublisherHandler<visualization_msgs::msg::Marker>(node_, "~/replanner_waypoint");
+  pub_viz_cell_A_        = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/cell_a");
+  pub_viz_cell_A_sensed_ = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/actively_sensed_A");
+  pub_viz_inflated_map_  = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/inflated_map");
+  pub_viz_cloud          = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/cloud");
+  pub_viz_path_          = mrs_lib::PublisherHandler<nav_msgs::msg::Path>(node_, "~/path");
 
   transformer_ = std::make_shared<mrs_lib::Transformer>(nh, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
@@ -591,7 +757,7 @@ bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,  // //{
   return true;
 }  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,  // //{
+visualization_msgs::msg::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& point,  // //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -617,7 +783,7 @@ visualization_msgs::Marker WrapperRosRBL::getVizPosition(const Eigen::Vector3d& 
   return marker;
 }  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,  // //{
+visualization_msgs::msg::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,  // //{
                                                              const double           scale,
                                                              const std::string&     frame)
 {
@@ -643,7 +809,7 @@ visualization_msgs::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector
   return marker;
 }  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,  // //{
+visualization_msgs::msg::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,  // //{
                                                          const double           scale,
                                                          const std::string&     frame)
 {
@@ -669,7 +835,7 @@ visualization_msgs::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& 
   return marker;
 }  // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,  // //{
+std::shared_ptr<sensor_msgs::msg::kPointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,  // //{
                                                                      const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZI> pcl_cloud;
@@ -691,7 +857,7 @@ std::shared_ptr<sensor_msgs::PointCloud2> WrapperRosRBL::getVizCellA(const std::
   return ros_msg;
 }  // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2>
+std::shared_ptr<sensor_msgs::msg::PointCloud2>
 WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  // //{
                                  const std::string&                  frame)
 {
@@ -726,7 +892,7 @@ WrapperRosRBL::getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>&
   return ros_msg;
 }  // //}
 
-nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
+nav_msgs::msg::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
                                          const std::string&                  frame)
 {
   nav_msgs::Path path_msg;
@@ -752,7 +918,7 @@ nav_msgs::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& pat
   return path_msg;
 }  // //}
 
-visualization_msgs::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,  // //{
+visualization_msgs::msg::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,  // //{
                                                          const std::string&     frame)
 {
   visualization_msgs::Marker marker;
@@ -787,12 +953,12 @@ Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec) 
   return Eigen::Vector3d(vec.x, vec.y, vec.z);
 }  // //}
 
-geometry_msgs::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)  // //{
+geometry_msgs::msg::Point WrapperRosRBL::pointFromEigen(const Eigen::Vector3d& vec)  // //{
 {
   return createPoint(vec(0), vec(1), vec(2));
 }  // //}
 
-geometry_msgs::Point WrapperRosRBL::createPoint(double x,  // //{
+geometry_msgs::msg::Point WrapperRosRBL::createPoint(double x,  // //{
                                                 double y,
                                                 double z)
 {
@@ -872,6 +1038,5 @@ WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
 }
 
 
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(WrapperRosRBL,
-                       nodelet::Nodelet);
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(WrapperRosRBL);
