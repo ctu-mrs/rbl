@@ -12,7 +12,7 @@
 
   ```bash
   cd ~/git/mrs_apptainer/user_ros_workspace/src
-  git clone git@github.com:ctu-mrs/rbl_controller.git
+  git clone git@github.com:ctu-mrs/rbl.git
   git clone git@github.com:ctu-mrs/laserscan_clusters.git
   cd ../../
   ./example_wrapper
@@ -30,4 +30,4 @@ to activate the algorithm go to the pane "activation" and run the last command i
 This code was used for some of the results reported in the following papers: 
 
 - [Rule-Based Lloyd Algorithm for Multi-Robot Motion Planning and Control with Safety and Convergence Guarantees](https://arxiv.org/pdf/2310.19511)
-- [Swarming in the Wild: A Distributed Communication-less Lloyd-based Algorithm dealing with Uncertainties](https://arxiv.org/pdf/2504.18840)
+- [Distributed Lloyd-based algorithm for uncertainty-aware multi-robot under-canopy flocking](https://arxiv.org/pdf/2504.18840)
