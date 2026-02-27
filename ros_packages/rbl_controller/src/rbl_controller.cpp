@@ -1286,7 +1286,7 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
                                      const Eigen::Vector3d&         waypoint,
                                      const Eigen::Vector3d&         goal,
                                      const Eigen::Vector3d&         c1,
-                                    const Eigen::Vector3d&          c1_full,
+                                     const Eigen::Vector3d&         c1_full,
                                      const Eigen::Vector3d&         rpy,
                                      const std::vector<Eigen::Vector3d>& path)
 {
@@ -1299,10 +1299,10 @@ void RBLController::determineNextRef(mrs_msgs::Reference&           p_ref,// //{
     // }
      
     // double heading_to_centroid = std::atan2(c1[1] - agent_pos[1], c1[0] -agent_pos[0]); 
-    double heading_to_centroid = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] -agent_pos[0]); 
+    double heading_to_centroid = std::atan2(c1_full[1] - agent_pos[1], c1_full[0] - agent_pos[0]); 
     double diff       = std::fmod(heading_to_centroid - rpy[2] + M_PI, 2 * M_PI) - M_PI;
     double difference = (diff < -M_PI) ? diff + 2 * M_PI : diff;
-    if (std::abs(difference) < M_PI / 2){ //+-90 deg
+    if (std::abs(difference) < M_PI / 2.5){ //+-90 deg
       p_ref.position.x = c1[0];
       p_ref.position.y = c1[1];
       p_ref.position.z = c1[2];
