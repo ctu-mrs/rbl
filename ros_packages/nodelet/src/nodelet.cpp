@@ -47,6 +47,7 @@
 // PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 // Standard CPP libs
 #include <cmath>
@@ -116,7 +117,7 @@ private:
 
   // | --------------------- service clients -------------------- |
 
-  mrs_lib::ServiceClientHandler<std_srvs::srv::Trigger> sc_set_ref_;
+  mrs_lib::ServiceClientHandler<mrs_msgs::srv::ReferenceStampedSrv> sc_set_ref_;
 
   // ros::ServiceClient sc_set_ref_;
 
@@ -184,17 +185,17 @@ private:
   mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>              sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
-  std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
+  // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
 
 
 
 
   std::shared_ptr<mrs_lib::Transformer> transformer_;
 
-  Eigen::Vector3d                                 pointToEigen(const geometry_msgs::Point& point);
-  Eigen::Vector3d                                 vectorToEigen(const geometry_msgs::Vector3& vec);
-  geometry_msgs::Point                            pointFromEigen(const Eigen::Vector3d& vec);
-  geometry_msgs::Point                            createPoint(double x,
+  Eigen::Vector3d                                 pointToEigen(const geometry_msgs::msg::Point& point);
+  Eigen::Vector3d                                 vectorToEigen(const geometry_msgs::msg::Vector3& vec);
+  geometry_msgs::msg::Point                            pointFromEigen(const Eigen::Vector3d& vec);
+  geometry_msgs::msg::Point                            createPoint(double x,
                                                               double y,
                                                               double z);
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud,
@@ -227,15 +228,19 @@ void WrapperRosRBL::initialize()  // //{
 
   mrs_lib::ParamLoader param_loader(node_);
 
+  std::string odom_topic_name;
+  double      rate_tm_set_ref;
+  double      rate_tm_diagnostics;
+
   param_loader.loadParam("uav_name", _agent_name_);
   param_loader.loadParam("control_frame", _frame_);
   param_loader.loadParam("group_odoms/enable", _group_odoms_enabled_);
   param_loader.loadParam("group_odoms/add_to_pcl", _add_agents_to_pcl_);
   param_loader.loadParam("group_odoms/size", _group_odoms_size_);
 
-  std::string odom_topic_name     = param_loader.loadParam2("odometry_topic", "");
-  double      rate_tm_set_ref     = param_loader.loadParam2("rate/timer_set_ref", 0.0);
-  double      rate_tm_diagnostics = param_loader.loadParam2("rate/timer_diagnostics", 0.0);
+  param_loader.loadParam("odometry_topic", odom_topic_name);
+  param_loader.loadParam("rate/timer_set_ref", rate_tm_set_ref);
+  param_loader.loadParam("rate/timer_diagnostics", rate_tm_diagnostics);
 
   param_loader.loadParam("rbl_controller/only_2d", rbl_params_.only_2d);
   param_loader.loadParam("rbl_controller/z_min", rbl_params_.z_min);
@@ -275,46 +280,26 @@ void WrapperRosRBL::initialize()  // //{
   // rbl_params_.voxel_size = 2 * std::sqrt(rbl_params_.encumbrance / std::sqrt(3.0));
 
   if (!param_loader.loadedSuccessfully()) {
-    ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
-    ros::shutdown();
+    // ROS_ERROR("[WrapperRosRBL]: Could not load all parameters!");
+    RCLCPP_ERROR(node_->get_logger(), "failed to load non-optional parameters!");
+    rclcpp::shutdown();
   }
 
-  mrs_lib::SubscribeHandlerOptions shopts;
-  shopts.nh                 = nh;
-  shopts.node_name          = "WrapperRosRBL";
-  shopts.no_message_timeout = mrs_lib::no_timeout;
-  shopts.threadsafe         = true;
-  shopts.autostart          = true;
-  shopts.queue_size         = 10;
-  shopts.transport_hints    = ros::TransportHints().tcpNoDelay();
-
-  if (_group_odoms_enabled_) {
-
-    do {
-      ROS_INFO("[WrapperRosRBL]: Clearing group odom topics");
-      sh_group_odoms_.clear();
-      ros::master::V_TopicInfo all_topics;
-      ros::master::getTopics(all_topics);
-
-      for (const auto& topic : all_topics) {
-        if (topic.name.find(_agent_name_ + "/") == std::string::npos &&
-            topic.name.find(odom_topic_name) != std::string::npos) {
-          ROS_INFO_STREAM("[WrapperRosRBL]: Subscribing to topic: " << topic.name);
-          sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
-        }
-      }
-
-      if (sh_group_odoms_.empty()) {
-        ROS_WARN("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
-      }
-    } while (sh_group_odoms_.size() < _group_odoms_size_);
-  }
-
+  // mrs_lib::SubscriberHandlerOptions shopts;
+  // shopts.node                                 = node_;
+  // shopts.node_name                            = "WrapperRosRBL";
+  // // shopts.no_message_timeout = mrs_lib::no_timeout;
+  // shopts.threadsafe                           = true;
+  // shopts.autostart                            = true;
+  // shopts.subscription_options.callback_group  = cbkgrp_subs_;
+  // shopts.queue_size         = 10;
+  // shopts.transport_hints    = ros::TransportHints().tcpNoDelay();
 
 
   // | ----------------------- subscribers ---------------------- |
 
   mrs_lib::SubscriberHandlerOptions shopts;
+
   shopts.node                                = node_;
   shopts.node_name                           = "WrapperRosRBL";
   shopts.threadsafe                          = true;
@@ -322,9 +307,34 @@ void WrapperRosRBL::initialize()  // //{
   shopts.subscription_options.callback_group = cbkgrp_subs_;
 
   sh_odom_            = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/odom_in");
-  sh_alt_             = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/alt_in");
-  sh_pcl_             = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/pcl_in");
-  sh_group_odoms_     = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/group_odoms_in");
+  sh_alt_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>(shopts, "~/alt_in");
+  sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
+  // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>;
+  // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry> (shopts, "~/group_odoms_in")>;
+  // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>(shopts, "~/group_odoms_in");
+
+
+  // if (_group_odoms_enabled_) {
+
+  //   do {
+  //     ROS_INFO("[WrapperRosRBL]: Clearing group odom topics");
+  //     sh_group_odoms_.clear();
+  //     ros::master::V_TopicInfo all_topics;
+  //     ros::master::getTopics(all_topics);
+
+  //     for (const auto& topic : all_topics) {
+  //       if (topic.name.find(_agent_name_ + "/") == std::string::npos &&
+  //         topic.name.find(odom_topic_name) != std::string::npos) {
+  //         RCLCPP_INFO(node_->get_logger(),"Subscribing to topic: %s",topic.c_str());
+  //         sh_group_odoms_.push_back(mrs_lib::SubscribeHandler<nav_msgs::Odometry>(shopts, topic.name.c_str()));
+  //       }
+  //     }
+
+  //     if (sh_group_odoms_.empty()) {
+  //       ROS_WARN("[WrapperRosRBL]: No topics matched: %s", odom_topic_name.c_str());
+  //     }
+  //   } while (sh_group_odoms_.size() < _group_odoms_size_);
+  // }
   
 
 
@@ -380,7 +390,7 @@ void WrapperRosRBL::initialize()  // //{
 
   // | --------------------- service clients -------------------- |
   
-  sc_set_ref_ = mrs_lib::ServiceClientHandler<std_srvs::srv::Trigger>(node_, "~/ref_out", cbkgrp_sc_);
+  sc_set_ref_ = mrs_lib::ServiceClientHandler<mrs_msgs::srv::ReferenceStampedSrv>(node_, "~/ref_out", cbkgrp_sc_);
 
   // sc_set_ref_ = nh.serviceClient<mrs_msgs::ReferenceStampedSrv>("ref_out");
 
@@ -398,55 +408,60 @@ void WrapperRosRBL::initialize()  // //{
   pub_viz_cloud          = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/cloud");
   pub_viz_path_          = mrs_lib::PublisherHandler<nav_msgs::msg::Path>(node_, "~/path");
 
-  transformer_ = std::make_shared<mrs_lib::Transformer>(nh, "WrapperRosRBL");
+  transformer_ = std::make_shared<mrs_lib::Transformer>(node_, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
 
   {
     std::scoped_lock lck(mtx_rbl_);
     rbl_controller_ = std::make_shared<RBLController>(rbl_params_);
-    ROS_INFO("[WrapperRosRBL]: Initialized RBLController with params");
+    RCLCPP_INFO_ONCE(node_->get_logger(), "Initialized RBLController with params");
   }
 
   is_initialized_ = true;
-  ROS_INFO("[WrapperRosRBL]: Initialization completed");
+  RCLCPP_INFO_ONCE(node_->get_logger(), "Initialization completed");
 }  // //}
 
-void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // //{
+void WrapperRosRBL::cbTmSetRef()  // //{
 {
   if (!is_initialized_) {
     return;
   }
 
   if (!is_activated_) {
-    ROS_WARN_ONCE("[WrapperRosRBL]: Waiting for activation");
+    RCLCPP_INFO_ONCE(node_->get_logger(), "Waiting for activation");
     return;
   }
 
-  mrs_msgs::ReferenceStampedSrv msg_ref;
-  msg_ref.request.header.frame_id = _frame_;
-  msg_ref.request.header.stamp    = ros::Time::now();
+  auto msg_ref = std::make_shared<mrs_msgs::srv::ReferenceStampedSrv::Request>();
+  msg_ref->header.frame_id = _frame_;
+  msg_ref->header.stamp    = clock_->now();
+
+  // mrs_msgs::srv::ReferenceStampedSrv msg_ref;
+  // msg_ref.request.header.frame_id = _frame_;
+  // msg_ref.request.header.stamp    = ros::Time::now();
+
   {
     std::scoped_lock lck(mtx_rbl_);
     if (sh_odom_.newMsg()) {
       auto                        odom = sh_odom_.getMsg();
-      geometry_msgs::PointStamped tmp_pt;
+      geometry_msgs::msg::PointStamped tmp_pt;
       tmp_pt.header = odom->header;
       tmp_pt.point  = odom->pose.pose.position;
       auto res      = transformer_->transformSingle(tmp_pt, _frame_);
 
       if (!res) {
-        ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
+        RCLCPP_ERROR(node_->get_logger(), "Could not transform odometry msg to control frame.");
         return;
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
 
-      geometry_msgs::Vector3Stamped tmp_vel;
+      geometry_msgs::msg::Vector3Stamped tmp_vel;
       tmp_vel.header = odom->header;
       tmp_vel.vector = odom->twist.twist.linear;
       auto vel_res   = transformer_->transformSingle(tmp_vel, _frame_);
 
       if (!vel_res) {
-        ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity to control frame.");
+        RCLCPP_ERROR(node_->get_logger(), "Could not transform velocity to control frame.");
         return;
       }
       rbl_controller_->setCurrentVelocity(vectorToEigen(vel_res->vector));
@@ -485,85 +500,85 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
     }
 
 
+    // TODO fix this after completing the filter_uavs
+    // if (!sh_group_odoms_.empty()) {
+    //   // make sure the vector has the right size
+    //   if (group_states_.size() != sh_group_odoms_.size())
+    //     group_states_.resize(sh_group_odoms_.size());
 
-    if (!sh_group_odoms_.empty()) {
-      // make sure the vector has the right size
-      if (group_states_.size() != sh_group_odoms_.size())
-        group_states_.resize(sh_group_odoms_.size());
+    //   for (size_t i = 0; i < sh_group_odoms_.size(); ++i) {
+    //     auto& tmp_sh = sh_group_odoms_[i];
 
-      for (size_t i = 0; i < sh_group_odoms_.size(); ++i) {
-        auto& tmp_sh = sh_group_odoms_[i];
+    //     if (tmp_sh.newMsg()) {
+    //       auto odom = tmp_sh.getMsg();
 
-        if (tmp_sh.newMsg()) {
-          auto odom = tmp_sh.getMsg();
+    //       State tmp_state;
+    //       geometry_msgs::msg::PointStamped tmp_pt;
+    //       tmp_pt.header = odom->header;
+    //       tmp_pt.point = odom->pose.pose.position;
 
-          State tmp_state;
-          geometry_msgs::PointStamped tmp_pt;
-          tmp_pt.header = odom->header;
-          tmp_pt.point = odom->pose.pose.position;
+    //       auto res = transformer_->transformSingle(tmp_pt, _frame_);
+    //       if (!res) {
+    //         RCLCPP_ERROR(node_->get_logger(), "Could not transform odometry msg to control frame.");
+    //         continue;
+    //       }
+    //       tmp_state.position = pointToEigen(res.value().point);
 
-          auto res = transformer_->transformSingle(tmp_pt, _frame_);
-          if (!res) {
-            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
-            continue;
-          }
-          tmp_state.position = pointToEigen(res.value().point);
+    //       geometry_msgs::Vector3Stamped tmp_vel;
+    //       tmp_vel.header = odom->header;
+    //       tmp_vel.vector = odom->twist.twist.linear;
 
-          geometry_msgs::Vector3Stamped tmp_vel;
-          tmp_vel.header = odom->header;
-          tmp_vel.vector = odom->twist.twist.linear;
+    //       auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+    //       if (!vel_res) {
+    //         RCLCPP_ERROR(node_->get_logger(), "Could not transform velocity msg to control frame.");
+    //         continue;
+    //       }
+    //       tmp_state.velocity = vectorToEigen(vel_res->vector);
 
-          auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
-          if (!vel_res) {
-            ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
-            continue;
-          }
-          tmp_state.velocity = vectorToEigen(vel_res->vector);
-
-          group_states_[i] = tmp_state;  // update only this agent
-        }
-      }
+    //       group_states_[i] = tmp_state;  // update only this agent
+    //     }
+    //   }
 
       rbl_controller_->setGroupStates(group_states_);  // always has last known states
-    }
+  }
 
 
 
-//     // std::vector<State> group_states;
-//     if (!sh_group_odoms_.empty()) {
+    //     // std::vector<State> group_states;
+    //     if (!sh_group_odoms_.empty()) {
 
-//       for (auto& tmp_sh : sh_group_odoms_) {
+    //       for (auto& tmp_sh : sh_group_odoms_) {
 
-//         if (tmp_sh.newMsg()) {
-//           State                       tmp_state;
-//           auto                        odom = tmp_sh.getMsg();
-//           geometry_msgs::PointStamped tmp_pt;
-//           tmp_pt.header = odom->header;
-//           tmp_pt.point  = odom->pose.pose.position;
+    //         if (tmp_sh.newMsg()) {
+    //           State                       tmp_state;
+    //           auto                        odom = tmp_sh.getMsg();
+    //           geometry_msgs::PointStamped tmp_pt;
+    //           tmp_pt.header = odom->header;
+    //           tmp_pt.point  = odom->pose.pose.position;
 
-//           auto res = transformer_->transformSingle(tmp_pt, _frame_);
+    //           auto res = transformer_->transformSingle(tmp_pt, _frame_);
 
-//           if (!res) {
-//             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
-//             return;
-//           }
-//           tmp_state.position = pointToEigen(res.value().point);
+    //           if (!res) {
+    //             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform odometry msg to control frame.");
+    //             return;
+    //           }
+    //           tmp_state.position = pointToEigen(res.value().point);
 
-//           geometry_msgs::Vector3Stamped tmp_vel;
-//           tmp_vel.header = odom->header;
-//           tmp_vel.vector = odom->twist.twist.linear;
+    //           geometry_msgs::Vector3Stamped tmp_vel;
+    //           tmp_vel.header = odom->header;
+    //           tmp_vel.vector = odom->twist.twist.linear;
 
-//           auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
-//           if (!vel_res) {
-//             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
-//             return;
-//           }
-//           tmp_state.velocity = vectorToEigen(vel_res->vector);
-//           group_states.emplace_back(tmp_state);
-//         }
-//       }
-//       rbl_controller_->setGroupStates(group_states);
-//     }
+    //           auto vel_res = transformer_->transformSingle(tmp_vel, _frame_);
+    //           if (!vel_res) {
+    //             ROS_ERROR_THROTTLE(3.0, "[WrapperRosRBL]: Could not transform velocity msg to control frame.");
+    //             return;
+    //           }
+    //           tmp_state.velocity = vectorToEigen(vel_res->vector);
+    //           group_states.emplace_back(tmp_state);
+    //         }
+    //       }
+    //       rbl_controller_->setGroupStates(group_states);
+    //     }
 
     // for (size_t i = 0; i < sh_group_odoms_.size(); ++i) {
     //     auto& tmp_sh = sh_group_odoms_[i];
@@ -631,40 +646,39 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
     //   pcl_loaded_ = true;
     // }
 
-    if (!pcl_loaded_ && sh_pcl_.newMsg()) {
-      auto msg = sh_pcl_.getMsg();
-      // if (msg->header.frame_id != _frame_) {
-      //   ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_);
-      //   return;
-      // }
+  if (!pcl_loaded_ && sh_pcl_.newMsg()) {
+    auto msg = sh_pcl_.getMsg();
+    // if (msg->header.frame_id != _frame_) {
+    //   ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_);
+    //   return;
+    // }
 
-      pcl::PointCloud<pcl::PointXYZI> tmp;
-      pcl::fromROSMsg(*msg, tmp);
-      last_obstacle_cloud_ =
-        std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+    pcl::PointCloud<pcl::PointXYZI> tmp;
+    pcl::fromROSMsg(*msg, tmp);
+    last_obstacle_cloud_ =
+      std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
 
-      pcl_loaded_ = true;
+    pcl_loaded_ = true;
 
-      rbl_controller_->setPCL1(last_obstacle_cloud_);
-    }
+    rbl_controller_->setPCL1(last_obstacle_cloud_);
+  }
 
-    auto cloud =
-      std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*last_obstacle_cloud_);
+  auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*last_obstacle_cloud_);
 
-    if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
-      cloud = addAgents2PCL(cloud,
-                            group_states_,
-                            rbl_params_.voxel_size,
-                            rbl_params_.encumbrance);
-    }
+  if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
+    cloud = addAgents2PCL(cloud,
+                          group_states_,
+                          rbl_params_.voxel_size,
+                          rbl_params_.encumbrance);
+  }
 
-    if (cloud->empty()) {
-      ROS_ERROR("[WrapperRosRBL]: PCL is empty");
-      return;
-    }
+  if (cloud->empty()) {
+    RCLCPP_ERROR(node_->get_logger(), "PCL is empty");
+    return;
+  }
 
-    rbl_controller_->setPCL(cloud);
-    pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
+  rbl_controller_->setPCL(cloud);
+  pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
     // if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
     //   cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
@@ -676,20 +690,33 @@ void WrapperRosRBL::cbTmSetRef([[maybe_unused]] const ros::TimerEvent& te)  // /
     // rbl_controller_->setPCL(cloud);
     // pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
-    auto ret = rbl_controller_->getNextRef();
-    if (!ret) {
-      ROS_ERROR_STREAM("[WrapperRosRBL]: Could not get next valid ref");
-      return;
-    }
-    msg_ref.request.reference = ret.value();
+  auto ret = rbl_controller_->getNextRef();
+  if (!ret) {
+    RCLCPP_ERROR(node_->get_logger(), "Could not get next valid ref");
+    return;
+  }
+  // msg_ref.request.reference = ret.value();
+  msg_ref->reference = ret.value();
+  
+  // sc_set_ref_.callAsync(msg_ref,[this](auto res)
+  //   {
+  //     if (!res->success) {
+  //       RCLCPP_WARN(node_->get_logger(), "Failed to call service");
+  //     }
+  //   }
+  // );
+  auto res = sc_set_ref_.callSync(msg_ref);
+
+  if (!res) {
+    RCLCPP_WARN(node_->get_logger(), "Failed to set reference");
   }
 
-  if (!sc_set_ref_.call(msg_ref)) {
-    ROS_ERROR("[WrapperRosRBL]: Failed to call service set reference");
-  }
+  // if (!sc_set_ref_.callSync(msg_ref)) {
+  //   RCLCPP_ERROR(node_->get_logger(), "Failed to call service set reference");
+  // }
 }  // //}
 
-void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te)  // //{
+void WrapperRosRBL::cbTmDiagnostics()  // //{
 {
 
   if (!is_initialized_) {
@@ -712,34 +739,35 @@ void WrapperRosRBL::cbTmDiagnostics([[maybe_unused]] const ros::TimerEvent& te) 
     pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
   }
 }  // //}
+bool cbSrvActivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
 
-bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,  // //{
-                                         std_srvs::Trigger::Response&                 res)
+bool WrapperRosRBL::cbSrvActivateControl([[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,  // //{
+                                                         const std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
-  res.success = true;
+  res->success = true;
   if (is_activated_) {
-    res.message = "RBL is already active";
-    ROS_WARN("[WrapperRosRBL]: %s", res.message.c_str());
+    res->message = "RBL is already active";
+    RCLCPP_WARN(node_->get_logger(), "%s", res->message.c_str());
   }
   else {
-    res.message   = "RBL activated";
+    res->message   = "RBL activated";
     is_activated_ = true;
-    ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
+    RCLCPP_INFO(node_->get_logger(), "%s", res->message.c_str());
   }
   return true;
 }  // //}
 
-bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,  // //{
-                                           std_srvs::Trigger::Response&                 res)
+bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,  // //{
+                                                            const std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
-  res.success = true;
+  res->success = true;
   if (!is_activated_) {
-    res.message = "RBL is already deactivated";
-    ROS_WARN("[WrapperRosRBL]: %s", res.message.c_str());
+    res->message = "RBL is already deactivated";
+    RCLCPP_WARN(node_->get_logger(), "%s", res->message.c_str());
   }
   else {
-    res.message = "RBL deactivated";
-    ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
+    res->message = "RBL deactivated";
+    RCLCPP_INFO(node_->get_logger(), "%s", res->message.c_str());
   }
   return true;
 }  // //}

@@ -37,6 +37,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(mrs_lib REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
+find_package(pcl_conversions REQUIRED)
 find_package(mrs_uav_testing REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -54,20 +55,42 @@ target_sources(rbl_nodelet
     "src/nodelet.cpp"
 )
 
-target_link_libraries(rbl_nodelet
-  PRIVATE
-    rclcpp::rclcpp
-    rclcpp_components::component
-    mrs_lib::mrs_lib
-    Eigen3::Eigen
-    rbl_replanner::rbl_replanner
-    ciri::ciri
-    rbl_controller_core::rbl_controller_core
-    ${geometry_msgs_TARGETS}
-    ${nav_msgs_TARGETS}
-    ${mrs_msgs_TARGETS}
-    ${std_srvs_TARGETS}
+ament_target_dependencies(
+  rbl_nodelet
+  rclcpp
+  rclcpp_components
+  mrs_lib
+  pcl_conversions
+  geometry_msgs
+  nav_msgs
+  mrs_msgs
+  std_srvs
 )
+
+target_link_libraries(
+  rbl_nodelet
+  Eigen3::Eigen
+  rbl_replanner::rbl_replanner
+  ciri::ciri
+  rbl_controller_core::rbl_controller_core
+  ${PCL_LIBRARIES}
+)
+
+# target_link_libraries(rbl_nodelet
+#   PRIVATE
+#     rclcpp::rclcpp
+#     rclcpp_components::component
+#     mrs_lib::mrs_lib
+#     Eigen3::Eigen
+#     rbl_replanner::rbl_replanner
+#     ciri::ciri
+#     rbl_controller_core::rbl_controller_core
+#     ${geometry_msgs_TARGETS}
+#     ${nav_msgs_TARGETS}
+#     ${mrs_msgs_TARGETS}
+#     ${std_srvs_TARGETS}
+#     ${PCL_LIBRARIES}
+# )
 
 # Register components defined in this library.
 # rclcpp_components_register_nodes(<library> <names of components>...)
