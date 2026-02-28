@@ -36,7 +36,7 @@ rbl_controller:
   betaD: 0.3
   beta_min: 0.1
   dt: 0.1
-  encumbrance: 1.5
+  encumbrance: 2.5
   use_z_rule: false
   cwvd_obs: 0.99
   cwvd_rob: 0.99

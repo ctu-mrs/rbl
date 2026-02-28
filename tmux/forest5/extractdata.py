@@ -20,12 +20,10 @@ plt.rcParams.update({'pdf.fonttype': 42})
 # Settings
 # ===============================
 VEL_START_THRESHOLD = 0.5    # m/s (XY)
-GOAL_THRESHOLD = 1.5        # m
+GOAL_THRESHOLD = 0.1        # m
 DISTANCE_THRESHOLD = 0.4     # m
 MAX_SYNC_DT = 0.1            # s
 TRAJ_CMAP = 'viridis'
-
-import open3d as o3d
 
 def load_pcd_clean(filename, z_min_clearance=0.5, voxel=0.15):
 
@@ -187,7 +185,7 @@ def find_end_time(groups):
     arrival_times = {}
 
     for uav, g in groups.items():
-        final_pos = [80,0,3] #g[["x", "y", "z"]].values[-1]
+        final_pos = g[["x", "y", "z"]].values[-1]
         arrived = False
 
         for _, row in g.iterrows():
@@ -321,17 +319,106 @@ def plot_tube_segment(ax, p0, p1, radius, color, n=12):
 # ===============================
 # Plotting with proper depth using Plotly
 # ===============================
+import plotly.graph_objects as go
+import numpy as np
+from plotly.colors import sample_colorscale
 
+def plot_trajectories_plotly(df, obstacle_points=None,
+                             html_file="trajectories_3d.html",
+                             pdf_file="trajectories_3d.pdf",
+                             uav_marker_size=6):
+    """
+    Plot UAV trajectories in 3D using Plotly, colored by speed.
+    
+    df: DataFrame with columns ['uav','x','y','z','vx','vy','vz']
+    obstacle_points: Nx3 array of obstacle points
+    html_file: path to save interactive HTML
+    pdf_file: path to save static PDF (requires 'kaleido')
+    uav_marker_size: marker size for UAV positions
+    """
+
+    fig = go.Figure()
+
+    # Compute speed
+    df['speed'] = np.sqrt(df['vx'].values**2 + df['vy'].values**2 + df['vz'].values**2)
+    vmin, vmax = df['speed'].min(), df['speed'].max()
+
+    # Helper: map speed to color (Viridis)
+    def speed_to_color(s):
+        norm_s = (s - vmin) / (vmax - vmin + 1e-8)
+        return sample_colorscale('Viridis', norm_s)[0]
+
+    # Plot each UAV trajectory
+    for uav, g in df.groupby('uav'):
+        x, y, z = g['x'].values, g['y'].values, g['z'].values
+        colors = [speed_to_color(s) for s in g['speed'].values]
+
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z,
+            mode='lines+markers',
+            line=dict(color='blue', width=2),   # line color (uniform)
+            marker=dict(size=uav_marker_size, color=colors),
+            name=uav
+        ))
+
+    # Plot obstacles if provided
+    if obstacle_points is not None and len(obstacle_points) > 0:
+        fig.add_trace(go.Scatter3d(
+            x=obstacle_points[:,0],
+            y=obstacle_points[:,1],
+            z=obstacle_points[:,2],
+            mode='markers',
+            marker=dict(size=2, color='gray', opacity=0.3),
+            name='Obstacles'
+        ))
+
+    # Add a fake trace for the colorbar (speed)
+    fig.add_trace(go.Scatter3d(
+        x=[None], y=[None], z=[None],
+        mode='markers',
+        marker=dict(
+            colorscale='Viridis',
+            cmin=vmin,
+            cmax=vmax,
+            color=[vmin],
+            size=0.1,
+            colorbar=dict(title="Speed (m/s)")
+        ),
+        showlegend=False
+    ))
+
+    # Layout
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(title="X (m)"),
+            yaxis=dict(title="Y (m)"),
+            zaxis=dict(title="Z (m)"),
+            aspectmode='data'
+        ),
+        margin=dict(l=0, r=0, t=0, b=0)
+    )
+
+    # Save interactive HTML
+    fig.write_html(html_file)
+    print(f"Saved interactive 3D plot: {html_file}")
+
+    # Try saving PDF if kaleido is installed
+    try:
+        fig.write_image(pdf_file)
+        print(f"Saved static PDF: {pdf_file}")
+    except Exception as e:
+        print(f"Could not save PDF (requires kaleido): {e}")
+
+    return fig
 def plot_trajectories_3d_p(df, obstacle_points, uav_radius=0.7,
                            pdf_file="trajectories_3d.pdf", html_file="trajectories_3d.html"):
     import plotly.graph_objects as go
-    import matplotlib
+    import matplotlib.pyplot as plt
 
     # Compute UAV velocity
     speeds = np.sqrt(df["vx"]**2 + df["vy"]**2 + df["vz"]**2)
     norm = matplotlib.colors.Normalize(vmin=speeds.min(), vmax=speeds.max())
-    cmap = matplotlib.colormaps.get_cmap("viridis")
-
+    cmap = plt.get_cmap("viridis")
     # Compute axes ranges to scale markers
     x_range = df["x"].max() - df["x"].min()
     y_range = df["y"].max() - df["y"].min()
@@ -481,8 +568,202 @@ def plot_trajectories_3d_pold(df, obstacle_points, pdf_file="trajectories_3d.pdf
     print(f"Saved PDF: {pdf_file}")
 
     fig.show()
+import pyvista as pv
+import numpy as np
+import matplotlib.pyplot as plt
 
+def plot_trajectories_pyvista(df, obstacle_points=None,
+                              uav_radius=0.2,
+                              step=1,
+                              file_prefix="trajectories_3d"):
+    """
+    3D UAV trajectories plot using PyVista (VTK).
+    """
 
+    df['speed'] = np.sqrt(df['vx']**2 + df['vy']**2 + df['vz']**2)
+    vmin, vmax = df['speed'].min(), df['speed'].max()
+
+    cmap = plt.cm.get_cmap("viridis")
+
+    def speed_to_rgb(s):
+        norm = (s - vmin) / (vmax - vmin + 1e-8)
+        r, g, b, _ = cmap(norm)
+        return (r, g, b)
+
+    plotter = pv.Plotter(off_screen=True)
+
+    # Plot obstacles
+    if obstacle_points is not None and len(obstacle_points) > 0:
+        plotter.add_points(obstacle_points, color='gray', point_size=2, opacity=0.25)
+
+    # Plot UAVs
+    for uav, g in df.groupby('uav'):
+        x, y, z = g['x'].values, g['y'].values, g['z'].values
+        speeds = g['speed'].values
+
+        # Spheres
+        for i in range(0, len(x), step):
+            sphere = pv.Sphere(radius=uav_radius, center=(x[i], y[i], z[i]))
+            plotter.add_mesh(sphere, color=speed_to_rgb(speeds[i]), show_edges=False)
+
+        # Tube
+        points = np.column_stack((x, y, z))
+        if len(points) > 1:
+            spline = pv.Spline(points, n_points=len(points)*10)
+            tube = spline.tube(radius=uav_radius*0.5)
+            # Assign scalars for colorbar
+            tube['speed'] = np.interp(np.linspace(0, len(speeds)-1, tube.n_points),
+                                      np.arange(len(speeds)), speeds)
+            plotter.add_mesh(tube, scalars='speed', cmap="viridis", clim=[vmin, vmax], opacity=0.6)
+
+    # Camera
+    plotter.camera_position = 'iso'
+    plotter.show_grid()
+
+    # Save PNG
+    png_file = f"{file_prefix}.png"
+    plotter.show(screenshot=png_file)
+    print(f"Saved PNG: {png_file}")
+
+    # Save PDF via PIL
+    pdf_file = f"{file_prefix}.pdf"
+    try:
+        from PIL import Image
+        img = Image.open(png_file)
+        img.save(pdf_file, "PDF", resolution=300)
+        print(f"Saved PDF: {pdf_file}")
+    except Exception as e:
+        print(f"Could not save PDF: {e}")
+
+    return plotter
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+
+def plot_trajectories_3d_top(df, obstacle_points=None, pdf_file="trajectories_top.pdf"):
+    """
+    Top-down UAV trajectories (XY plane), colored by speed.
+    No legend, labels consistent with 3D plot, no black edges on points.
+    
+    df: DataFrame with columns ['uav','x','y','z','vx','vy','vz']
+    obstacle_points: Nx3 numpy array
+    pdf_file: output PDF path
+    """
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Group by UAV
+    groups = df.groupby("uav")
+    
+    # Compute speeds
+    speeds = np.sqrt(df["vx"]**2 + df["vy"]**2 + df["vz"]**2).values
+    norm = Normalize(vmin=speeds.min(), vmax=speeds.max())
+    cmap = plt.cm.get_cmap("viridis")
+    
+    ROBOT_RADIUS = 0.2  # for visual scaling
+    STEP = 1  # sample every point
+    
+    # Plot obstacles lightly
+    if obstacle_points is not None and len(obstacle_points) > 0:
+        ax.scatter(obstacle_points[:,0],
+                   obstacle_points[:,1],
+                   s=2,
+                   c='gray',
+                   alpha=0.3)
+    
+    # Plot UAV points
+    for uav, g in groups:
+        x, y = g["x"].values, g["y"].values
+        v = np.sqrt(g["vx"]**2 + g["vy"]**2 + g["vz"]**2).values
+        
+        ax.scatter(x[::STEP], y[::STEP],
+                   c=[cmap(norm(val)) for val in v[::STEP]],
+                   s=30,          # marker size similar to sphere
+                   marker='o',    # circle
+                   alpha=0.9,
+                   edgecolors='none')  # remove black edge
+    
+    # Colorbar
+    sm = ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax)
+    cbar.set_label("Speed (m/s)")
+    
+    # Labels like 3D version
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_aspect('equal', 'box')
+    ax.grid(True, linestyle='--', alpha=0.5)
+    
+    # Limit view to data extents with margin
+    margin = 0.1
+    x_range = df["x"].max() - df["x"].min()
+    y_range = df["y"].max() - df["y"].min()
+    ax.set_xlim(df["x"].min() - margin*x_range, df["x"].max() + margin*x_range)
+    ax.set_ylim(df["y"].min() - margin*y_range, df["y"].max() + margin*y_range)
+    
+    plt.tight_layout()
+    plt.savefig(pdf_file, format="pdf", dpi=300)
+    print(f"Saved top-down trajectory plot: {pdf_file}")
+    plt.show()
+
+def plot_trajectories_3d_top_rotated(df, obstacle_points=None, pdf_file="trajectories_top_rotated.pdf"):
+    """
+    Top-down UAV trajectories (XY plane), rotated 90 degrees clockwise.
+    No legend, labels consistent with 3D plot, no black edges on points.
+    """
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    groups = df.groupby("uav")
+    speeds = np.sqrt(df["vx"]**2 + df["vy"]**2 + df["vz"]**2).values
+    norm = Normalize(vmin=speeds.min(), vmax=speeds.max())
+    cmap = plt.cm.get_cmap("viridis")
+    
+    ROBOT_RADIUS = 0.2
+    STEP = 1
+    
+    # Rotate axes: swap x and y
+    if obstacle_points is not None and len(obstacle_points) > 0:
+        ax.scatter(obstacle_points[:,1],  # swapped
+                   obstacle_points[:,0],  # swapped
+                   s=2,
+                   c='gray',
+                   alpha=0.3)
+    
+    for uav, g in groups:
+        x, y = g["x"].values, g["y"].values
+        v = np.sqrt(g["vx"]**2 + g["vy"]**2 + g["vz"]**2).values
+        
+        ax.scatter(y[::STEP],  # swapped
+                   x[::STEP],  # swapped
+                   c=[cmap(norm(val)) for val in v[::STEP]],
+                   s=30,
+                   marker='o',
+                   alpha=0.9,
+                   edgecolors='none')
+    
+    sm = ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax)
+    cbar.set_label("Speed (m/s)")
+    
+    ax.set_xlabel("y (m)")  # swapped
+    ax.set_ylabel("x (m)")  # swapped
+    ax.set_aspect('equal', 'box')
+    ax.grid(True, linestyle='--', alpha=0.5)
+    
+    margin = 0.1
+    x_range = df["x"].max() - df["x"].min()
+    y_range = df["y"].max() - df["y"].min()
+    ax.set_xlim(df["y"].min() - margin*y_range, df["y"].max() + margin*y_range)
+    ax.set_ylim(df["x"].min() - margin*x_range, df["x"].max() + margin*x_range)
+    
+    plt.tight_layout()
+    plt.savefig(pdf_file, format="pdf", dpi=300)
+    print(f"Saved rotated top-down trajectory plot: {pdf_file}")
+    plt.show()
 def plot_trajectories_3d(df, obstacle_points):
     fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
@@ -494,18 +775,18 @@ def plot_trajectories_3d(df, obstacle_points):
     norm = Normalize(vmin=speeds.min(), vmax=speeds.max())
     cmap = plt.cm.get_cmap(TRAJ_CMAP)
 
-    ROBOT_RADIUS = 0.70  # meters (footprint radius)
+    ROBOT_RADIUS = 0.20  # meters (footprint radius)
 
     STEP = 1  # plot sphere every 2 points for speed
 
-    # ax.scatter(obstacle_points[:,0],
-    #            obstacle_points[:,1],
-    #            obstacle_points[:,2],
-    #            s=1,
-    #            c='gray',
-    #            alpha=0.28,
-    #            depthshade=False,
-    #            zorder=1)
+    ax.scatter(obstacle_points[:,0],
+               obstacle_points[:,1],
+               obstacle_points[:,2],
+               s=1,
+               c='gray',
+               alpha=0.28,
+               depthshade=False,
+               zorder=1)
 
     for uav, g in groups:
         x, y, z = g["x"].values, g["y"].values, g["z"].values
@@ -514,7 +795,7 @@ def plot_trajectories_3d(df, obstacle_points):
         for i in range(0, len(x), STEP):
             center = np.array([x[i], y[i], z[i]])
             color = cmap(norm(v.iloc[i]))
-            plot_sphere(ax, center, ROBOT_RADIUS, color, n=10)
+            plot_sphere(ax, center, ROBOT_RADIUS, color, n=4)
             
     # for uav, g in groups:
         # x, y, z = g["x"].values, g["y"].values, g["z"].values
@@ -569,7 +850,7 @@ def plot_trajectories_3d(df, obstacle_points):
     y_range = df["y"].max() - df["y"].min()
     z_range = df["z"].max() - df["z"].min()
 
-    max_range = max(x_range, y_range, z_range / 0.25)  # scale Z by 0.25
+    max_range = max(x_range, y_range, z_range / 0.5)  # scale Z by 0.25
 
     x_mid = 0.5 * (df["x"].max() + df["x"].min())
     y_mid = 0.5 * (df["y"].max() + df["y"].min())
@@ -577,8 +858,8 @@ def plot_trajectories_3d(df, obstacle_points):
 
     ax.set_xlim(x_mid - max_range/2, x_mid + max_range/2)
     ax.set_ylim(y_mid - max_range/2, y_mid + max_range/2)
-    ax.set_zlim(z_mid - max_range*0.25/2, z_mid + max_range*0.25/2)
-    ax.set_box_aspect((1, 1, 0.25))
+    ax.set_zlim(z_mid - max_range*0.5/2, z_mid + max_range*0.5/2)
+
     from matplotlib.ticker import MaxNLocator
     ax.zaxis.set_major_locator(MaxNLocator(2))
     plt.savefig("trajectories_3d_1.pdf", format="pdf")
@@ -645,8 +926,18 @@ def main(bag_file, pcd_file):
 
     # print(f"\nMean path length: {np.mean(lengths):.2f} ± {np.std(lengths):.2f}")
     # print(f"Mean avg velocity: {np.mean(vels):.2f} ± {np.std(vels):.2f}")
+    from statistics import mean
 
+# containers for global stats
+    agg = {
+        "path_length": [],
+        "avg_velocity": [],
+        "avg_velocity1": [],
+        "max_velocity": [],
+        "robust_max_velocity": [],
+    }
 
+# per-UAV print
     for uav, m in metrics.items():
         print(
             f"{uav}: "
@@ -656,9 +947,40 @@ def main(bag_file, pcd_file):
             f"max={m['max_velocity']:.2f} m/s | "
             f"robust_max={m['robust_max_velocity']:.2f} m/s"
         )
+
+        # collect values
+        for k in agg:
+            agg[k].append(m[k])
+
+# ---- GLOBAL MEAN ----
+    print("\nMEAN ACROSS ALL UAVs:")
+    print(
+        f"path={mean(agg['path_length']):.2f} m | "
+        f"avg={mean(agg['avg_velocity']):.2f} m/s | "
+        f"avg1={mean(agg['avg_velocity1']):.2f} m/s | "
+        f"max={mean(agg['max_velocity']):.2f} m/s | "
+        f"robust_max={mean(agg['robust_max_velocity']):.2f} m/s"
+    )
+
+#     for uav, m in metrics.items():
+#         print(
+#             f"{uav}: "
+#             f"path={m['path_length']:.2f} m | "
+#             f"avg={m['avg_velocity']:.2f} m/s | "
+#             f"avg1={m['avg_velocity1']:.2f} m/s | "
+#             f"max={m['max_velocity']:.2f} m/s | "
+#             f"robust_max={m['robust_max_velocity']:.2f} m/s"
+#         )
     obstacle_points = load_pcd_ascii(pcd_file)
     # obstacle_points = []
-    plot_trajectories_3d(df_cut, obstacle_points)
+    # plot_trajectories_plotly(df_cut, obstacle_points)
+    # plotter = plot_trajectories_pyvista(df_cut, obstacle_points,
+    #                                 uav_radius=0.2,
+    #                                 step=1,
+    #                                 file_prefix="uav_trajectories")
+    plot_trajectories_3d_top_rotated(df_cut, obstacle_points)
+    # plot_trajectories_3d_top(df_cut)
+    # plot_trajectories_3d_p(df_cut, obstacle_points)
 
     # min_dist, info = compute_min_pairwise_distance(data)
     # print(f"Min distance: {min_dist:.3f} m between {info[0]} and {info[1]}")
