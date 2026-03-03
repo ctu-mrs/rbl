@@ -14,19 +14,21 @@
   cd ~/git/mrs_apptainer/user_ros_workspace/src
   git clone git@github.com:ctu-mrs/rbl.git
   git clone git@github.com:ctu-mrs/laserscan_clusters.git
+  git clone git@github.com:manuelboldrer/uvdar_multirobot_simulator.git
   cd ../../
   ./example_wrapper
   cd user_ros_workspace
-  catkin build 
+  catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
   ```
+
  ## ▶️ run simulation 
 
 ```bash  
-cd src/rbl/tmux/mrs_9_uvdar
+cd rbl_controller/tmux/mrs_9 
 ./start.sh
 ```
 to activate the algorithm go to the pane "activation" and run the last command in history in synchronized mode.
-
+try out mrs_9, mrs_16, mrs_9_circle
 This code was used for some of the results reported in the following papers: 
 
 - [Rule-Based Lloyd Algorithm for Multi-Robot Motion Planning and Control with Safety and Convergence Guarantees](https://arxiv.org/pdf/2310.19511)

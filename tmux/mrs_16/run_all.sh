@@ -1,6 +1,5 @@
-#!/bin/bash
-
-START=36
+#!/usr/bin/env bash
+START=22
 END=50
 
 for N in $(seq $START $END); do
