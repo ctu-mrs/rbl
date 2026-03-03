@@ -1,11 +1,5 @@
 #!/bin/bash
 
-
-N="$1"
-if [ -z "$N" ]; then
-  echo "Usage: ./start.sh <simulation_id>"
-  exit 1
-fi
 # Absolute path to this script. /home/user/bin/foo.sh
 SCRIPT=$(readlink -f $0)
 # Absolute path this script is in. /home/user/bin
@@ -14,22 +8,20 @@ cd "$SCRIPTPATH"
 
 export TMUX_SESSION_NAME=simulation
 export TMUX_SOCKET_NAME=mrs
-export SIM_ID="$N"
 
-tmuxinator start -p ./session.yml --no-attach
-# # start tmuxinator
-# tmuxinator start -p ./session.yml
+# start tmuxinator
+tmuxinator start -p ./session.yml
 
-# # if we are not in tmux
-# if [ -z $TMUX ]; then
+# if we are not in tmux
+if [ -z $TMUX ]; then
 
-#   # just attach to the session
-#   tmux -L $TMUX_SOCKET_NAME a -t $TMUX_SESSION_NAME
+  # just attach to the session
+  tmux -L $TMUX_SOCKET_NAME a -t $TMUX_SESSION_NAME
 
-# # if we are in tmux
-# else
+# if we are in tmux
+else
 
-#   # switch to the newly-started session
-#   tmux detach-client -E "tmux -L $TMUX_SOCKET_NAME a -t $TMUX_SESSION_NAME" 
+  # switch to the newly-started session
+  tmux detach-client -E "tmux -L $TMUX_SOCKET_NAME a -t $TMUX_SESSION_NAME" 
 
-# fi
+fi

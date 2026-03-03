@@ -153,5 +153,7 @@ windows:
       panes:
         - waitForControl; sleep 5; ~/.i3/layout_manager.sh ./layout.json
 
-
-
+  - uvdar:
+      layout: tiled
+      panes:
+        - waitForControl; roslaunch uvdar_multirobot_simulator example.launch
