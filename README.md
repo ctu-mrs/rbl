@@ -1,10 +1,11 @@
-  ## 🎥 Multimedia material
+
+## 🎥 Multimedia material
 
 ![Real-world Experiment (4 UAVs)](output.gif)
 
 - https://mrs.fel.cvut.cz/rbl
 
-  ## 🚀 Prerequisites
+## 🚀 Prerequisites
 
   Ensure you have the following installed:
 
@@ -13,7 +14,7 @@
 
   ---
 
-  ## 🛠 Prepare the Workspace
+## 🛠 Prepare the Workspace
 
 
   ```bash
