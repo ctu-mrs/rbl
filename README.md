@@ -1,3 +1,4 @@
+![Real-world Experiment (4 UAVs)](output.gif)
   ## 🚀 Prerequisites
 
   Ensure you have the following installed:
@@ -28,7 +29,7 @@ cd rbl_controller/tmux/mrs_9
 ./start.sh
 ```
 to activate the algorithm go to the pane "activation" and run the last command in history in synchronized mode.
-try out mrs_9, mrs_16, mrs_9_circle
+try out mrs_9, mrs_16, mrs_9_circle.
 This code was used for some of the results reported in the following papers: 
 
 - [Rule-Based Lloyd Algorithm for Multi-Robot Motion Planning and Control with Safety and Convergence Guarantees](https://arxiv.org/pdf/2310.19511)
