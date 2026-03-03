@@ -22,7 +22,7 @@
  ## ▶️ run simulation 
 
 ```bash  
-cd rbl_controller/tmux/mrs_9_uvdar
+cd src/rbl/tmux/mrs_9_uvdar
 ./start.sh
 ```
 to activate the algorithm go to the pane "activation" and run the last command in history in synchronized mode.
