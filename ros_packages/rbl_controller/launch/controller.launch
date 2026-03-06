@@ -13,7 +13,7 @@
 
     <!-- will it run using GNU debugger? -->
     <arg name="debug"
-         default="true" />
+         default="false" />
     <arg unless="$(arg debug)"
          name="launch_prefix_debug"
          value="" />

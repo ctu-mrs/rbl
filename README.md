@@ -27,11 +27,14 @@
  ## ▶️ run simulation 
 
 ```bash  
-cd rbl/tmux/...
+cd src/rbl/tmux/forest5
 ./start.sh
 ```
-TODO to activate the algorithm go to the pane "activation" and run the last
-command in history in synchronized mode. try out mrs_9, mrs_16, mrs_9_circle.
+
+wait for takeoff.
+
+to run, go to "goto_end" to set the final goal (run the last command in history in synchronized mode), then to activate the algorithm go to the pane "activation" and run the last command in history in synchronized mode. 
+
 This code was used for some of the results reported in the following papers: 
 
 - [Perception-Aware Communication-Free Multi-UAV Coordination in the Wild]()
