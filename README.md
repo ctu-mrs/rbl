@@ -1,20 +1,37 @@
-Use it with
-[mrs_octomap_mapping_planning](https://github.com/ctu-mrs/mrs_octomap_mapping_planning/tree/master)
-in your workspace. In addition checkout the submodule mrs_octomap_planner to rbl_replanner
-branch
-to send the robot to the goal first `rosservice call /uav1/octomap_planner/goal (specify goal)`
-then `rosservice call /uav1/rbl_controller/activation` 
+## 🎥 Multimedia material
 
-# To-Do List
 
-- [~] Fix active waypoint for the rbl
-- [x] Add reflective markers in simulator
-- [ ] Make the replanner team-aware
-- [x] Speed up computation of the cell and centroid
-- [ ] filter the robot pointcloud for the path planner they should not be considered as obstacles 
-- [~] Update service call
-- [ ] Adjust parameters map. Robots remain in the map too much 
-- [ ] Fix The replanner, sometimes it can be chattering, frequency of replanner probably is too high
-- [ ] long-term upgrade to ROS2
-- [ ] maybe FlightForge simulator 
-- [ ] create image for robofly. to add option for communication between robots.
+- https://mrs.fel.cvut.cz/irbl
+
+## 🚀 Prerequisites
+
+  Ensure you have the following installed:
+
+  - ** MRS System **  
+    Follow setup instructions here: [MRS Apptainer GitHub](https://github.com/ctu-mrs/mrs_apptainer)
+
+  ---
+
+## 🛠 Prepare the Workspace
+
+
+  ```bash
+  cd ~/git/mrs_apptainer/user_ros_workspace/src
+  git clone --branch irbl git@github.com:ctu-mrs/rbl.git
+  cd ../../
+  ./example_wrapper
+  cd user_ros_workspace
+  catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
+  ```
+
+ ## ▶️ run simulation 
+
+```bash  
+cd rbl/tmux/...
+./start.sh
+```
+TODO to activate the algorithm go to the pane "activation" and run the last
+command in history in synchronized mode. try out mrs_9, mrs_16, mrs_9_circle.
+This code was used for some of the results reported in the following papers: 
+
+- [Perception-Aware Communication-Free Multi-UAV Coordination in the Wild]()
