@@ -27,12 +27,15 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd,
   const int N = pc.cols();
 
   Ellipsoid E(Eigen::Matrix3f::Identity(), (a + b) / 2);
-
-  if ((a - b).norm() > 0.1) {
-    /// use line seed
-    findEllipsoid(pc, a, b, E);
-  }
-
+// Create a new matrix with the same content as pc
+Eigen::Matrix3Xf pcSafe = pc.eval();
+// Optional: sanity check
+if (pcSafe.rows() != 3 || pcSafe.cols() < 4) {
+  std::cout << "[CIRI]: Invalid point cloud. Unable to construct polyhedron." << std::endl;
+    } else if ((a - b).norm() > 0.1) {
+    // Safe call with new matrix
+    findEllipsoid(pcSafe, a, b, E);
+}
   std::vector<Eigen::Vector4f>            planes;
   Eigen::Matrix<float, Eigen::Dynamic, 4> hPoly;
 
