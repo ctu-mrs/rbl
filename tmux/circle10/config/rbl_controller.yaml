@@ -13,8 +13,8 @@ rbl_controller:
   limited_fov: true 
   only_2d: false
   ciri: true
-  lidar_tilt: 90.0 # [deg]
-  lidar_fov: 180.0 #[deg]
+  lidar_tilt: 20.0 # [deg]
+  lidar_fov: 59.0 #[deg]
   # lidar_tilt: 90.0 # [deg]
   # lidar_fov: 180.0 #[deg]
   # limited_fov: false
@@ -36,7 +36,7 @@ rbl_controller:
   d7: 1.0
   radius: 5.0 # max planning horizon
   betaD: 0.5
-  beta_min: 0.10
+  beta_min: 0.1
   dt: 0.1
   encumbrance: 0.2
   use_z_rule: false
@@ -44,7 +44,7 @@ rbl_controller:
   cwvd_rob: 0.5
   use_garmin_alt: false
   replanner: true 
-  boundary_threshold_speed: 0.0
+  boundary_threshold_speed: 0.01
   move_centroid_to_sensed_cell: false
   pcl:
     downsample: true

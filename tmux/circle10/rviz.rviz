@@ -136,7 +136,7 @@ Visualization Manager:
           Marker Topic: /uav1/rbl_controller/viz/target
           Name: UAV1
           Namespaces:
-            modified-group-goal: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -144,7 +144,7 @@ Visualization Manager:
           Marker Topic: /uav1/rbl_controller/viz/target
           Name: UAV2
           Namespaces:
-            modified-group-goal: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -220,7 +220,7 @@ Visualization Manager:
           Marker Topic: /uav1/rbl_controller/viz/position
           Name: UAV1
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -228,7 +228,7 @@ Visualization Manager:
           Marker Topic: /uav2/rbl_controller/viz/position
           Name: UAV2
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -236,7 +236,7 @@ Visualization Manager:
           Marker Topic: /uav3/rbl_controller/viz/position
           Name: UAV3
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -244,7 +244,7 @@ Visualization Manager:
           Marker Topic: /uav4/rbl_controller/viz/position
           Name: UAV4
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -252,7 +252,7 @@ Visualization Manager:
           Marker Topic: /uav5/rbl_controller/viz/position
           Name: UAV5
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -260,7 +260,7 @@ Visualization Manager:
           Marker Topic: /uav6/rbl_controller/viz/position
           Name: UAV6
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -268,7 +268,7 @@ Visualization Manager:
           Marker Topic: /uav7/rbl_controller/viz/position
           Name: UAV7
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -276,7 +276,7 @@ Visualization Manager:
           Marker Topic: /uav8/rbl_controller/viz/position
           Name: UAV8
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -284,7 +284,7 @@ Visualization Manager:
           Marker Topic: /uav9/rbl_controller/viz/position
           Name: UAV9
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
         - Class: rviz/Marker
@@ -292,7 +292,7 @@ Visualization Manager:
           Marker Topic: /uav10/rbl_controller/viz/position
           Name: UAV10
           Namespaces:
-            position: true
+            {}
           Queue Size: 10
           Value: true
       Enabled: true
@@ -918,7 +918,7 @@ Visualization Manager:
       Marker Topic: /uav1/rbl_controller/viz/seed_B
       Name: Marker
       Namespaces:
-        centroid: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -1026,7 +1026,7 @@ Visualization Manager:
       Marker Topic: /uav1/rbl_controller/viz/centroid
       Name: Marker
       Namespaces:
-        centroid: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -1112,28 +1112,34 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
-      Class: rviz/TopDownOrtho
+      Class: rviz/ThirdPersonFollower
+      Distance: 68.66040802001953
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 10
+      Pitch: 0.06539850682020187
       Target Frame: common_origin
-      X: -1.841559886932373
-      Y: 0.6761341094970703
+      Yaw: 0.8303981423377991
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: true
-  Height: 736
+  Height: 1144
   Hide Left Dock: true
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000001610000028afc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000003f7000001a1000001a900000153fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b0000028a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006502000003c9000003450000025b000000c9000000010000014f0000028afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b0000028a000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000038f0000003efc0100000002fb0000000800540069006d006500000000000000038f0000035c00fffffffb0000000800540069006d006501000000000000045000000000000000000000032b0000028a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001610000028afc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000003f7000001a1000001a900000153fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b0000028a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006502000003c9000003450000025b000000c9000000010000014f00000422fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b00000422000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000038f0000003efc0100000002fb0000000800540069006d006500000000000000038f0000035c00fffffffb0000000800540069006d006501000000000000045000000000000000000000026c0000042200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -1142,6 +1148,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 811
-  X: 416
-  Y: 157
+  Width: 620
+  X: 4850
+  Y: 41
