@@ -12,6 +12,8 @@ find_package(Eigen3 REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_library(ciri 
   src/ciri.cpp
 )

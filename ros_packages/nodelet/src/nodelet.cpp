@@ -101,8 +101,9 @@ private:
   bool cbSrvDeactivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
   mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger> srv_deactivate_control_;
 
-  bool cbSrvGotoPosition(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
-  mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger> srv_goto_position_;
+  // bool cbSrvGotoPosition(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
+  bool cbSrvGotoPosition(const std::shared_ptr<mrs_msgs::srv::Vec4::Request>  req,  const std::shared_ptr<mrs_msgs::srv::Vec4::Response> res);
+  mrs_lib::ServiceServerHandler<mrs_msgs::srv::Vec4> srv_goto_position_;
 
   // ros::ServiceServer srv_activate_control_;
   // bool               cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
@@ -151,17 +152,16 @@ private:
   // ros::Publisher                            pub_viz_cell_A_;
   // ros::Publisher                            pub_viz_cell_A_sensed_;
   std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
-                                                        const std::string&                  frame);
+                                                             const std::string&                  frame);
   // ros::Publisher                            pub_viz_inflated_map_;
   std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,
-                                                              const std::string&                  frame);
+                                                                   const std::string&                  frame);
   // ros::Publisher                            pub_viz_cloud;
-  std::shared_ptr<sensor_msgs::msg::PointCloud2>
-                             getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& pcl,  // //{
-                                       const std::string&                                     frame);
+  std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& pcl,  // //{
+                                                           const std::string&                                     frame);
   // ros::Publisher             pub_viz_path_;
-  nav_msgs::msg::Path             getVizPath(const std::vector<Eigen::Vector3d>& path,
-                                        const std::string&                  frame);
+  std::shared_ptr<nav_msgs::msg::Path>             getVizPath(const std::vector<Eigen::Vector3d>& path,
+                                                   const std::string&                  frame);
   // ros::Publisher             pub_viz_position_;
   visualization_msgs::msg::Marker getVizPosition(const Eigen::Vector3d& point,
                                             const double           scale,
@@ -377,11 +377,12 @@ void WrapperRosRBL::initialize()  // //{
       node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvActivateControl, this, std::placeholders::_1, std::placeholders::_2),
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
   
-  srv_goto_position_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
-      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
-      rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
   srv_deactivate_control_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
       node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvDeactivateControl, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
+
+  srv_goto_position_ = mrs_lib::ServiceServerHandler<mrs_msgs::srv::Vec4>(
+      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
 
   // srv_activate_control_ = nh.advertiseService("control_activation_in", &WrapperRosRBL::cbSrvActivateControl, this);
@@ -407,8 +408,9 @@ void WrapperRosRBL::initialize()  // //{
   pub_viz_inflated_map_  = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/inflated_map");
   pub_viz_cloud          = mrs_lib::PublisherHandler<sensor_msgs::msg::PointCloud2>(node_, "~/cloud");
   pub_viz_path_          = mrs_lib::PublisherHandler<nav_msgs::msg::Path>(node_, "~/path");
-
-  transformer_ = std::make_shared<mrs_lib::Transformer>(node_, "WrapperRosRBL");
+  
+  transformer_ = std::make_shared<mrs_lib::Transformer>(node_);
+  // transformer_ = std::make_shared<mrs_lib::Transformer>(node_, "WrapperRosRBL");
   transformer_->retryLookupNewest(true);
 
   {
@@ -728,15 +730,13 @@ void WrapperRosRBL::cbTmDiagnostics()  // //{
 
     pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 2 * rbl_params_.encumbrance, _frame_));
     pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2 * rbl_params_.encumbrance, _frame_));
-    pub_viz_position_.publish(
-        getVizPosition(rbl_controller_->getCurrentPosition(), 2 * rbl_params_.encumbrance, _frame_));
+    pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2 * rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
     pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
     pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
     pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
-
-    pub_viz_path_.publish(getVizPath(rbl_controller_->getPath(), _frame_));
+    pub_viz_path_.publish(*getVizPath(rbl_controller_->getPath(), _frame_));
   }
 }  // //}
 bool cbSrvActivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
@@ -772,16 +772,16 @@ bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] const std::shared_pt
   return true;
 }  // //}
 
-bool WrapperRosRBL::cbSrvGotoPosition(mrs_msgs::Vec4::Request&  req,  // //{
-                                      mrs_msgs::Vec4::Response& res)
+bool WrapperRosRBL::cbSrvGotoPosition(const std::shared_ptr<mrs_msgs::srv::Vec4::Request>  req,  // //{
+                                      const std::shared_ptr<mrs_msgs::srv::Vec4::Response> res)
 {
   {
     std::scoped_lock lck(mtx_rbl_);
-    rbl_controller_->setGoal(Eigen::Vector3d{ req.goal[0], req.goal[1], req.goal[2] });
+    rbl_controller_->setGoal(Eigen::Vector3d{ req->goal[0], req->goal[1], req->goal[2] });
   }
-  res.success = true;
-  res.message = "Goal set";
-  ROS_INFO("[WrapperRosRBL]: %s", res.message.c_str());
+  res->success = true;
+  res->message = "Goal set";
+  RCLCPP_INFO(node_->get_logger(), "%s", res->message.c_str());
   return true;
 }  // //}
 
@@ -789,16 +789,16 @@ visualization_msgs::msg::Marker WrapperRosRBL::getVizPosition(const Eigen::Vecto
                                                          const double           scale,
                                                          const std::string&     frame)
 {
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id    = frame;
-  marker.header.stamp       = ros::Time::now();
+  marker.header.stamp       = clock_->now();
   marker.ns                 = "position";
   marker.id                 = 0;
-  marker.type               = visualization_msgs::Marker::SPHERE;
-  marker.action             = visualization_msgs::Marker::ADD;
-  marker.pose.position.x    = point(0);
-  marker.pose.position.y    = point(1);
-  marker.pose.position.z    = point(2);
+  marker.type               = visualization_msgs::msg::Marker::SPHERE;
+  marker.action             = visualization_msgs::msg::Marker::ADD;
+  marker.pose.position.x    = point.x();
+  marker.pose.position.y    = point.y();
+  marker.pose.position.z    = point.z();
   marker.pose.orientation.w = 1.0;
   marker.scale.x            = scale;
   marker.scale.y            = scale;
@@ -812,19 +812,19 @@ visualization_msgs::msg::Marker WrapperRosRBL::getVizPosition(const Eigen::Vecto
 }  // //}
 
 visualization_msgs::msg::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::Vector3d& point,  // //{
-                                                             const double           scale,
-                                                             const std::string&     frame)
+                                                                  const double           scale,
+                                                                  const std::string&     frame)
 {
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id    = frame;
-  marker.header.stamp       = ros::Time::now();
+  marker.header.stamp       = clock_->now();
   marker.ns                 = "modified-group-goal";
   marker.id                 = 0;
-  marker.type               = visualization_msgs::Marker::SPHERE;
-  marker.action             = visualization_msgs::Marker::ADD;
-  marker.pose.position.x    = point(0);
-  marker.pose.position.y    = point(1);
-  marker.pose.position.z    = point(2);
+  marker.type               = visualization_msgs::msg::Marker::SPHERE;
+  marker.action             = visualization_msgs::msg::Marker::ADD;
+  marker.pose.position.x    = point.x();
+  marker.pose.position.y    = point.y();
+  marker.pose.position.z    = point.z();
   marker.pose.orientation.w = 1.0;
   marker.scale.x            = scale;
   marker.scale.y            = scale;
@@ -838,19 +838,19 @@ visualization_msgs::msg::Marker WrapperRosRBL::getVizModGroupGoal(const Eigen::V
 }  // //}
 
 visualization_msgs::msg::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vector3d& point,  // //{
-                                                         const double           scale,
-                                                         const std::string&     frame)
+                                                              const double           scale,
+                                                              const std::string&     frame)
 {
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id    = frame;
-  marker.header.stamp       = ros::Time::now();
+  marker.header.stamp       = clock_->now();
   marker.ns                 = "waypoint";
   marker.id                 = 0;
-  marker.type               = visualization_msgs::Marker::SPHERE;
-  marker.action             = visualization_msgs::Marker::ADD;
-  marker.pose.position.x    = point(0);
-  marker.pose.position.y    = point(1);
-  marker.pose.position.z    = point(2);
+  marker.type               = visualization_msgs::msg::Marker::SPHERE;
+  marker.action             = visualization_msgs::msg::Marker::ADD;
+  marker.pose.position.x    = point.x();
+  marker.pose.position.y    = point.y();
+  marker.pose.position.z    = point.z();
   marker.pose.orientation.w = 1.0;
   marker.scale.x            = scale;
   marker.scale.y            = scale;
@@ -863,12 +863,15 @@ visualization_msgs::msg::Marker WrapperRosRBL::getVizWaypoint(const Eigen::Vecto
   return marker;
 }  // //}
 
-std::shared_ptr<sensor_msgs::msg::kPointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,  // //{
-                                                                     const std::string&                  frame)
+std::shared_ptr<sensor_msgs::msg::PointCloud2> WrapperRosRBL::getVizCellA(const std::vector<Eigen::Vector3d>& points,  // //{
+                                                                          const std::string&                  frame)
 {
   pcl::PointCloud<pcl::PointXYZI> pcl_cloud;
 
   pcl_cloud.points.resize(points.size());
+  pcl_cloud.width = pcl_cloud.points.size();
+  pcl_cloud.height = 1;
+  pcl_cloud.is_dense = true;
 
   for (size_t i = 0; i < points.size(); ++i) {
     pcl_cloud.points[i].x = points[i].x();
@@ -876,11 +879,12 @@ std::shared_ptr<sensor_msgs::msg::kPointCloud2> WrapperRosRBL::getVizCellA(const
     pcl_cloud.points[i].z = points[i].z();
   }
 
-  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+  auto ros_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
   pcl::toROSMsg(pcl_cloud, *ros_msg);
 
   ros_msg->header.frame_id = frame;
+  ros_msg->header.stamp = clock_->now();
 
   return ros_msg;
 }  // //}
@@ -892,6 +896,9 @@ WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  //
   pcl::PointCloud<pcl::PointXYZI> pcl_cloud;
 
   pcl_cloud.points.resize(points.size());
+  pcl_cloud.width = pcl_cloud.points.size();
+  pcl_cloud.height = 1;
+  pcl_cloud.is_dense = true;
 
   for (size_t i = 0; i < points.size(); ++i) {
     pcl_cloud.points[i].x = points[i].x();
@@ -899,37 +906,40 @@ WrapperRosRBL::getVizInflatedMap(const std::vector<Eigen::Vector3d>& points,  //
     pcl_cloud.points[i].z = points[i].z();
   }
 
-  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+  auto ros_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
   pcl::toROSMsg(pcl_cloud, *ros_msg);
 
   ros_msg->header.frame_id = frame;
+  ros_msg->header.stamp = clock_->now();
 
   return ros_msg;
 }  // //}
 
-std::shared_ptr<sensor_msgs::PointCloud2>
+std::shared_ptr<sensor_msgs::msg::PointCloud2>
 WrapperRosRBL::getVizPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& pcl,  // //{
                          const std::string&                                     frame)
 {
-  auto ros_msg = std::make_shared<sensor_msgs::PointCloud2>();
+  auto ros_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
   pcl::toROSMsg(*pcl, *ros_msg);
+
   ros_msg->header.frame_id = frame;
+  ros_msg->header.stamp = clock_->now();
 
   return ros_msg;
 }  // //}
 
-nav_msgs::msg::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
-                                         const std::string&                  frame)
+std::shared_ptr<nav_msgs::msg::Path> WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>& path,  // //{
+                                                               const std::string&                  frame)
 {
-  nav_msgs::Path path_msg;
-  path_msg.header.stamp    = ros::Time::now();
-  path_msg.header.frame_id = frame;
+  auto path_msg = std::make_shared<nav_msgs::msg::Path>();
+  path_msg->header.stamp    = clock_->now();
+  path_msg->header.frame_id = frame;
 
   for (const auto& pt : path) {
-    geometry_msgs::PoseStamped pose;
-    pose.header.stamp    = ros::Time::now();
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.stamp    = clock_->now();
     pose.header.frame_id = frame;
     pose.pose.position.x = pt.x();
     pose.pose.position.y = pt.y();
@@ -940,25 +950,25 @@ nav_msgs::msg::Path WrapperRosRBL::getVizPath(const std::vector<Eigen::Vector3d>
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
 
-    path_msg.poses.push_back(pose);
+    path_msg->poses.push_back(pose);
   }
 
   return path_msg;
 }  // //}
 
 visualization_msgs::msg::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vector3d& point,  // //{
-                                                         const std::string&     frame)
+                                                              const std::string&     frame)
 {
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id    = frame;
-  marker.header.stamp       = ros::Time::now();
+  marker.header.stamp       = clock_->now();
   marker.ns                 = "centroid";
   marker.id                 = 0;
-  marker.type               = visualization_msgs::Marker::SPHERE;
-  marker.action             = visualization_msgs::Marker::ADD;
-  marker.pose.position.x    = point(0);
-  marker.pose.position.y    = point(1);
-  marker.pose.position.z    = point(2);
+  marker.type               = visualization_msgs::msg::Marker::SPHERE;
+  marker.action             = visualization_msgs::msg::Marker::ADD;
+  marker.pose.position.x    = point.x();
+  marker.pose.position.y    = point.y();
+  marker.pose.position.z    = point.z();
   marker.pose.orientation.w = 1.0;
   marker.scale.x            = 0.2;
   marker.scale.y            = 0.2;
@@ -971,12 +981,12 @@ visualization_msgs::msg::Marker WrapperRosRBL::getVizCentroid(const Eigen::Vecto
   return marker;
 }  // //}
 
-Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::Point& point)  // //{
+Eigen::Vector3d WrapperRosRBL::pointToEigen(const geometry_msgs::msg::Point& point)  // //{
 {
   return Eigen::Vector3d(point.x, point.y, point.z);
 }  // //}
 
-Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::Vector3& vec)  // //{
+Eigen::Vector3d WrapperRosRBL::vectorToEigen(const geometry_msgs::msg::Vector3& vec)  // //{
 {
   return Eigen::Vector3d(vec.x, vec.y, vec.z);
 }  // //}
@@ -990,7 +1000,7 @@ geometry_msgs::msg::Point WrapperRosRBL::createPoint(double x,  // //{
                                                 double y,
                                                 double z)
 {
-  geometry_msgs::Point point;
+  geometry_msgs::msg::Point point;
   point.x = x;
   point.y = y;
   point.z = z;
@@ -1009,7 +1019,7 @@ WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
 
   for (const auto& state : group_states) {
     const Eigen::Vector3d& position = state.position;
-    ROS_DEBUG("[WrapperRosRBL]: Adding points to PCL at: %.2f, %.2f, %.2f", position.x(), position.y(), position.z());
+    RCLCPP_ERROR(node_->get_logger(), "Adding points to PCL at: %.2f, %.2f, %.2f", position.x(), position.y(), position.z());
 
     const int center_nx = std::floor(position.x() / voxel_size);
     const int center_ny = std::floor(position.y() / voxel_size);
