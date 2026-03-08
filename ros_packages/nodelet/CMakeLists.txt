@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(rbl_nodelet)
+project(rbl_controller_node)
 
 # set the correct standards
 set(CMAKE_C_STANDARD 99)
@@ -48,15 +48,15 @@ find_package(ciri REQUIRED)
 find_package(rbl_controller_core REQUIRED)
 
 # Define the shared library created by this package
-add_library(rbl_nodelet SHARED)
+add_library(rbl_controller_node SHARED)
 
-target_sources(rbl_nodelet
+target_sources(rbl_controller_node
   PRIVATE
     "src/nodelet.cpp"
 )
 
 ament_target_dependencies(
-  rbl_nodelet
+  rbl_controller_node
   rclcpp
   rclcpp_components
   mrs_lib
@@ -68,7 +68,7 @@ ament_target_dependencies(
 )
 
 target_link_libraries(
-  rbl_nodelet
+  rbl_controller_node
   Eigen3::Eigen
   rbl_replanner::rbl_replanner
   ciri::ciri
@@ -94,8 +94,8 @@ target_link_libraries(
 
 # Register components defined in this library.
 # rclcpp_components_register_nodes(<library> <names of components>...)
-rclcpp_components_register_nodes(rbl_nodelet
-  "rbl_nodelet::Nodelet"
+rclcpp_components_register_nodes(rbl_controller_node
+  "rbl_controller::WrapperRosRBL"
 )
 
 ## --------------------------------------------------------------
@@ -114,7 +114,7 @@ if(ENABLE_TESTS)
 endif()
 
 install(
-  TARGETS rbl_nodelet
+  TARGETS rbl_controller_node
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -131,11 +131,11 @@ install(
   DESTINATION "share/${PROJECT_NAME}"
 )
 
-install(
-  DIRECTORY tmux
-  USE_SOURCE_PERMISSIONS
-  DESTINATION "share/${PROJECT_NAME}"
-)
+# install(
+#   DIRECTORY tmux
+#   USE_SOURCE_PERMISSIONS
+#   DESTINATION "share/${PROJECT_NAME}"
+# )
 
 ament_export_targets(
   export_${PROJECT_NAME} HAS_LIBRARY_TARGET

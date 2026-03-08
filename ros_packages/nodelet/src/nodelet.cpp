@@ -59,6 +59,8 @@ typedef mrs_lib::ROSTimer TimerType;
 typedef mrs_lib::ThreadTimer TimerType;
 #endif
 
+namespace rbl_controller {
+
 class WrapperRosRBL : public mrs_lib::Node {
 public: 
   WrapperRosRBL(rclcpp::NodeOptions options);
@@ -79,7 +81,7 @@ private:
   std::vector<State> group_states_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_;
   bool pcl_loaded_ = false;
-  virtual void onInit();
+
   bool         is_initialized_ = false;
   bool         is_activated_   = false;
 
@@ -227,6 +229,9 @@ void WrapperRosRBL::initialize()  // //{
   // ros::Time::waitForValid();
 
   mrs_lib::ParamLoader param_loader(node_);
+
+  param_loader.addYamlFileFromParam("config");
+  param_loader.addYamlFileFromParam("custom_config");
 
   std::string odom_topic_name;
   double      rate_tm_set_ref;
@@ -378,11 +383,11 @@ void WrapperRosRBL::initialize()  // //{
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
   
   srv_deactivate_control_ = mrs_lib::ServiceServerHandler<std_srvs::srv::Trigger>(
-      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvDeactivateControl, this, std::placeholders::_1, std::placeholders::_2),
+      node_, "~/control_deactivation_in", std::bind(&WrapperRosRBL::cbSrvDeactivateControl, this, std::placeholders::_1, std::placeholders::_2),
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
 
   srv_goto_position_ = mrs_lib::ServiceServerHandler<mrs_msgs::srv::Vec4>(
-      node_, "~/control_activation_in", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
+      node_, "~/goto_out", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
 
   // srv_activate_control_ = nh.advertiseService("control_activation_in", &WrapperRosRBL::cbSrvActivateControl, this);
@@ -1074,7 +1079,7 @@ WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
   }
   return cloud;
 }
-
+}
 
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(WrapperRosRBL);
+RCLCPP_COMPONENTS_REGISTER_NODE(rbl_controller::WrapperRosRBL);
