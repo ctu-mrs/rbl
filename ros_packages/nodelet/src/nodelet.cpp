@@ -15,8 +15,10 @@
 // MRS MSGs
 #include <mrs_msgs/msg/pose_with_covariance_array_stamped.hpp>
 #include <mrs_msgs/msg/reference.hpp>
+#include <mrs_msgs/msg/float64_stamped.hpp>
 #include <mrs_msgs/srv/reference_stamped_srv.hpp>
 #include <mrs_msgs/srv/vec4.hpp>
+
 // #include <mrs_msgs/msg/PoseWithCovarianceArrayStamped.hpp>
 // #include <mrs_msgs/msg/Reference.hpp>
 // #include <mrs_msgs/msg/ReferenceStampedSrv.hpp>
@@ -185,7 +187,7 @@ private:
   // | ----------------------- subscribers ---------------------- |
 
   mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
-  mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>              sh_alt_;
+  mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>        sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
   // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
 
@@ -312,7 +314,7 @@ void WrapperRosRBL::initialize()  // //{
   shopts.subscription_options.callback_group = cbkgrp_subs_;
 
   sh_odom_            = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/odom_in");
-  sh_alt_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::Range>(shopts, "~/alt_in");
+  sh_alt_             = mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>(shopts, "~/alt_in");
   sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>;
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry> (shopts, "~/group_odoms_in")>;
@@ -438,6 +440,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
     RCLCPP_INFO_ONCE(node_->get_logger(), "Waiting for activation");
     return;
   }
+  RCLCPP_INFO_ONCE(node_->get_logger(), "After activation");
 
   auto msg_ref = std::make_shared<mrs_msgs::srv::ReferenceStampedSrv::Request>();
   msg_ref->header.frame_id = _frame_;
@@ -461,6 +464,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
         return;
       }
       rbl_controller_->setCurrentPosition(pointToEigen(res.value().point));
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted cur position to rbl");
 
       geometry_msgs::msg::Vector3Stamped tmp_vel;
       tmp_vel.header = odom->header;
@@ -472,6 +476,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
         return;
       }
       rbl_controller_->setCurrentVelocity(vectorToEigen(vel_res->vector));
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted velocity to rbl");
       Eigen::Vector3d euler;
 
       double q_x = odom->pose.pose.orientation.x;
@@ -499,11 +504,13 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       euler.z()        = std::atan2(siny_cosp, cosy_cosp);
 
       rbl_controller_->setRollPitchYaw(euler);
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted rpy to rbl");
     }
 
     if (sh_alt_.newMsg()) {
       auto alt = sh_alt_.getMsg();
-      rbl_controller_->setAltitude(alt->range);
+      rbl_controller_->setAltitude(alt->value);
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted cur altitude to rbl");
     }
 
 
@@ -546,7 +553,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
     //     }
     //   }
 
-      rbl_controller_->setGroupStates(group_states_);  // always has last known states
+      // rbl_controller_->setGroupStates(group_states_);  // always has last known states
   }
 
 
@@ -668,6 +675,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
     pcl_loaded_ = true;
 
     rbl_controller_->setPCL1(last_obstacle_cloud_);
+    RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
   }
 
   auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*last_obstacle_cloud_);
@@ -685,6 +693,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
   }
 
   rbl_controller_->setPCL(cloud);
+  RCLCPP_INFO_ONCE(node_->get_logger(), "Setted curent pcl to rbl");
   pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
 
     // if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
@@ -738,10 +747,34 @@ void WrapperRosRBL::cbTmDiagnostics()  // //{
     pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2 * rbl_params_.encumbrance, _frame_));
     pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
     pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
-    pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
-    pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
-    pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
-    pub_viz_path_.publish(*getVizPath(rbl_controller_->getPath(), _frame_));
+    auto cell_A = getVizCellA(rbl_controller_->getCellA(), _frame_);
+    if (cell_A) {
+      pub_viz_cell_A_.publish(*cell_A);
+    } else {
+      RCLCPP_WARN(node_->get_logger(), "Failed to publish cell A");
+    }
+    auto cell_A_sensed = getVizCellA(rbl_controller_->getSensedCellA(), _frame_);
+    if (cell_A_sensed) {
+      pub_viz_cell_A_sensed_.publish(*cell_A_sensed);
+    } else {
+      RCLCPP_WARN(node_->get_logger(), "Failed to publish sensed cell A");
+    }
+    auto inflated_map = getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_);
+    if (inflated_map) {
+      pub_viz_inflated_map_.publish(*inflated_map);
+    } else {
+      RCLCPP_WARN(node_->get_logger(), "Failed to publish inflated map");
+    }
+    auto path = getVizPath(rbl_controller_->getPath(), _frame_);
+    if (path) {
+      pub_viz_path_.publish(*path);
+    } else {
+      RCLCPP_WARN(node_->get_logger(), "Failed to publish planned path");
+    }
+    // pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
+    // pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
+    // pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
+    // pub_viz_path_.publish(*getVizPath(rbl_controller_->getPath(), _frame_));
   }
 }  // //}
 bool cbSrvActivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
