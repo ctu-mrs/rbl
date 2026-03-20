@@ -1081,6 +1081,13 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
 {
   (void)agent_vel;     // TODO - currently unused
 
+  if (cell.empty()) {
+    centroid = agent_pos;
+    threshold_active = false;
+    std::cout << "[RBLController]: computeCentroid received empty cell, using agent position." << std::endl;
+    return;
+  }
+
   std::cout << "destitnation" << destination << std::endl;
   std::vector<double> x_in, y_in, z_in;
   for (const auto& point : cell) {
@@ -1102,6 +1109,12 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
     sum_y += y_in[i] * scalar_values[i];
     sum_z += z_in[i] * scalar_values[i];
     sum += scalar_values[i];
+  }
+  if (sum <= std::numeric_limits<double>::epsilon() || !std::isfinite(sum)) {
+    centroid = agent_pos;
+    threshold_active = false;
+    std::cout << "[RBLController]: computeCentroid received invalid weights, using agent position." << std::endl;
+    return;
   }
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
 

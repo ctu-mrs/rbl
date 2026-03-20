@@ -522,6 +522,9 @@ bool RBLReplanner::canConnectPoints(const std::tuple<int,
 
 
   double dist = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
+  if (dist == 0.0) {
+    return grid.value().at(x1, y1, z1) == 0;
+  }
   double step = 0.5;
 
   for (double t = 0; t <= dist; t += step) {
@@ -697,14 +700,20 @@ RBLReplanner::closestFreeIdx(const std::tuple<int,
                                               int>&          _position,
                              const std::optional<VoxelGrid>& grid)  // //{
 {
-  if (grid->at(std::get<0>(_position), std::get<1>(_position), std::get<2>(_position)) == 0) {
-    return _position;
+  std::tuple<int, int, int> clamped_position = {
+      std::clamp(std::get<0>(_position), 0, grid->X - 1),
+      std::clamp(std::get<1>(_position), 0, grid->Y - 1),
+      std::clamp(std::get<2>(_position), 0, grid->Z - 1),
+  };
+
+  if (grid->at(clamped_position) == 0) {
+    return clamped_position;
   }
   std::queue<std::tuple<int, int, int>> q;
   std::set<std::tuple<int, int, int>>   visited;
 
-  q.push(_position);
-  visited.insert(_position);
+  q.push(clamped_position);
+  visited.insert(clamped_position);
 
   int new_positions[][3] = { { 0, -1, 0 },   { 0, 1, 0 },   { -1, 0, 0 },  { 1, 0, 0 },  { 0, 0, -1 },  { 0, 0, 1 },
                              { -1, -1, 0 },  { -1, 1, 0 },  { 1, -1, 0 },  { 1, 1, 0 },  { 0, -1, -1 }, { 0, -1, 1 },
@@ -738,5 +747,5 @@ RBLReplanner::closestFreeIdx(const std::tuple<int,
       q.push(next_pos);
     }
   }
-  return _position;  // return original
+  return clamped_position;
 }  // //}

@@ -20,6 +20,8 @@
 
   <depend>Eigen3</depend>
   <depend>mrs_msgs</depend>
+  <depend>octomap</depend>
+  <depend>octomap_msgs</depend>
 
   <depend>rbl_replanner</depend>
   <depend>ciri</depend>

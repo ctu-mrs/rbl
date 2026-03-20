@@ -47,6 +47,8 @@ rbl_controller:
   replanner: true 
   boundary_threshold_speed: 0.01
   move_centroid_to_sensed_cell: false
+  octomap: 
+    octomap_msg: true
   pcl:
     downsample: true
     voxel_size: 0.2

@@ -85,12 +85,13 @@ def generate_launch_description():
         remappings=[
             ("~/odom_in","estimation_manager/odom_main"),
             ("~/alt_in","estimation_manager/garmin_agl/agl_height"), 
-            # ("~/pcl_in","estimation_manager/garmin_agl/agl_height"), 
+            ("~/pcl_in","pcl_in"), 
+            ("~/octomap_in","octomap_server/octomap_local_binary"), 
 
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
 
-            ("~/ref_pos_out", "control_manager/reference"),
-            ("~/goto_out", "control_manager/goto"),
+            ("~/ref_out", "control_manager/reference"),
+            ("~/goto_out", "~/goto"),
 
             ("~/control_activation_in", "~/activation"),
             ("~/control_activation_params_in", "~/activation_params"),

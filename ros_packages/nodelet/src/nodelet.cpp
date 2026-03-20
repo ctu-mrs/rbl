@@ -16,6 +16,8 @@
 #include <mrs_msgs/msg/pose_with_covariance_array_stamped.hpp>
 #include <mrs_msgs/msg/reference.hpp>
 #include <mrs_msgs/msg/float64_stamped.hpp>
+#include <octomap_msgs/msg/octomap.hpp>
+#include <octomap_msgs/conversions.h>
 #include <mrs_msgs/srv/reference_stamped_srv.hpp>
 #include <mrs_msgs/srv/vec4.hpp>
 
@@ -40,6 +42,9 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
+
+// OCTOMAP
+#include <octomap/OcTree.h>
 
 // EIGEN
 #include <Eigen/Dense>
@@ -185,10 +190,11 @@ private:
 
 
   // | ----------------------- subscribers ---------------------- |
-
+  bool octomap_msg_;
   mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
   mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>        sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
+  mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>           sh_octomap_;
   // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
 
 
@@ -279,6 +285,7 @@ void WrapperRosRBL::initialize()  // //{
   param_loader.loadParam("rbl_controller/lidar_tilt", rbl_params_.lidar_tilt);
   param_loader.loadParam("rbl_controller/lidar_fov", rbl_params_.lidar_fov);
   param_loader.loadParam("rbl_controller/move_centroid_to_sensed_cell", rbl_params_.move_centroid_to_sensed_cell);
+  param_loader.loadParam("rbl_controller/octomap/octomap_msg", octomap_msg_);
   param_loader.loadParam("rbl_controller/pcl/downsample", rbl_params_.downsample_pcl);
   param_loader.loadParam("rbl_controller/pcl/voxel_size", rbl_params_.voxel_size);
   param_loader.loadParam("rbl_controller/add_estimates_as_voxels", rbl_params_.add_estimates_as_voxels);
@@ -315,7 +322,12 @@ void WrapperRosRBL::initialize()  // //{
 
   sh_odom_            = mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>(shopts, "~/odom_in");
   sh_alt_             = mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>(shopts, "~/alt_in");
-  sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
+  if (octomap_msg_){
+    sh_octomap_          = mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>(shopts, "~/octomap_in");
+  } else {
+    sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
+  }
+  
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>;
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry> (shopts, "~/group_odoms_in")>;
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>(shopts, "~/group_odoms_in");
@@ -660,22 +672,117 @@ void WrapperRosRBL::cbTmSetRef()  // //{
     //   pcl_loaded_ = true;
     // }
 
-  if (!pcl_loaded_ && sh_pcl_.newMsg()) {
-    auto msg = sh_pcl_.getMsg();
-    // if (msg->header.frame_id != _frame_) {
-    //   ROS_ERROR_STREAM("[WrapperRosRBL]: PCL msg is not in frame: " << _frame_);
-    //   return;
-    // }
 
-    pcl::PointCloud<pcl::PointXYZI> tmp;
-    pcl::fromROSMsg(*msg, tmp);
-    last_obstacle_cloud_ =
-      std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+  if (octomap_msg_) {
+    if (sh_octomap_.newMsg()) {
+      auto msg = sh_octomap_.getMsg();
+      if (!msg) {
+        RCLCPP_WARN(node_->get_logger(), "Received empty octomap message");
+        return;
+      }
 
-    pcl_loaded_ = true;
+      std::unique_ptr<octomap::AbstractOcTree> octree_base;
+      if (msg->binary) {
+        octree_base.reset(octomap_msgs::binaryMsgToMap(*msg));
+      } else {
+        octree_base.reset(octomap_msgs::fullMsgToMap(*msg));
+      }
+      if (!octree_base) {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to convert %s octomap message to OcTree",
+                     msg->binary ? "binary" : "full");
+        return;
+      }
 
-    rbl_controller_->setPCL1(last_obstacle_cloud_);
-    RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
+      auto* octree = dynamic_cast<octomap::OcTree*>(octree_base.get());
+      if (!octree) {
+        RCLCPP_ERROR(node_->get_logger(), "Converted octomap is not an OcTree");
+        return;
+      }
+
+      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+      cloud->header.frame_id = _frame_;
+      cloud->points.reserve(octree->size());
+      const bool needs_transform = msg->header.frame_id != _frame_;
+      std::size_t total_leaf_count = 0;
+      std::size_t occupied_leaf_count = 0;
+      std::size_t transform_failed_count = 0;
+
+      for (auto it = octree->begin_leafs(), end = octree->end_leafs(); it != end; ++it) {
+        ++total_leaf_count;
+
+        if (!octree->isNodeOccupied(*it)) {
+          continue;
+        }
+        ++occupied_leaf_count;
+
+        geometry_msgs::msg::Point point_msg;
+        point_msg.x = it.getX();
+        point_msg.y = it.getY();
+        point_msg.z = it.getZ();
+
+        if (needs_transform) {
+          geometry_msgs::msg::PointStamped point_stamped;
+          point_stamped.header = msg->header;
+          point_stamped.point = point_msg;
+
+          auto transformed_point = transformer_->transformSingle(point_stamped, _frame_);
+          if (!transformed_point) {
+            ++transform_failed_count;
+            RCLCPP_WARN(node_->get_logger(), "Failed to transform octomap point from %s to %s",
+                        msg->header.frame_id.c_str(), _frame_.c_str());
+            continue;
+          }
+
+          point_msg = transformed_point->point;
+        }
+
+        pcl::PointXYZI point;
+        point.x = static_cast<float>(point_msg.x);
+        point.y = static_cast<float>(point_msg.y);
+        point.z = static_cast<float>(point_msg.z);
+        point.intensity = 1.0f;
+        cloud->points.push_back(point);
+      }
+
+      cloud->width = static_cast<std::uint32_t>(cloud->points.size());
+      cloud->height = 1;
+      cloud->is_dense = true;
+
+      RCLCPP_INFO_THROTTLE(
+          node_->get_logger(), *clock_, 2000,
+          "Octomap stats: frame=%s -> %s, resolution=%.3f, total_leafs=%zu, occupied_leafs=%zu, transformed_points=%zu, "
+          "transform_failures=%zu",
+          msg->header.frame_id.c_str(), _frame_.c_str(), octree->getResolution(), total_leaf_count, occupied_leaf_count,
+          cloud->points.size(), transform_failed_count);
+
+      if (cloud->empty()) {
+        RCLCPP_WARN_THROTTLE(
+            node_->get_logger(), *clock_, 2000,
+            "Converted octomap cloud is empty. total_leafs=%zu, occupied_leafs=%zu, transform_failures=%zu",
+            total_leaf_count, occupied_leaf_count, transform_failed_count);
+      }
+
+      last_obstacle_cloud_ = cloud;
+      pcl_loaded_ = true;
+      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
+    }
+
+  } else {
+    if (sh_pcl_.newMsg()) {
+      auto msg = sh_pcl_.getMsg();
+      pcl::PointCloud<pcl::PointXYZI> tmp;
+      pcl::fromROSMsg(*msg, tmp);
+      last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+      pcl_loaded_ = true;
+      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
+    }
+  }
+
+  if (!last_obstacle_cloud_) {
+    RCLCPP_WARN(node_->get_logger(), "Waiting for obstacle cloud");
+    return;
   }
 
   auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*last_obstacle_cloud_);
@@ -816,6 +923,8 @@ bool WrapperRosRBL::cbSrvGotoPosition(const std::shared_ptr<mrs_msgs::srv::Vec4:
   {
     std::scoped_lock lck(mtx_rbl_);
     rbl_controller_->setGoal(Eigen::Vector3d{ req->goal[0], req->goal[1], req->goal[2] });
+    RCLCPP_INFO(node_->get_logger(), "RBL goal set to [%.3f, %.3f, %.3f], heading %.3f",
+                req->goal[0], req->goal[1], req->goal[2], req->goal[3]);
   }
   res->success = true;
   res->message = "Goal set";

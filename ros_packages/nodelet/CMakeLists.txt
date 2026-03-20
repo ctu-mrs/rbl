@@ -36,6 +36,8 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(mrs_lib REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(octomap REQUIRED)
+find_package(octomap_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(mrs_uav_testing REQUIRED)
@@ -60,6 +62,7 @@ ament_target_dependencies(
   rclcpp
   rclcpp_components
   mrs_lib
+  octomap_msgs
   pcl_conversions
   geometry_msgs
   nav_msgs
@@ -73,6 +76,7 @@ target_link_libraries(
   rbl_replanner::rbl_replanner
   ciri::ciri
   rbl_controller_core::rbl_controller_core
+  ${OCTOMAP_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
