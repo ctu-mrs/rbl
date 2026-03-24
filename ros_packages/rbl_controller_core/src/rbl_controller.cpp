@@ -704,6 +704,11 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
   (void)neighbors;     // TODO - currently unused
   (void)threshold_active;     // TODO - currently unused
 
+  if (!ciri_solver_) {
+    std::cout << "[RBLController]: Ciri solver is not initialized." << std::endl;
+    return false;
+  }
+
   // map cloud ptr to Eigen::Matrix3Xd as input to ciri
   size_t num_points = cloud->points.size();
   if (num_points == 0) {
@@ -770,23 +775,18 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   double dist_agent_seed = (seed_b - agent_pos).norm();
   Eigen::Vector3d direction_vec = (agent_pos - seed_b)/(dist_agent_seed+eps);
+  const Eigen::Vector3d base_seed = seed_b;
+  const double          step_dist = dist_agent_seed / static_cast<double>(segments);
 
   //   for (int i = 1; i < segments; ++i) {
   for (int i = 0; i < segments; ++i) {
-    seed_b = seed_b + i * direction_vec * (dist_agent_seed / segments);
+    const Eigen::Vector3d candidate_seed = base_seed + static_cast<double>(i) * direction_vec * step_dist;
     // Eigen::Vector3d seed_b = agent_pos +  direction_vec * (params_.radius/i);
-    result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
-    plane_data = ciri_solver_->getPlaneData();
-
-    // if (plane_data.size() > 50) {
-    //   std::cout << "[RBLController]: Recieved planes from ciri solver: " << plane_data.size() << std::endl;
-    //   result = false;
-    // }
-
-    result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), seed_b.cast<float>());
+    result     = ciri_solver_->comvexDecomposition(bd, pc, agent_pos.cast<float>(), candidate_seed.cast<float>());
     plane_data = ciri_solver_->getPlaneData();
     
     if (result) {
+      seed_b = candidate_seed;
       break;
     }
     else {
@@ -923,6 +923,14 @@ for (const auto& p : cloud->points) {
     cloud_low_intensity->points.push_back(p);
   }
 }
+
+cloud_high_intensity->width = static_cast<std::uint32_t>(cloud_high_intensity->points.size());
+cloud_high_intensity->height = 1;
+cloud_high_intensity->is_dense = true;
+
+cloud_low_intensity->width = static_cast<std::uint32_t>(cloud_low_intensity->points.size());
+cloud_low_intensity->height = 1;
+cloud_low_intensity->is_dense = true;
 // std::cout << "cloud_high_intensity: " << cloud_high_intensity->points.size() << std::endl;
 // std::cout << "cloud_low_intensity: " << cloud_low_intensity->points.size() << std::endl;
 
@@ -965,17 +973,23 @@ for (const auto& p : cloud->points) {
       // std::cout << "[RBLController]: cell_b "<< cell_B.size() << std::endl;
       partitionCellA(cell_B, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud_high_intensity);
       // std::cout << "[RBLController]: cell_b1 "<< cell_B.size() << std::endl;
-      bool success = partitionCellACiri(cell_A,
-                                        cell_B,
-                                        plane_normals,
-                                        plane_points,
-                                        agent_pos,
-                                        waypoint,
-                                        neighbors_pos,
-                                        cloud_low_intensity,
-                                        c1,
-                                        seed_b,
-                                        threshold_active);
+      bool success = false;
+      if (!cloud_low_intensity->empty()) {
+        success = partitionCellACiri(cell_A,
+                                     cell_B,
+                                     plane_normals,
+                                     plane_points,
+                                     agent_pos,
+                                     waypoint,
+                                     neighbors_pos,
+                                     cloud_low_intensity,
+                                     c1,
+                                     seed_b,
+                                     threshold_active);
+      }
+      else {
+        std::cout << "[RBLController]: Skipping Ciri, low-intensity cloud is empty." << std::endl;
+      }
       if (cell_B == cell_A) {
         std::cout << "[RBLController]: equal" << std::endl;
       } 

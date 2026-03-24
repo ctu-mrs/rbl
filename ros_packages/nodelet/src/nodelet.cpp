@@ -1,6 +1,6 @@
 // CUSTOM
 #include "rbl_controller_core/rbl_controller.h"
-// #include <rbl_controller/PoseVelocityArray.h>
+#include <rbl_controller_node/msg/pose_velocity_array.hpp>
 
 // MRS LIB
 #include <mrs_lib/mutex.h>
@@ -195,8 +195,10 @@ private:
   mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>        sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
   mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>           sh_octomap_;
+  mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray> sh_group_states_;
   // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
 
+  void updateGroupStates(const rbl_controller_node::msg::PoseVelocityArray::ConstSharedPtr& msg);
 
 
 
@@ -327,6 +329,7 @@ void WrapperRosRBL::initialize()  // //{
   } else {
     sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
   }
+  sh_group_states_    = mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray>(shopts, "~/group_states_in");
   
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>;
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry> (shopts, "~/group_odoms_in")>;
@@ -442,6 +445,64 @@ void WrapperRosRBL::initialize()  // //{
   RCLCPP_INFO_ONCE(node_->get_logger(), "Initialization completed");
 }  // //}
 
+void WrapperRosRBL::updateGroupStates(const rbl_controller_node::msg::PoseVelocityArray::ConstSharedPtr& msg) {
+  if (!msg) {
+    RCLCPP_WARN(node_->get_logger(), "Received empty group states message");
+    return;
+  }
+
+  if (msg->poses.size() != msg->velocities.size()) {
+    RCLCPP_WARN(
+        node_->get_logger(),
+        "Ignoring group states message with mismatched array sizes: poses=%zu velocities=%zu",
+        msg->poses.size(), msg->velocities.size());
+    return;
+  }
+
+  std::vector<State> updated_group_states;
+  updated_group_states.reserve(msg->poses.size());
+
+  for (std::size_t i = 0; i < msg->poses.size(); ++i) {
+    geometry_msgs::msg::PointStamped point_msg;
+    point_msg.header = msg->header;
+    point_msg.point = msg->poses[i].position;
+
+    auto transformed_point = transformer_->transformSingle(point_msg, _frame_);
+    if (!transformed_point) {
+      RCLCPP_WARN(
+          node_->get_logger(),
+          "Failed to transform group state position %zu from %s to %s",
+          i,
+          msg->header.frame_id.c_str(),
+          _frame_.c_str());
+      continue;
+    }
+
+    geometry_msgs::msg::Vector3Stamped velocity_msg;
+    velocity_msg.header = msg->header;
+    velocity_msg.vector = msg->velocities[i];
+
+    auto transformed_velocity = transformer_->transformSingle(velocity_msg, _frame_);
+    if (!transformed_velocity) {
+      RCLCPP_WARN(
+          node_->get_logger(),
+          "Failed to transform group state velocity %zu from %s to %s",
+          i,
+          msg->header.frame_id.c_str(),
+          _frame_.c_str());
+      continue;
+    }
+
+    State state;
+    state.position = pointToEigen(transformed_point->point);
+    state.velocity = vectorToEigen(transformed_velocity->vector);
+    updated_group_states.push_back(state);
+  }
+
+  group_states_ = std::move(updated_group_states);
+  rbl_controller_->setGroupStates(group_states_);
+}
+
 void WrapperRosRBL::cbTmSetRef()  // //{
 {
   if (!is_initialized_) {
@@ -523,6 +584,11 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       auto alt = sh_alt_.getMsg();
       rbl_controller_->setAltitude(alt->value);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted cur altitude to rbl");
+    }
+
+    if (sh_group_states_.newMsg()) {
+      updateGroupStates(sh_group_states_.getMsg());
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Updated group states");
     }
 
 
@@ -846,42 +912,61 @@ void WrapperRosRBL::cbTmDiagnostics()  // //{
     return;
   }
 
+  Eigen::Vector3d goal;
+  Eigen::Vector3d waypoint;
+  Eigen::Vector3d current_position;
+  Eigen::Vector3d centroid;
+  Eigen::Vector3d seed_b;
+  std::vector<Eigen::Vector3d> cell_a_points;
+  std::vector<Eigen::Vector3d> sensed_cell_a_points;
+  std::vector<Eigen::Vector3d> inflated_map_points;
+  std::vector<Eigen::Vector3d> path_points;
+
   {
     std::scoped_lock lck(mtx_rbl_);
+    goal                 = rbl_controller_->getGoal();
+    waypoint             = rbl_controller_->getWaypoint();
+    current_position     = rbl_controller_->getCurrentPosition();
+    centroid             = rbl_controller_->getCentroid();
+    seed_b               = rbl_controller_->getSeedB();
+    cell_a_points        = rbl_controller_->getCellA();
+    sensed_cell_a_points = rbl_controller_->getSensedCellA();
+    inflated_map_points  = rbl_controller_->getInflatedMap();
+    path_points          = rbl_controller_->getPath();
+  }
 
-    pub_viz_target_.publish(getVizModGroupGoal(rbl_controller_->getGoal(), 2 * rbl_params_.encumbrance, _frame_));
-    pub_viz_waypoint_.publish(getVizWaypoint(rbl_controller_->getWaypoint(), 2 * rbl_params_.encumbrance, _frame_));
-    pub_viz_position_.publish(getVizPosition(rbl_controller_->getCurrentPosition(), 2 * rbl_params_.encumbrance, _frame_));
-    pub_viz_centroid_.publish(getVizCentroid(rbl_controller_->getCentroid(), _frame_));
-    pub_viz_seed_B_.publish(getVizCentroid(rbl_controller_->getSeedB(), _frame_));
-    auto cell_A = getVizCellA(rbl_controller_->getCellA(), _frame_);
-    if (cell_A) {
-      pub_viz_cell_A_.publish(*cell_A);
-    } else {
-      RCLCPP_WARN(node_->get_logger(), "Failed to publish cell A");
-    }
-    auto cell_A_sensed = getVizCellA(rbl_controller_->getSensedCellA(), _frame_);
-    if (cell_A_sensed) {
-      pub_viz_cell_A_sensed_.publish(*cell_A_sensed);
-    } else {
-      RCLCPP_WARN(node_->get_logger(), "Failed to publish sensed cell A");
-    }
-    auto inflated_map = getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_);
-    if (inflated_map) {
-      pub_viz_inflated_map_.publish(*inflated_map);
-    } else {
-      RCLCPP_WARN(node_->get_logger(), "Failed to publish inflated map");
-    }
-    auto path = getVizPath(rbl_controller_->getPath(), _frame_);
-    if (path) {
-      pub_viz_path_.publish(*path);
-    } else {
-      RCLCPP_WARN(node_->get_logger(), "Failed to publish planned path");
-    }
-    // pub_viz_cell_A_.publish(*getVizCellA(rbl_controller_->getCellA(), _frame_));
-    // pub_viz_cell_A_sensed_.publish(*getVizCellA(rbl_controller_->getSensedCellA(), _frame_));
-    // pub_viz_inflated_map_.publish(*getVizInflatedMap(rbl_controller_->getInflatedMap(), _frame_));
-    // pub_viz_path_.publish(*getVizPath(rbl_controller_->getPath(), _frame_));
+  pub_viz_target_.publish(getVizModGroupGoal(goal, 2 * rbl_params_.encumbrance, _frame_));
+  pub_viz_waypoint_.publish(getVizWaypoint(waypoint, 2 * rbl_params_.encumbrance, _frame_));
+  pub_viz_position_.publish(getVizPosition(current_position, 2 * rbl_params_.encumbrance, _frame_));
+  pub_viz_centroid_.publish(getVizCentroid(centroid, _frame_));
+  pub_viz_seed_B_.publish(getVizCentroid(seed_b, _frame_));
+
+  auto cell_A = getVizCellA(cell_a_points, _frame_);
+  if (cell_A) {
+    pub_viz_cell_A_.publish(*cell_A);
+  } else {
+    RCLCPP_WARN(node_->get_logger(), "Failed to publish cell A");
+  }
+
+  auto cell_A_sensed = getVizCellA(sensed_cell_a_points, _frame_);
+  if (cell_A_sensed) {
+    pub_viz_cell_A_sensed_.publish(*cell_A_sensed);
+  } else {
+    RCLCPP_WARN(node_->get_logger(), "Failed to publish sensed cell A");
+  }
+
+  auto inflated_map = getVizInflatedMap(inflated_map_points, _frame_);
+  if (inflated_map) {
+    pub_viz_inflated_map_.publish(*inflated_map);
+  } else {
+    RCLCPP_WARN(node_->get_logger(), "Failed to publish inflated map");
+  }
+
+  auto path = getVizPath(path_points, _frame_);
+  if (path) {
+    pub_viz_path_.publish(*path);
+  } else {
+    RCLCPP_WARN(node_->get_logger(), "Failed to publish planned path");
   }
 }  // //}
 bool cbSrvActivateControl(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);

@@ -64,7 +64,7 @@ windows:
   - map_plan:
       layout: tiled
       panes:
-        - ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=ouster/points
+        - ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=filter_reflective_uavs/filtered_pcl
         # - 'history -s ./goto.py'
   
   - takeoff:

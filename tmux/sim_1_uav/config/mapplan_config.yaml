@@ -34,7 +34,7 @@ mrs_octomap_server:
 
           crop_robot_body:
             enabled: true
-            box_size: 1.0 # [m]
+            box_size: 1.4 # [m]
 
 mrs_octomap_planner:
 

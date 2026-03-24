@@ -87,6 +87,7 @@ def generate_launch_description():
             ("~/alt_in","estimation_manager/garmin_agl/agl_height"), 
             ("~/pcl_in","pcl_in"), 
             ("~/octomap_in","octomap_server/octomap_local_binary"), 
+            ("~/group_states_in", "group_states_in"),
 
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
 
@@ -143,6 +144,7 @@ def generate_launch_description():
             name="rbl_controller_container",
             package="rclcpp_components",
             executable="component_container_mt",
+            # prefix=['gdb -q -ex "set pagination off" -ex "handle SIGABRT stop print nopass" -ex run -ex bt -ex "thread apply all bt" --args'],
             composable_node_descriptions=[rbl_controller_node],
             output="screen",
             condition=IfCondition(standalone)
