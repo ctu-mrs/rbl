@@ -13,6 +13,8 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd,
 // bd -> boundary, each row (n_x, n_y, n_z, d) which forms constraint n_xx + n_yy + n_zz + d <= 0. Should be boundary of
 // the map? pc -> point cloud of obstacles a -> seed for ellipsoid (agent pos) b -> sedd for ellipsoid (waypoint)
 {
+  plane_data_.clear();
+
   const Eigen::Vector4f ah(a(0), a(1), a(2), 1.0);
   const Eigen::Vector4f bh(b(0), b(1), b(2), 1.0);
 
@@ -25,6 +27,11 @@ bool CIRI::comvexDecomposition(const Eigen::MatrixX4f& bd,
   /// Maximum M boundary constraints and N point constraints
   const int M = bd.rows();
   const int N = pc.cols();
+
+  if (N == 0) {
+    std::cout << "[CIRI]: Point cloud is empty. Unable to construct polyhedron." << std::endl;
+    return false;
+  }
 
   Ellipsoid E(Eigen::Matrix3f::Identity(), (a + b) / 2);
 
@@ -222,7 +229,7 @@ void CIRI::findTangentPlaneOfSphere(const Eigen::Vector3f& center,
                                     Eigen::Vector4f&       outter_plane)
 {
   Eigen::Vector3f seed = seed_p;
-  Eigen::Vector3f dif  = pass_point - pass_point;
+  Eigen::Vector3f dif  = pass_point - seed_p;
   if (dif.norm() < 1e-3) {
     if ((pass_point - center).head(2).norm() > 1e-3) {
       Eigen::Vector3f v1 = (pass_point - center).normalized();
@@ -273,6 +280,9 @@ double CIRI::distancePointToSegment(const Eigen::Vector3f& P,
   Eigen::Vector3f AP = P - A;
 
   double AB_AB = AB.dot(AB);  // AB·AB
+  if (AB_AB <= params_.epsilon) {
+    return (P - A).norm();
+  }
   double AP_AB = AP.dot(AB);  // AP·AB
   double t     = AP_AB / AB_AB;
 
