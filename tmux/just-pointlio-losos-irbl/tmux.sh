@@ -60,6 +60,8 @@ input=(
 '
   'RCcontroller' 'history -s ros2 run rbl_rc rc.py
 '
+  'ReflectiveDetection' 'ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
+'
   'kernel_log' 'tail -f /var/log/kern.log -n 100
 '
   'tf' './config/livox_tf.sh

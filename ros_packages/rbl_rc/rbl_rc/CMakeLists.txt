@@ -42,11 +42,11 @@ install(
   DESTINATION lib
   )
 
-install(
-  DIRECTORY tmux
-  USE_SOURCE_PERMISSIONS
-  DESTINATION share/${PROJECT_NAME}
-  )
+# install(
+#   DIRECTORY tmux
+#   USE_SOURCE_PERMISSIONS
+#   DESTINATION share/${PROJECT_NAME}
+#   )
 
 ament_python_install_package(${PROJECT_NAME})
 
