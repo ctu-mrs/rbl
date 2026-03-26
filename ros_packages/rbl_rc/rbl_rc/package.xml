@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+
+  <name>rbl_rc</name>
+  <version>1.0.0</version>
+
+  <description>rc_rbl</description>
+
+  <maintainer email="manuel.boldrer@gmail.com">Mauel Boldrer</maintainer>
+
+  <license>BSD 3-Clause</license>
+
+  <author email="manuel.boldrer@gmail.com">Manuel Boldrer</author>
+
+  <test_depend>rclcpp</test_depend>
+  <test_depend>mrs_msgs</test_depend>
+  <test_depend>mrs_lib</test_depend>
+  <test_depend>mrs_uav_testing</test_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ament_cmake</exec_depend>
+  <exec_depend>ament_cmake_python</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>

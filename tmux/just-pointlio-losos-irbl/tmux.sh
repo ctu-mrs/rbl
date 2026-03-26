@@ -56,7 +56,9 @@ input=(
 '
   'iRBL' 'ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/irbl_config.yaml
 '
-  'iRBLgoto' 'history -s ros2 service call /uav1/rbl_controller/goto mrs_msgs/srv/Vec4 "{goal: [2.0, 0.0, 0.0, 0.0]}"
+  'iRBLgoto' 'history -s ./activation.sh 
+'
+  'RCcontroller' 'history -s ros2 run rbl_rc rc.py
 '
   'kernel_log' 'tail -f /var/log/kern.log -n 100
 '
