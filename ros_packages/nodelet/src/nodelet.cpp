@@ -20,6 +20,7 @@
 #include <octomap_msgs/conversions.h>
 #include <mrs_msgs/srv/reference_stamped_srv.hpp>
 #include <mrs_msgs/srv/vec4.hpp>
+#include <mrs_msgs/srv/float64_stamped.hpp>
 
 // #include <mrs_msgs/msg/PoseWithCovarianceArrayStamped.hpp>
 // #include <mrs_msgs/msg/Reference.hpp>
@@ -113,6 +114,10 @@ private:
   // bool cbSrvGotoPosition(const std::shared_ptr<std_srvs::srv::Trigger::Request> req, const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
   bool cbSrvGotoPosition(const std::shared_ptr<mrs_msgs::srv::Vec4::Request>  req,  const std::shared_ptr<mrs_msgs::srv::Vec4::Response> res);
   mrs_lib::ServiceServerHandler<mrs_msgs::srv::Vec4> srv_goto_position_;
+
+  bool cbSrvSetBetaD(const std::shared_ptr<mrs_msgs::srv::Float64Stamped::Request> req, const std::shared_ptr<mrs_msgs::srv::Float64Stamped::Response> res
+  );
+  mrs_lib::ServiceServerHandler<mrs_msgs::srv::Float64Stamped> srv_set_betaD_;
 
   // ros::ServiceServer srv_activate_control_;
   // bool               cbSrvActivateControl([[maybe_unused]] std_srvs::Trigger::Request& req,
@@ -406,6 +411,10 @@ void WrapperRosRBL::initialize()  // //{
   srv_goto_position_ = mrs_lib::ServiceServerHandler<mrs_msgs::srv::Vec4>(
       node_, "~/goto_out", std::bind(&WrapperRosRBL::cbSrvGotoPosition, this, std::placeholders::_1, std::placeholders::_2),
       rclcpp::SystemDefaultsQoS(), cbkgrp_ss_);
+  srv_set_betaD_ = mrs_lib::ServiceServerHandler<mrs_msgs::srv::Float64Stamped>(
+      node_, "~/set_betaD", std::bind(&WrapperRosRBL::cbSrvSetBetaD, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::SystemDefaultsQoS(),
+      cbkgrp_ss_);
 
   // srv_activate_control_ = nh.advertiseService("control_activation_in", &WrapperRosRBL::cbSrvActivateControl, this);
   // srv_goto_position_    = nh.advertiseService("goto_in", &WrapperRosRBL::cbSrvGotoPosition, this);
@@ -1001,6 +1010,26 @@ bool WrapperRosRBL::cbSrvDeactivateControl([[maybe_unused]] const std::shared_pt
   }
   return true;
 }  // //}
+
+bool WrapperRosRBL::cbSrvSetBetaD(
+  const std::shared_ptr<mrs_msgs::srv::Float64Stamped::Request> req,
+  const std::shared_ptr<mrs_msgs::srv::Float64Stamped::Response> res)
+{
+  {
+    std::scoped_lock lck(mtx_rbl_);
+
+    rbl_params_.betaD = req->value;
+
+    rbl_controller_->setBetaD(req->value);
+  }
+
+  RCLCPP_INFO(node_->get_logger(), "betaD set to %.3f", req->value);
+
+  res->success = true;
+  res->message = "betaD updated";
+
+  return true;
+}
 
 bool WrapperRosRBL::cbSrvGotoPosition(const std::shared_ptr<mrs_msgs::srv::Vec4::Request>  req,  // //{
                                       const std::shared_ptr<mrs_msgs::srv::Vec4::Response> res)

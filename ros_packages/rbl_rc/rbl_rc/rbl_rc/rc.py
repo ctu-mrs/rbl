@@ -3,35 +3,45 @@
 import rclpy
 from rclpy.node import Node
 from mavros_msgs.msg import State, RCIn
-from mrs_msgs.srv import Vec4
+from mrs_msgs.srv import Vec4, Float64Stamped
 from nav_msgs.msg import Odometry
+
 
 class RCGoalController(Node):
     def __init__(self):
         super().__init__('rc_goal_controller')
-        # Current mode and last goal
-        self.current_mode = ""
-        self.last_goal = [0.0, 0.0, 2.0, 0.0]  # x, y, z, yaw
 
+        # State
+        self.current_mode = ""
         self.current_pose = None
-        # Parameters
+
+        # Goal
+        self.last_goal = [0.0, 0.0, 2.0, 0.0]
+
+        # betaD
+        self.betaD = 0.0
+        self.last_betaD_sent = None
+        self.beta_threshold = 0.1
+
+        # Params
         self.step_size = 0.2
-        self.deadzone = 50  # ignore small stick movements
+        self.deadzone = 50
+        self.goal_threshold = 0.05
 
         # Subscribers
         self.create_subscription(State, '/uav1/mavros/state', self.state_cb, 10)
         self.create_subscription(RCIn, '/uav1/mavros/rc/in', self.rc_cb, 10)
+        self.create_subscription(Odometry, '/uav1/estimation_manager/odom_main', self.odom_cb, 10)
 
-        self.create_subscription(
-            Odometry,
-            '/uav1/estimation_manager/odom_main',
-            self.odom_cb,
-            10
-        )
-        # Service client
-        self.cli = self.create_client(Vec4, '/uav1/rbl_controller/goto')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for /uav1/rbl_controller/goto service...')
+        # Service clients
+        self.goal_cli = self.create_client(Vec4, '/uav1/rbl_controller/goto')
+        self.beta_cli = self.create_client(Float64Stamped, '/uav1/rbl_controller/set_betaD')
+
+        while not self.goal_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for /goto service...')
+
+        while not self.beta_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for /set_betaD service...')
 
         self.get_logger().info('RC Goal Controller ready')
 
@@ -40,31 +50,51 @@ class RCGoalController(Node):
     # -----------------------
     def odom_cb(self, msg):
         self.current_pose = msg.pose.pose
+
     def state_cb(self, msg):
         self.current_mode = msg.mode
 
     def rc_cb(self, msg):
-        if msg.channels[8] < 1400:
-            return
-        if len(msg.channels) < 3:
+        if len(msg.channels) < 9:
             return
 
-        # CH1 = left/right (x), CH3 = forward/back (y)
+        if msg.channels[8] < 1400:
+            return
+
+        # Channels
         ch3 = msg.channels[0]
+        ch2 = msg.channels[1]  # betaD
         ch1 = msg.channels[2]
         ch9 = msg.channels[8]
 
+        # -----------------------
+        # betaD handling
+        # -----------------------
+        new_beta = self.map_range(ch2)
+
+        if self.last_betaD_sent is None or abs(new_beta - self.last_betaD_sent) > self.beta_threshold:
+            self.betaD = new_beta
+            self.last_betaD_sent = new_beta
+
+            self.get_logger().info(f"betaD → {self.betaD:.2f}")
+            self.send_beta()  # 🔥 separate service
+
+        # -----------------------
+        # Position control
+        # -----------------------
         dx = self.process_channel(ch1)
         dy = -self.process_channel(ch3)
 
-        if dx == 0.0 and dy == 0.0:
-            return
+        goal_changed = False
 
+        if dx != 0.0 or dy != 0.0:
+            self.last_goal[0] += dx * self.step_size
+            self.last_goal[1] += dy * self.step_size
+            goal_changed = True
 
-
-        self.last_goal[0] += dx * self.step_size
-        self.last_goal[1] += dy * self.step_size
-
+        # -----------------------
+        # HOLD mode
+        # -----------------------
         if ch9 > 1550:
             if self.current_pose is None:
                 self.get_logger().warn("No odometry yet")
@@ -74,13 +104,19 @@ class RCGoalController(Node):
             y = self.current_pose.position.y
             z = self.current_pose.position.z
 
-            self.last_goal = [x, y, z, 0.0]
+            new_goal = [x, y, z, 0.0]
 
-            self.get_logger().info(f"[HOLD] Setting goal to current position: {self.last_goal}")
-            # self.send_goal()
+            if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
+                self.last_goal = new_goal
+                goal_changed = True
+                self.get_logger().info(f"[HOLD] {self.last_goal}")
 
-        self.get_logger().info(f"New goal: {self.last_goal}")
-        self.send_goal()
+        # -----------------------
+        # Send goal
+        # -----------------------
+        if goal_changed:
+            self.get_logger().info(f"Sending goal: {self.last_goal}")
+            self.send_goal()
 
     # -----------------------
     # Helpers
@@ -88,13 +124,25 @@ class RCGoalController(Node):
     def process_channel(self, pwm):
         if abs(pwm - 1500) < self.deadzone:
             return 0.0
-        return (pwm - 1500.0) / 500.0  # normalize to [-1,1]
+        return (pwm - 1500.0) / 500.0
 
+    def map_range(self, pwm, in_min=983.0, in_max=2006.0, out_min=0.1, out_max=20.0):
+        pwm = max(min(pwm, in_max), in_min)
+        return out_min + (pwm - in_min) * (out_max - out_min) / (in_max - in_min)
+
+    # -----------------------
+    # Service calls
+    # -----------------------
     def send_goal(self):
         req = Vec4.Request()
         req.goal = self.last_goal
-        future = self.cli.call_async(req)
+        future = self.goal_cli.call_async(req)
         future.add_done_callback(self.goal_response_cb)
+
+    def send_beta(self):
+        req = Float64Stamped.Request()
+        req.value = float(self.betaD)
+        self.beta_cli.call_async(req)
 
     def goal_response_cb(self, future):
         try:

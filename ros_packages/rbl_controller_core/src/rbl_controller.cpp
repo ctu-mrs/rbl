@@ -64,6 +64,11 @@ void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
   th_          = 0.0;
 }  // //}
 
+void RBLController::setBetaD(double beta)
+{
+  params_.betaD = beta;
+}
+
 void RBLController::setAltitude(const double& alt)  // //{
 {
   altitude_ = alt;
