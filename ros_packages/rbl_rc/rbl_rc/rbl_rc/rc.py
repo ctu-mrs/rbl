@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from mavros_msgs.msg import State, RCIn
-from mrs_msgs.srv import Vec4, Float64Stamped
+from mrs_msgs.srv import Vec4, Float64Srv
 from nav_msgs.msg import Odometry
 
 
@@ -35,7 +35,7 @@ class RCGoalController(Node):
 
         # Service clients
         self.goal_cli = self.create_client(Vec4, '/uav1/rbl_controller/goto')
-        self.beta_cli = self.create_client(Float64Stamped, '/uav1/rbl_controller/set_betaD')
+        self.beta_cli = self.create_client(Float64Srv, '/uav1/rbl_controller/set_betaD')
 
         while not self.goal_cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for /goto service...')
@@ -140,7 +140,7 @@ class RCGoalController(Node):
         future.add_done_callback(self.goal_response_cb)
 
     def send_beta(self):
-        req = Float64Stamped.Request()
+        req = Float64Srv.Request()
         req.value = float(self.betaD)
         self.beta_cli.call_async(req)
 
