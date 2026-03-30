@@ -112,6 +112,7 @@ public:
     void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
     void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
   void setGoal(const Eigen::Vector3d& point);
+  void setBetaD(double beta);
   void setAltitude(const double& alt);
   void setRollPitchYaw(const Eigen::Vector3d& rpy);
 
