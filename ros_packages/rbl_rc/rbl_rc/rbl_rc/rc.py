@@ -58,8 +58,6 @@ class RCGoalController(Node):
         if len(msg.channels) < 9:
             return
 
-        if msg.channels[8] < 1400:
-            return
 
         # Channels
         ch3 = msg.channels[0]
@@ -67,6 +65,8 @@ class RCGoalController(Node):
         ch1 = msg.channels[2]
         ch9 = msg.channels[8]
 
+        if ch9 < 1400:
+            return
         # -----------------------
         # betaD handling
         # -----------------------
@@ -77,7 +77,7 @@ class RCGoalController(Node):
             self.last_betaD_sent = new_beta
 
             self.get_logger().info(f"betaD → {self.betaD:.2f}")
-            self.send_beta()  # 🔥 separate service
+            self.send_beta() 
 
         # -----------------------
         # Position control
