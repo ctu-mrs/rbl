@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from mavros_msgs.msg import State, RCIn
-from mrs_msgs.srv import Vec4, Float64Srv
+from mrs_msgs.srv import Vec4, Float64Srv, String
 from nav_msgs.msg import Odometry
 
 
@@ -28,6 +28,9 @@ class RCGoalController(Node):
         self.deadzone = 50
         self.goal_threshold = 0.05
 
+        # Estimator switching
+        self.last_ch9_state = None
+
         # Subscribers
         self.create_subscription(State, '/uav1/mavros/state', self.state_cb, 10)
         self.create_subscription(RCIn, '/uav1/mavros/rc/in', self.rc_cb, 10)
@@ -36,12 +39,16 @@ class RCGoalController(Node):
         # Service clients
         self.goal_cli = self.create_client(Vec4, '/uav1/rbl_controller/goto')
         self.beta_cli = self.create_client(Float64Srv, '/uav1/rbl_controller/set_betaD')
+        self.estimator_cli = self.create_client(String, '/uav1/estimation_manager/change_estimator')
 
         while not self.goal_cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for /goto service...')
 
         while not self.beta_cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for /set_betaD service...')
+
+        while not self.estimator_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for estimator service...')
 
         self.get_logger().info('RC Goal Controller ready')
 
@@ -58,7 +65,6 @@ class RCGoalController(Node):
         if len(msg.channels) < 9:
             return
 
-
         # Channels
         ch3 = msg.channels[0]
         ch2 = msg.channels[1]  # betaD
@@ -67,6 +73,34 @@ class RCGoalController(Node):
 
         if ch9 < 1400:
             return
+
+        # -----------------------
+        # Estimator switching (EDGE TRIGGERED)
+        # -----------------------
+        mode_mid = 1400 < ch9 < 1800
+        mode_high = ch9 > 1900
+
+        if self.last_ch9_state != (mode_mid, mode_high):
+
+            if self.current_pose is None:
+                self.get_logger().warn("No odometry yet")
+            else:
+                x = self.current_pose.position.x
+                y = self.current_pose.position.y
+                z = self.current_pose.position.z
+
+                self.last_goal = [x, y, z, 0.0]
+                self.get_logger().info(f"[EST SWITCH HOLD] {self.last_goal}")
+                self.send_goal()
+
+            if mode_mid:
+                self.send_estimator('point_lio')
+
+            elif mode_high:
+                self.send_estimator('gps_garmin')
+
+        self.last_ch9_state = (mode_mid, mode_high)
+
         # -----------------------
         # betaD handling
         # -----------------------
@@ -77,7 +111,7 @@ class RCGoalController(Node):
             self.last_betaD_sent = new_beta
 
             self.get_logger().info(f"betaD → {self.betaD:.2f}")
-            self.send_beta() 
+            self.send_beta()
 
         # -----------------------
         # Position control
@@ -143,6 +177,12 @@ class RCGoalController(Node):
         req = Float64Srv.Request()
         req.value = float(self.betaD)
         self.beta_cli.call_async(req)
+
+    def send_estimator(self, name):
+        req = String.Request()
+        req.value = name
+        self.estimator_cli.call_async(req)
+        self.get_logger().info(f"Switched estimator → {name}")
 
     def goal_response_cb(self, future):
         try:
