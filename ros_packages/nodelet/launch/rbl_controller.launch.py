@@ -16,6 +16,7 @@ def generate_launch_description():
 
     pkg_name = "rbl_controller_node"
     pkg_path = get_package_share_directory(pkg_name)
+    filter_pkg_path = get_package_share_directory("filter_reflective_uavs")
 
     ld = LaunchDescription()
 
@@ -76,6 +77,7 @@ def generate_launch_description():
 
         parameters=[
             {"config": os.path.join(pkg_path, "config", "default.yaml")},
+            {"filter_config": os.path.join(filter_pkg_path, "config", "filter_reflective_uavs.yaml")},
             {"custom_config": custom_config},
             {"simulation": True},
             {"uav_name": uav_name},
@@ -86,8 +88,14 @@ def generate_launch_description():
             ("~/odom_in","estimation_manager/odom_main"),
             ("~/alt_in","estimation_manager/garmin_agl/agl_height"), 
             ("~/pcl_in","pcl_in"), 
+            ("~/filter_pcl_in","ouster/points"),
             ("~/octomap_in","octomap_server/octomap_local_binary"), 
             ("~/group_states_in", "group_states_in"),
+            ("~/filtered_pcl_out", "filter_reflective_uavs/filtered_pcl"),
+            ("~/reflective_centroids_out", "filter_reflective_uavs/reflective_centroids_out"),
+            ("~/estimates_out", "filter_reflective_uavs/estimates_out"),
+            ("~/group_states_out", "filter_reflective_uavs/group_states_out"),
+            ("~/velocity_markers_out", "filter_reflective_uavs/velocity_markers_out"),
 
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
 

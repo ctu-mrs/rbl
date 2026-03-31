@@ -47,13 +47,6 @@ windows:
       synchronize: after
       panes:
         - 'history -s ros2 service call /uav1/rbl_controller/goto mrs_msgs/srv/Vec4 "{goal: [2.0, 60.0, 2.0, 0.0]}"'
-  - filter_reflective_uavs:
-      layout: tiled
-      synchronize: after
-      panes:
-        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
-
-
   - gazebo:
       layout: tiled
       panes:

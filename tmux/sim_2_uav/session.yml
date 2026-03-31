@@ -39,6 +39,10 @@ windows:
       panes:
         - export UAV_NAME=uav1; ros2 run mrs_uav_status status.sh
         - export UAV_NAME=uav2; ros2 run mrs_uav_status status.sh
+  - tf_connector:
+      layout: tiled
+      panes:
+        - /usr/bin/python3 ./tf_connector.py ./config/tf_connector.yaml --ros-args -p use_sim_time:=true
   - activation:
       layout: tiled
       synchronize: after
@@ -48,20 +52,16 @@ windows:
   - rbl_controller:
       layout: tiled
       panes:
-        - export UAV_NAME=uav1; waitForTakeoff; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
-        - export UAV_NAME=uav2; waitForTakeoff; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
+        # - export UAV_NAME=uav1; waitForTakeoff; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav1; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
+        # - export UAV_NAME=uav2; waitForTakeoff; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
+        - export UAV_NAME=uav2; ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/rbl_controller.yaml
   - goto:
       layout: tiled
       synchronize: after
       panes:
         - 'history -s ros2 service call /uav1/rbl_controller/goto mrs_msgs/srv/Vec4 "{goal: [2.0, 60.0, 2.0, 0.0]}"'
         - 'history -s ros2 service call /uav2/rbl_controller/goto mrs_msgs/srv/Vec4 "{goal: [-2.0, 60.0, 2.0, 0.0]}"'
-  - filter_reflective_uavs:
-      layout: tiled
-      synchronize: after
-      panes:
-        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
-        - export UAV_NAME=uav2; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
   - gazebo:
       layout: tiled
       panes:
@@ -77,10 +77,6 @@ windows:
       panes:
         - export UAV_NAME=uav1; waitForTime; ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=filter_reflective_uavs/filtered_pcl
         - export UAV_NAME=uav2; waitForTime; ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=filter_reflective_uavs/filtered_pcl
-  - tf_connector:
-      layout: tiled
-      panes:
-        - /usr/bin/python3 ./tf_connector.py ./config/tf_connector.yaml --ros-args -p use_sim_time:=true
   - takeoff:
       layout: tiled
       panes:

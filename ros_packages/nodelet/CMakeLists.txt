@@ -41,6 +41,7 @@ find_package(octomap REQUIRED)
 find_package(octomap_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
+find_package(pcl_ros REQUIRED)
 find_package(mrs_uav_testing REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -50,6 +51,7 @@ find_package(std_srvs REQUIRED)
 find_package(rbl_replanner REQUIRED)
 find_package(ciri REQUIRED)
 find_package(rbl_controller_core REQUIRED)
+find_package(filter_reflective_uavs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PoseVelocityArray.msg"
@@ -73,6 +75,7 @@ ament_target_dependencies(
   mrs_lib
   octomap_msgs
   pcl_conversions
+  pcl_ros
   geometry_msgs
   nav_msgs
   mrs_msgs
@@ -83,12 +86,24 @@ ament_target_dependencies(
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(${RBL_CONTROLLER_NODE_TARGET} "${cpp_typesupport_target}")
 
+set(FILTER_REFLECTIVE_UAVS_LINK_TARGETS)
+if(TARGET filter_reflective_uavs::filter_reflective_uavs)
+  list(APPEND FILTER_REFLECTIVE_UAVS_LINK_TARGETS filter_reflective_uavs::filter_reflective_uavs)
+elseif(TARGET filter_reflective_uavs)
+  list(APPEND FILTER_REFLECTIVE_UAVS_LINK_TARGETS filter_reflective_uavs)
+elseif(DEFINED filter_reflective_uavs_TARGETS)
+  list(APPEND FILTER_REFLECTIVE_UAVS_LINK_TARGETS ${filter_reflective_uavs_TARGETS})
+else()
+  message(FATAL_ERROR "filter_reflective_uavs was found, but it did not export a usable CMake target")
+endif()
+
 target_link_libraries(
   ${RBL_CONTROLLER_NODE_TARGET}
   Eigen3::Eigen
   rbl_replanner::rbl_replanner
   ciri::ciri
   rbl_controller_core::rbl_controller_core
+  ${FILTER_REFLECTIVE_UAVS_LINK_TARGETS}
   ${OCTOMAP_LIBRARIES}
   ${PCL_LIBRARIES}
 )

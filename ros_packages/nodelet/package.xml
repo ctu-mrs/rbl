@@ -27,6 +27,7 @@
   <depend>rbl_replanner</depend>
   <depend>ciri</depend>
   <depend>rbl_controller_core</depend>
+  <depend>filter_reflective_uavs</depend>
 
   <depend>eigen</depend>
   <depend>pcl_conversions</depend>

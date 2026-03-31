@@ -1,0 +1,33 @@
+filter_reflective_uavs:
+  enabled: true
+  min_intensity: 250.0
+  max_intensity: 255.0
+  search_radius: 1.0
+  max_distance_from_seed: 1.0
+  max_removed_points: 200
+  load_gt_uav_positions: true
+  debug: false
+  detected_uav_names:
+    - uav1
+    - uav2
+  time_keep: 0.2
+
+  filter_out_myself:
+    enabled: true
+    dist: 1.0
+
+  reflective_clusters:
+    tolerance: 0.4
+    min_points: 1
+    max_points: 999999
+
+  voxel_grid:
+    use: true
+    size_x: 0.04
+    size_y: 0.04
+    size_z: 0.04
+
+  multi_uav_tracker:
+    dt: 0.2
+    max_no_update: 1.0
+    gate_treshold: 2.0
