@@ -11,11 +11,13 @@ mrs_uav_managers:
   estimation_manager:
 
     state_estimators: [
+       "gps_garmin",
        "point_lio",
     ]
 
-    initial_state_estimator: "point_lio" # will be used as the first state estimator
-    agl_height_estimator: "" # only slightly filtered height for checking min height (not used in control feedback)
+    # initial_state_estimator: "point_lio" # will be used as the first state estimator
+    initial_state_estimator: "gps_garmin" # will be used as the first state estimator
+    agl_height_estimator: "garmin_agl" # only slightly filtered height for checking min height (not used in control feedback)
 
     # namespace of the state estimator
     point_lio:
@@ -221,6 +223,7 @@ mrs_uav_managers:
   constraint_manager:
 
     estimator_types: [
+      "gps_garmin",
       "point_lio"
     ]
 
@@ -233,15 +236,18 @@ mrs_uav_managers:
     # list of allowed gains per odometry mode
     allowed_constraints:
       point_lio: ["slow", "medium", "fast"]
+      gps_garmin: ["slow", "medium", "fast"]
 
     # those gains will be used automatically when a localization mode switches
     # and the current gains are not in the allowed list (next paragraphs)
     default_constraints:
       point_lio: "slow"
+      gps_garmin: "slow"
 
   gain_manager:
 
     estimator_types: [
+      "gps_garmin",
       "point_lio",
     ]
 
@@ -251,11 +257,13 @@ mrs_uav_managers:
 
     # list of allowed gains per odometry mode
     allowed_gains:
+      gps_garmin: ["supersoft"]
       point_lio: ["supersoft"]
 
     # those gains will be used automatically when a localization mode switches
     # and the current gains are not in the allowed list (next paragraphs)
     default_gains:
+      gps_garmin: "supersoft"
       point_lio: "supersoft"
 
   transform_manager:
