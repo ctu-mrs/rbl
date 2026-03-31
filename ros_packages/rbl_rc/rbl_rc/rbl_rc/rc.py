@@ -28,8 +28,8 @@ class RCGoalController(Node):
         self.deadzone = 50
         self.goal_threshold = 0.05
 
-        # Estimator switching
-        self.last_ch9_state = None
+        # Estimator switching state machine
+        self.last_ch9_state = "NONE"
         self.switch_timer = None
 
         # Subscribers
@@ -76,29 +76,37 @@ class RCGoalController(Node):
             return
 
         # -----------------------
-        # Estimator switching (EDGE TRIGGERED + DELAYED HOLD)
+        # Estimator switching (STATE MACHINE)
         # -----------------------
-        mode_mid = 1400 < ch9 < 1800
-        mode_high = ch9 > 1900
+        if 1400 < ch9 < 1800:
+            current_switch_state = "MID"
+        elif ch9 > 1900:
+            current_switch_state = "HIGH"
+        else:
+            current_switch_state = "NONE"
 
-        if self.last_ch9_state != (mode_mid, mode_high):
+        # Trigger ONLY when entering MID or HIGH
+        if current_switch_state != self.last_ch9_state:
 
-            # Cancel previous timer if exists
-            if self.switch_timer is not None:
-                self.switch_timer.cancel()
-                self.switch_timer = None
+            if current_switch_state in ["MID", "HIGH"]:
 
-            # Switch estimator immediately
-            if mode_mid:
-                self.send_estimator('point_lio')
+                # Cancel previous timer if exists
+                if self.switch_timer is not None:
+                    self.switch_timer.cancel()
+                    self.switch_timer = None
 
-            elif mode_high:
-                self.send_estimator('gps_garmin')
+                # Switch estimator immediately
+                if current_switch_state == "MID":
+                    self.send_estimator('point_lio')
 
-            # Start delayed hold (0.5 sec)
-            self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
+                elif current_switch_state == "HIGH":
+                    self.send_estimator('gps_garmin')
 
-        self.last_ch9_state = (mode_mid, mode_high)
+                # Start delayed goal set (0.5 sec)
+                self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
+
+        # Update state
+        self.last_ch9_state = current_switch_state
 
         # -----------------------
         # betaD handling
