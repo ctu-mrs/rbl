@@ -30,6 +30,7 @@ class RCGoalController(Node):
 
         # Estimator switching
         self.last_ch9_state = None
+        self.switch_timer = None
 
         # Subscribers
         self.create_subscription(State, '/uav1/mavros/state', self.state_cb, 10)
@@ -75,29 +76,27 @@ class RCGoalController(Node):
             return
 
         # -----------------------
-        # Estimator switching (EDGE TRIGGERED)
+        # Estimator switching (EDGE TRIGGERED + DELAYED HOLD)
         # -----------------------
         mode_mid = 1400 < ch9 < 1800
         mode_high = ch9 > 1900
 
         if self.last_ch9_state != (mode_mid, mode_high):
 
-            if self.current_pose is None:
-                self.get_logger().warn("No odometry yet")
-            else:
-                x = self.current_pose.position.x
-                y = self.current_pose.position.y
-                z = self.current_pose.position.z
+            # Cancel previous timer if exists
+            if self.switch_timer is not None:
+                self.switch_timer.cancel()
+                self.switch_timer = None
 
-                self.last_goal = [x, y, z, 0.0]
-                self.get_logger().info(f"[EST SWITCH HOLD] {self.last_goal}")
-                self.send_goal()
-
+            # Switch estimator immediately
             if mode_mid:
                 self.send_estimator('point_lio')
 
             elif mode_high:
                 self.send_estimator('gps_garmin')
+
+            # Start delayed hold (0.5 sec)
+            self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
 
         self.last_ch9_state = (mode_mid, mode_high)
 
@@ -151,6 +150,27 @@ class RCGoalController(Node):
         if goal_changed:
             self.get_logger().info(f"Sending goal: {self.last_goal}")
             self.send_goal()
+
+    # -----------------------
+    # Delayed HOLD after switch
+    # -----------------------
+    def delayed_hold_after_switch(self):
+        if self.switch_timer is not None:
+            self.switch_timer.cancel()
+            self.switch_timer = None
+
+        if self.current_pose is None:
+            self.get_logger().warn("No odometry for delayed hold")
+            return
+
+        x = self.current_pose.position.x
+        y = self.current_pose.position.y
+        z = self.current_pose.position.z
+
+        self.last_goal = [x, y, z, 0.0]
+
+        self.get_logger().info(f"[DELAYED HOLD AFTER SWITCH] {self.last_goal}")
+        self.send_goal()
 
     # -----------------------
     # Helpers
