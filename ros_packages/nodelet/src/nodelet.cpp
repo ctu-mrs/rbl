@@ -1309,10 +1309,6 @@ WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
           pt.z = voxel_center_z;
           pt.intensity = 1.0f;
            // Standard output print
-          std::cout << "neighbor position: " 
-                    << pt.x() << ", " 
-                    << pt.y() << ", " 
-                    << pt.z() << std::endl;  
           cloud->push_back(pt);
 
           // cloud->push_back(pcl::PointXYZI(voxel_center_x, voxel_center_y, voxel_center_z, 1.0f));
