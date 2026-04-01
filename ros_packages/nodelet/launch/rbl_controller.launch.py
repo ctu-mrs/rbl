@@ -87,7 +87,7 @@ def generate_launch_description():
             ("~/alt_in","estimation_manager/garmin_agl/agl_height"), 
             ("~/pcl_in","losos_server/current_submap_pc"), 
             ("~/octomap_in","octomap_server/octomap_local_binary"), 
-            ("~/group_states_in", "group_states_in"),
+            ("~/group_states_in", "filter_reflective_uavs/reflective_centroids_out"),
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
             ("~/ref_out", "control_manager/reference"),
             ("~/goto_out", "~/goto"),

@@ -66,9 +66,11 @@ input=(
 '
   'tf' './config/livox_tf.sh
 '
-  'tf2' './config/livox_tf1.sh
+  'tf1' './config/livox_tf1.sh
 '
-  'tf1' './config/world_origin_tf.sh
+  'tf2' './config/world_origin_tf.sh
+'
+  'tf3' './config/world_origin_tf1.sh
 '
   'zenoh' 'export ZENOH_ROUTER_CONFIG_URI=/home/mrs/zenoh/uav_router.json5; ros2 run rmw_zenoh_cpp rmw_zenohd
 # '
