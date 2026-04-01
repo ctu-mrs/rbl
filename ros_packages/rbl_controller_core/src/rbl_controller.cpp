@@ -251,6 +251,7 @@ std::optional<mrs_msgs::msg::Reference> RBLController::getNextRef()  // //{
   std::vector<Eigen::Vector3d> group_positions;
   for (const auto& state : group_states_) {
     group_positions.push_back(state.position);
+    std::cout<<state.position[0]<<" "<<state.position[1]<<" "<<state.position[2] <<std::endl;
   }
 
   // Partitioning logic
