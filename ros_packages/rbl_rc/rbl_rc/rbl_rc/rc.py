@@ -97,10 +97,41 @@ class RCGoalController(Node):
 
                 # Switch estimator immediately
                 if current_switch_state == "MID":
+
                     self.send_estimator('point_lio')
+
+                    if self.current_pose is None:
+                        self.get_logger().warn("No odometry yet")
+                        return
+
+                    x = self.current_pose.position.x
+                    y = self.current_pose.position.y
+                    z = self.current_pose.position.z
+
+                    new_goal = [x, y, z, 0.0]
+
+                    if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
+                        self.last_goal = new_goal
+                        goal_changed = True
+                        self.get_logger().info(f"[HOLD] {self.last_goal}")
 
                 elif current_switch_state == "HIGH":
                     self.send_estimator('gps_garmin')
+
+                    if self.current_pose is None:
+                        self.get_logger().warn("No odometry yet")
+                        return
+
+                    x = self.current_pose.position.x
+                    y = self.current_pose.position.y
+                    z = self.current_pose.position.z
+
+                    new_goal = [x, y, z, 0.0]
+
+                    if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
+                        self.last_goal = new_goal
+                        goal_changed = True
+                        self.get_logger().info(f"[HOLD] {self.last_goal}")
 
                 # Start delayed goal set (0.5 sec)
                 self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
@@ -133,24 +164,6 @@ class RCGoalController(Node):
             self.last_goal[1] += dy * self.step_size
             goal_changed = True
 
-        # -----------------------
-        # HOLD mode
-        # -----------------------
-        if ch9 > 1550:
-            if self.current_pose is None:
-                self.get_logger().warn("No odometry yet")
-                return
-
-            x = self.current_pose.position.x
-            y = self.current_pose.position.y
-            z = self.current_pose.position.z
-
-            new_goal = [x, y, z, 0.0]
-
-            if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
-                self.last_goal = new_goal
-                goal_changed = True
-                self.get_logger().info(f"[HOLD] {self.last_goal}")
 
         # -----------------------
         # Send goal
