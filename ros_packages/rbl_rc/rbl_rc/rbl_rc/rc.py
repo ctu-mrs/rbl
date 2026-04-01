@@ -2,6 +2,8 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
+
 from mavros_msgs.msg import State, RCIn
 from mrs_msgs.srv import Vec4, Float64Srv, String
 from nav_msgs.msg import Odometry
@@ -28,12 +30,11 @@ class RCGoalController(Node):
         # Params
         self.step_size = 0.2
         self.deadzone = 50
-        self.goal_threshold = 0.05
 
         # Estimator switching
         self.last_ch9_state = "NONE"
-        self.switch_timer = None
         self.switch_time = None
+        self.waiting_for_fresh_pose = False
 
         self.ESTIMATOR_MAP = {
             "MID": "point_lio",
@@ -56,10 +57,10 @@ class RCGoalController(Node):
 
         self.wait_for_services()
 
-        self.get_logger().info('RC Goal Controller ready')
+        self.get_logger().info('RC Goal Controller ready (event-driven)')
 
     # -----------------------
-    # Setup helpers
+    # Setup
     # -----------------------
     def wait_for_services(self):
         while not self.goal_cli.wait_for_service(timeout_sec=1.0):
@@ -74,6 +75,10 @@ class RCGoalController(Node):
     # -----------------------
     def odom_cb(self, msg):
         self.current_pose = msg
+
+        # 🔥 Handle estimator switch HERE (event-driven)
+        if self.waiting_for_fresh_pose:
+            self.handle_post_switch_hold(msg)
 
     def state_cb(self, msg):
         self.current_mode = msg.mode
@@ -97,7 +102,7 @@ class RCGoalController(Node):
         # -----------------------
         if current_switch_state != self.last_ch9_state:
             if current_switch_state in self.ESTIMATOR_MAP:
-                self.handle_estimator_switch(current_switch_state)
+                self.start_estimator_switch(current_switch_state)
 
         self.last_ch9_state = current_switch_state
 
@@ -116,7 +121,7 @@ class RCGoalController(Node):
             self.send_goal()
 
     # -----------------------
-    # Switch logic
+    # Estimator switching
     # -----------------------
     def get_switch_state(self, ch9):
         if 1400 < ch9 < 1800:
@@ -125,45 +130,35 @@ class RCGoalController(Node):
             return "HIGH"
         return "NONE"
 
-    def handle_estimator_switch(self, state):
+    def start_estimator_switch(self, state):
         estimator = self.ESTIMATOR_MAP[state]
 
-        # Cancel previous timer
-        if self.switch_timer:
-            self.switch_timer.cancel()
-            self.switch_timer = None
-
-        # Send switch
         self.send_estimator(estimator)
 
-        # Mark switch time
+        # Mark switch moment
         self.switch_time = self.get_clock().now()
 
-        # Delay HOLD to ensure fresh data
-        self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
+        # Wait for fresh odometry
+        self.waiting_for_fresh_pose = True
 
-    def delayed_hold_after_switch(self):
-        if self.switch_timer:
-            self.switch_timer.cancel()
-            self.switch_timer = None
+        self.get_logger().info(f"Waiting for fresh pose from {estimator}...")
 
-        if self.current_pose is None:
-            self.get_logger().warn("No odometry after switch")
+    def handle_post_switch_hold(self, msg):
+        pose_time = Time.from_msg(msg.header.stamp)
+
+        # Reject old data
+        if pose_time.nanoseconds <= self.switch_time.nanoseconds:
             return
 
-        # Reject stale pose
-        pose_time = self.current_pose.header.stamp
-        if pose_time <= self.switch_time.to_msg():
-            self.get_logger().warn("Stale pose after switch, skipping HOLD")
-            return
+        # ✅ First valid pose after switch
+        pos = msg.pose.pose.position
+        self.last_goal = [pos.x, pos.y, pos.z, 0.0]
 
-        pos = self.current_pose.pose.pose.position
-        new_goal = [pos.x, pos.y, pos.z, 0.0]
-
-        self.last_goal = new_goal
         self.get_logger().info(f"[HOLD AFTER SWITCH] {self.last_goal}")
-
         self.send_goal()
+
+        # Done
+        self.waiting_for_fresh_pose = False
 
     # -----------------------
     # betaD
