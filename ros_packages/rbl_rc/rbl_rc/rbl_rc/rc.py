@@ -11,7 +11,9 @@ class RCGoalController(Node):
     def __init__(self):
         super().__init__('rc_goal_controller')
 
+        # -----------------------
         # State
+        # -----------------------
         self.current_mode = ""
         self.current_pose = None
 
@@ -28,36 +30,50 @@ class RCGoalController(Node):
         self.deadzone = 50
         self.goal_threshold = 0.05
 
-        # Estimator switching state machine
+        # Estimator switching
         self.last_ch9_state = "NONE"
         self.switch_timer = None
+        self.switch_time = None
 
+        self.ESTIMATOR_MAP = {
+            "MID": "point_lio",
+            "HIGH": "gps_garmin",
+        }
+
+        # -----------------------
         # Subscribers
+        # -----------------------
         self.create_subscription(State, '/uav1/mavros/state', self.state_cb, 10)
         self.create_subscription(RCIn, '/uav1/mavros/rc/in', self.rc_cb, 10)
         self.create_subscription(Odometry, '/uav1/estimation_manager/odom_main', self.odom_cb, 10)
 
+        # -----------------------
         # Service clients
+        # -----------------------
         self.goal_cli = self.create_client(Vec4, '/uav1/rbl_controller/goto')
         self.beta_cli = self.create_client(Float64Srv, '/uav1/rbl_controller/set_betaD')
         self.estimator_cli = self.create_client(String, '/uav1/estimation_manager/change_estimator')
 
-        while not self.goal_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for /goto service...')
-
-        while not self.beta_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for /set_betaD service...')
-
-        while not self.estimator_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for estimator service...')
+        self.wait_for_services()
 
         self.get_logger().info('RC Goal Controller ready')
+
+    # -----------------------
+    # Setup helpers
+    # -----------------------
+    def wait_for_services(self):
+        while not self.goal_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for /goto service...')
+        while not self.beta_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for /set_betaD service...')
+        while not self.estimator_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for estimator service...')
 
     # -----------------------
     # Callbacks
     # -----------------------
     def odom_cb(self, msg):
-        self.current_pose = msg.pose.pose
+        self.current_pose = msg
 
     def state_cb(self, msg):
         self.current_mode = msg.mode
@@ -66,82 +82,93 @@ class RCGoalController(Node):
         if len(msg.channels) < 9:
             return
 
-        # Channels
         ch3 = msg.channels[0]
-        ch2 = msg.channels[1]  # betaD
+        ch2 = msg.channels[1]
         ch1 = msg.channels[2]
         ch9 = msg.channels[8]
 
         if ch9 < 1400:
             return
 
-        # -----------------------
-        # Estimator switching (STATE MACHINE)
-        # -----------------------
-        if 1400 < ch9 < 1800:
-            current_switch_state = "MID"
-        elif ch9 > 1900:
-            current_switch_state = "HIGH"
-        else:
-            current_switch_state = "NONE"
+        current_switch_state = self.get_switch_state(ch9)
 
-        # Trigger ONLY when entering MID or HIGH
+        # -----------------------
+        # Estimator switching
+        # -----------------------
         if current_switch_state != self.last_ch9_state:
+            if current_switch_state in self.ESTIMATOR_MAP:
+                self.handle_estimator_switch(current_switch_state)
 
-            if current_switch_state in ["MID", "HIGH"]:
-
-                # Cancel previous timer if exists
-                if self.switch_timer is not None:
-                    self.switch_timer.cancel()
-                    self.switch_timer = None
-
-                # Switch estimator immediately
-                if current_switch_state == "MID":
-
-                    self.send_estimator('point_lio')
-
-                    if self.current_pose is None:
-                        self.get_logger().warn("No odometry yet")
-                        return
-
-                    x = self.current_pose.position.x
-                    y = self.current_pose.position.y
-                    z = self.current_pose.position.z
-
-                    new_goal = [x, y, z, 0.0]
-
-                    if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
-                        self.last_goal = new_goal
-                        goal_changed = True
-                        self.get_logger().info(f"[HOLD] {self.last_goal}")
-
-                elif current_switch_state == "HIGH":
-                    self.send_estimator('gps_garmin')
-
-                    if self.current_pose is None:
-                        self.get_logger().warn("No odometry yet")
-                        return
-
-                    x = self.current_pose.position.x
-                    y = self.current_pose.position.y
-                    z = self.current_pose.position.z
-
-                    new_goal = [x, y, z, 0.0]
-
-                    if any(abs(a - b) > self.goal_threshold for a, b in zip(new_goal, self.last_goal)):
-                        self.last_goal = new_goal
-                        goal_changed = True
-                        self.get_logger().info(f"[HOLD] {self.last_goal}")
-
-                # Start delayed goal set (0.5 sec)
-                self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
-
-        # Update state
         self.last_ch9_state = current_switch_state
 
         # -----------------------
-        # betaD handling
+        # betaD
         # -----------------------
+        self.handle_beta(ch2)
+
+        # -----------------------
+        # Position control
+        # -----------------------
+        goal_changed = self.handle_position(ch1, ch3)
+
+        if goal_changed:
+            self.get_logger().info(f"Sending goal: {self.last_goal}")
+            self.send_goal()
+
+    # -----------------------
+    # Switch logic
+    # -----------------------
+    def get_switch_state(self, ch9):
+        if 1400 < ch9 < 1800:
+            return "MID"
+        elif ch9 > 1900:
+            return "HIGH"
+        return "NONE"
+
+    def handle_estimator_switch(self, state):
+        estimator = self.ESTIMATOR_MAP[state]
+
+        # Cancel previous timer
+        if self.switch_timer:
+            self.switch_timer.cancel()
+            self.switch_timer = None
+
+        # Send switch
+        self.send_estimator(estimator)
+
+        # Mark switch time
+        self.switch_time = self.get_clock().now()
+
+        # Delay HOLD to ensure fresh data
+        self.switch_timer = self.create_timer(0.5, self.delayed_hold_after_switch)
+
+    def delayed_hold_after_switch(self):
+        if self.switch_timer:
+            self.switch_timer.cancel()
+            self.switch_timer = None
+
+        if self.current_pose is None:
+            self.get_logger().warn("No odometry after switch")
+            return
+
+        # Reject stale pose
+        pose_time = self.current_pose.header.stamp
+        if pose_time <= self.switch_time.to_msg():
+            self.get_logger().warn("Stale pose after switch, skipping HOLD")
+            return
+
+        pos = self.current_pose.pose.pose.position
+        new_goal = [pos.x, pos.y, pos.z, 0.0]
+
+        self.last_goal = new_goal
+        self.get_logger().info(f"[HOLD AFTER SWITCH] {self.last_goal}")
+
+        self.send_goal()
+
+    # -----------------------
+    # betaD
+    # -----------------------
+    def handle_beta(self, ch2):
         new_beta = self.map_range(ch2)
 
         if self.last_betaD_sent is None or abs(new_beta - self.last_betaD_sent) > self.beta_threshold:
@@ -151,47 +178,20 @@ class RCGoalController(Node):
             self.get_logger().info(f"betaD → {self.betaD:.2f}")
             self.send_beta()
 
-        # -----------------------
-        # Position control
-        # -----------------------
+    # -----------------------
+    # Position control
+    # -----------------------
+    def handle_position(self, ch1, ch3):
         dx = self.process_channel(ch1)
         dy = -self.process_channel(ch3)
 
-        goal_changed = False
+        if dx == 0.0 and dy == 0.0:
+            return False
 
-        if dx != 0.0 or dy != 0.0:
-            self.last_goal[0] += dx * self.step_size
-            self.last_goal[1] += dy * self.step_size
-            goal_changed = True
+        self.last_goal[0] += dx * self.step_size
+        self.last_goal[1] += dy * self.step_size
 
-
-        # -----------------------
-        # Send goal
-        # -----------------------
-        if goal_changed:
-            self.get_logger().info(f"Sending goal: {self.last_goal}")
-            self.send_goal()
-
-    # -----------------------
-    # Delayed HOLD after switch
-    # -----------------------
-    def delayed_hold_after_switch(self):
-        if self.switch_timer is not None:
-            self.switch_timer.cancel()
-            self.switch_timer = None
-
-        if self.current_pose is None:
-            self.get_logger().warn("No odometry for delayed hold")
-            return
-
-        x = self.current_pose.position.x
-        y = self.current_pose.position.y
-        z = self.current_pose.position.z
-
-        self.last_goal = [x, y, z, 0.0]
-
-        self.get_logger().info(f"[DELAYED HOLD AFTER SWITCH] {self.last_goal}")
-        self.send_goal()
+        return True
 
     # -----------------------
     # Helpers
@@ -236,6 +236,9 @@ class RCGoalController(Node):
             self.get_logger().error(f"Service call failed: {e}")
 
 
+# -----------------------
+# Main
+# -----------------------
 def main(args=None):
     rclpy.init(args=args)
     node = RCGoalController()
