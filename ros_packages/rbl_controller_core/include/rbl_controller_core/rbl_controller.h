@@ -109,8 +109,9 @@ public:
   void setCurrentPosition(const Eigen::Vector3d& point);
   void setCurrentVelocity(const Eigen::Vector3d& point);
   void setGroupStates(const std::vector<State>& states);
-    void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
-    void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
+  void setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
+  void setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
+  void setPCL_raw(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud);
   void setGoal(const Eigen::Vector3d& point);
   void setBetaD(double beta);
   void setAltitude(const double& alt);

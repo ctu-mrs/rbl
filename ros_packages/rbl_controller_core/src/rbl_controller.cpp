@@ -51,6 +51,12 @@ void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>
 }  // //}
    //
 
+void RBLController::setPCL_raw(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
+{
+  cloud_ = cloud;
+}  // //}
+   //
+
 void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   cloud_obs_ = cloud;

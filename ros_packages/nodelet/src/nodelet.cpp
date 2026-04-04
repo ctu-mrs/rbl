@@ -88,6 +88,7 @@ private:
 
   std::vector<State> group_states_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_raw_;
   bool pcl_loaded_ = false;
 
   bool         is_initialized_ = false;
@@ -165,6 +166,9 @@ private:
 
   // ros::Publisher                            pub_viz_cell_A_;
   // ros::Publisher                            pub_viz_cell_A_sensed_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_proc_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_raw_;
+
   std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                              const std::string&                  frame);
   // ros::Publisher                            pub_viz_inflated_map_;
@@ -199,6 +203,7 @@ private:
   mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>              sh_odom_;
   mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>        sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
+  mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_raw_;
   mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>           sh_octomap_;
   mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray> sh_group_states_;
   // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
@@ -333,6 +338,7 @@ void WrapperRosRBL::initialize()  // //{
     sh_octomap_          = mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>(shopts, "~/octomap_in");
   } else {
     sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
+    sh_pcl_raw_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
   }
   sh_group_states_    = mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray>(shopts, "~/group_states_in");
   
@@ -845,14 +851,41 @@ void WrapperRosRBL::cbTmSetRef()  // //{
 
   } else {
     if (sh_pcl_.newMsg()) {
+      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
       auto msg = sh_pcl_.getMsg();
-      pcl::PointCloud<pcl::PointXYZI> tmp;
-      pcl::fromROSMsg(*msg, tmp);
-      last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+      // pcl::PointCloud<pcl::PointXYZI> tmp;
+      pcl::fromROSMsg(*msg, *cloud);
+      // last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+      cloud_proc_ = cloud;
       pcl_loaded_ = true;
-      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      // rbl_controller_->setPCL1(last_obstacle_cloud_);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
+
+    if (sh_pcl_raw_.newMsg()) {
+      auto msg = sh_pcl_raw.getMsg();
+      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+      // pcl::PointCloud<pcl::PointXYZI> tmp;
+      pcl::fromROSMsg(*msg, *cloud);
+      // last_obstacle_cloud_raw_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+      cloud_raw_ = cloud; 
+      pcl_loaded_raw = true;
+      // rbl_controller_->setPCL_raw(last_obstacle_cloud_raw_);
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl raw to rbl");
+    }
+  }
+  if (cloud_proc_ || cloud_raw_) {
+    auto merged = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+
+    if (cloud_proc_) {
+      *merged += *cloud_proc_;
+    }
+
+    if (cloud_raw_) {
+      *merged += *cloud_raw_;
+    }
+
+    rbl_controller_->setPCL(merged);
   }
 
   if (!last_obstacle_cloud_) {
