@@ -70,8 +70,8 @@ input=(
 '
   'tf2' './config/world_origin_tf.sh
 '
-  'tf3' './config/world_origin_tf1.sh
-'
+  # 'tf3' './config/world_origin_tf1.sh
+# '
   'zenoh' 'export ZENOH_ROUTER_CONFIG_URI=/home/mrs/zenoh/uav_router.json5; ros2 run rmw_zenoh_cpp rmw_zenohd
 # '
   # 'Rviz' 'rviz2 -d rviz.rviz

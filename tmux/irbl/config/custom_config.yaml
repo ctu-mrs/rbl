@@ -12,7 +12,7 @@ mrs_uav_managers:
 
     state_estimators: [
        "point_lio",
-       "gps_garmin",
+       # "gps_garmin",
     ]
 
     # initial_state_estimator: "point_lio" # will be used as the first state estimator

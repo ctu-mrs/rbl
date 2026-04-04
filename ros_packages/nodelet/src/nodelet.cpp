@@ -90,6 +90,7 @@ private:
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> last_obstacle_cloud_raw_;
   bool pcl_loaded_ = false;
+  bool pcl_loaded_raw_ = false;
 
   bool         is_initialized_ = false;
   bool         is_activated_   = false;
@@ -168,6 +169,7 @@ private:
   // ros::Publisher                            pub_viz_cell_A_sensed_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_proc_;
   std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_raw_;
+  std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> cloud_merged_;
 
   std::shared_ptr<sensor_msgs::msg::PointCloud2> getVizCellA(const std::vector<Eigen::Vector3d>& points,
                                                              const std::string&                  frame);
@@ -851,65 +853,65 @@ void WrapperRosRBL::cbTmSetRef()  // //{
 
   } else {
     if (sh_pcl_.newMsg()) {
-      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+      /* auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(); */
       auto msg = sh_pcl_.getMsg();
-      // pcl::PointCloud<pcl::PointXYZI> tmp;
-      pcl::fromROSMsg(*msg, *cloud);
-      // last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
-      cloud_proc_ = cloud;
+      pcl::PointCloud<pcl::PointXYZI> tmp; 
+      pcl::fromROSMsg(*msg, tmp);
+      last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
+      cloud_proc_ = last_obstacle_cloud_;
       pcl_loaded_ = true;
-      // rbl_controller_->setPCL1(last_obstacle_cloud_);
+      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      pub_viz_cloud.publish(*getVizPCL(last_obstacle_cloud_, _frame_));
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
 
-    if (sh_pcl_raw_.newMsg()) {
-      auto msg = sh_pcl_raw.getMsg();
-      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
-      // pcl::PointCloud<pcl::PointXYZI> tmp;
-      pcl::fromROSMsg(*msg, *cloud);
-      // last_obstacle_cloud_raw_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
-      cloud_raw_ = cloud; 
-      pcl_loaded_raw = true;
-      // rbl_controller_->setPCL_raw(last_obstacle_cloud_raw_);
-      RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl raw to rbl");
-    }
-  }
-  if (cloud_proc_ || cloud_raw_) {
-    auto merged = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
+    /* if (sh_pcl_raw_.newMsg()) { */
+    /*   auto msg = sh_pcl_raw_.getMsg(); */
+    /*   /1* auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(); *1/ */
+    /*   pcl::PointCloud<pcl::PointXYZI> tmp; */
+    /*   pcl::fromROSMsg(*msg, tmp); */
+    /*   last_obstacle_cloud_raw_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp); */
+    /*   cloud_raw_ = last_obstacle_cloud_raw_; */ 
+    /*   pcl_loaded_raw_ = true; */
+    /*   // rbl_controller_->setPCL_raw(last_obstacle_cloud_raw_); */
+    /*   RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl raw to rbl"); */
+    /* } */
+   
+    /* if (cloud_proc_ || cloud_raw_) { */
 
-    if (cloud_proc_) {
-      *merged += *cloud_proc_;
-    }
+    /*   if (cloud_proc_) { */
+    /*     *cloud_merged_ += *cloud_proc_; */
+    /*   } */
 
-    if (cloud_raw_) {
-      *merged += *cloud_raw_;
-    }
+    /*   if (cloud_raw_) { */
+    /*     *cloud_merged_ += *cloud_raw_; */
+    /*   } */
 
-    rbl_controller_->setPCL(merged);
-  }
-
-  if (!last_obstacle_cloud_) {
-    RCLCPP_WARN(node_->get_logger(), "Waiting for obstacle cloud");
-    return;
-  }
-
-  auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*last_obstacle_cloud_);
-
-  if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
-    cloud = addAgents2PCL(cloud,
-                          group_states_,
-                          rbl_params_.voxel_size,
-                          rbl_params_.encumbrance);
+    /*   rbl_controller_->setPCL1(cloud_merged_); */
+    /* } */
+    /* if (!cloud_merged_) { */
+    /*   RCLCPP_WARN(node_->get_logger(), "Waiting for obstacle cloud"); */
+    /*   return; */
+    /* } */
   }
 
-  if (cloud->empty()) {
-    RCLCPP_ERROR(node_->get_logger(), "PCL is empty");
-    return;
-  }
+  /* auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud_merged_); */
 
-  rbl_controller_->setPCL(cloud);
-  RCLCPP_INFO_ONCE(node_->get_logger(), "Setted curent pcl to rbl");
-  pub_viz_cloud.publish(*getVizPCL(cloud, _frame_));
+  /* if (_group_odoms_enabled_ && _add_agents_to_pcl_) { */
+  /*   cloud = addAgents2PCL(cloud, */
+  /*                         group_states_, */
+  /*                         rbl_params_.voxel_size, */
+  /*                         rbl_params_.encumbrance); */
+  /* } */
+
+  /* if (cloud->empty()) { */
+  /*   RCLCPP_ERROR(node_->get_logger(), "PCL is empty"); */
+  /*   return; */
+  /* } */
+
+  /* rbl_controller_->setPCL(cloud); */
+  /* RCLCPP_INFO_ONCE(node_->get_logger(), "Setted curent pcl to rbl"); */
+  /* pub_viz_cloud.publish(*getVizPCL(cloud, _frame_)); */
 
     // if (_group_odoms_enabled_ && _add_agents_to_pcl_) {
     //   cloud = addAgents2PCL(cloud, group_states, rbl_params_.voxel_size, rbl_params_.encumbrance);
@@ -1371,4 +1373,5 @@ WrapperRosRBL::addAgents2PCL(std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& c
 }
 
 #include <rclcpp_components/register_node_macro.hpp>
+
 RCLCPP_COMPONENTS_REGISTER_NODE(rbl_controller::WrapperRosRBL);
