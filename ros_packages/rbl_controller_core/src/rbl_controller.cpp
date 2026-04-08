@@ -587,7 +587,7 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
                                    const std::vector<Eigen::Vector3d>&              neighbors,
                                    std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)
 {
-  (void)neighbors;     // TODO - currently unused
+  // (void)neighbors;     // TODO - currently unused
 
   std::vector<bool>                   remove_mask(cell_S.size(), false);
   pcl::PointCloud<pcl::PointXYZI>::Ptr boost_cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(*cloud);
@@ -596,23 +596,23 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
   plane_points.clear();
 
   // check other agents
-  // for (const auto& neighbor : neighbors) {
-  //   double          Delta_i_j = 2 * params_.encumbrance;
-  //   Eigen::Vector3d tilde_p_i = Delta_i_j * (neighbor - agent_pos) / ((neighbor - agent_pos).norm()) + agent_pos;
-  //   Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
+  for (const auto& neighbor : neighbors) {
+    double          Delta_i_j = 2 * params_.encumbrance;
+    Eigen::Vector3d tilde_p_i = Delta_i_j * (neighbor - agent_pos) / ((neighbor - agent_pos).norm()) + agent_pos;
+    Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
 
-  //   Eigen::Vector3d plane_norm, plane_point;
-  //   if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) {
-  //     plane_norm  = tilde_p_j - tilde_p_i;
-  //     plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
-  //   }
-  //   else {
-  //     plane_norm  = tilde_p_i - tilde_p_j;
-  //     plane_point = tilde_p_j;
-  //   }
-  //   plane_normals.push_back(plane_norm);
-  //   plane_points.push_back(plane_point);
-  // }
+    Eigen::Vector3d plane_norm, plane_point;
+    if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) {
+      plane_norm  = tilde_p_j - tilde_p_i;
+      plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
+    }
+    else {
+      plane_norm  = tilde_p_i - tilde_p_j;
+      plane_point = tilde_p_j;
+    }
+    plane_normals.push_back(plane_norm);
+    plane_points.push_back(plane_point);
+  }
 
   pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
 

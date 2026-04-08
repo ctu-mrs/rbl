@@ -88,7 +88,7 @@ def generate_launch_description():
             ("~/pcl_in","losos_server/current_submap_pc"), 
             ("~/pcl_in_raw","livox/points"), 
             ("~/octomap_in","octomap_server/octomap_local_binary"), 
-            ("~/group_states_in", "filter_reflective_uavs/reflective_centroids_out"),
+            ("~/group_states_in", "filter_reflective_uavs/pose_vel"),
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
             ("~/ref_out", "control_manager/reference"),
             ("~/goto_out", "~/goto"),
