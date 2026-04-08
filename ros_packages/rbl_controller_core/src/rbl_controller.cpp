@@ -976,7 +976,9 @@ cloud_low_intensity->is_dense = true;
   // if (!group_states_.empty() || (cloud && cloud->size() > 0)) {
     if (params_.ciri) {
       // std::cout << "[RBLController]: cell_b "<< cell_B.size() << std::endl;
-      partitionCellA(cell_B, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud_high_intensity);
+      // partitionCellA(cell_B, cell_S, plane_normals, plane_points, agent_pos, neighbors_pos, cloud_high_intensity);
+      partitionCellA(cell_B, cell_S, plane_normals, plane_points, agent_pos, group_positions, cloud_high_intensity);
+group_positions
       // std::cout << "[RBLController]: cell_b1 "<< cell_B.size() << std::endl;
       bool success = false;
       if (!cloud_low_intensity->empty()) {
