@@ -1,6 +1,6 @@
 // CUSTOM
 #include "rbl_controller_core/rbl_controller.h"
-#include <rbl_controller_node/msg/pose_velocity_array.hpp>
+#include <filter_reflective_uavs/msg/pose_velocity_array.hpp>
 
 // MRS LIB
 #include <mrs_lib/mutex.h>
@@ -200,10 +200,10 @@ private:
   mrs_lib::SubscriberHandler<mrs_msgs::msg::Float64Stamped>        sh_alt_;
   mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>        sh_pcl_;
   mrs_lib::SubscriberHandler<octomap_msgs::msg::Octomap>           sh_octomap_;
-  mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray> sh_group_states_;
+  mrs_lib::SubscriberHandler<filter_reflective_uavs::msg::PoseVelocityArray> sh_group_states_;
   // std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>> sh_group_odoms_;
 
-  void updateGroupStates(const rbl_controller_node::msg::PoseVelocityArray::ConstSharedPtr& msg);
+  void updateGroupStates(const filter_reflective_uavs::msg::PoseVelocityArray::ConstSharedPtr& msg);
 
 
 
@@ -334,7 +334,7 @@ void WrapperRosRBL::initialize()  // //{
   } else {
     sh_pcl_             = mrs_lib::SubscriberHandler<sensor_msgs::msg::PointCloud2>(shopts, "~/pcl_in");
   }
-  sh_group_states_    = mrs_lib::SubscriberHandler<rbl_controller_node::msg::PoseVelocityArray>(shopts, "~/group_states_in");
+  sh_group_states_    = mrs_lib::SubscriberHandler<filter_reflective_uavs::msg::PoseVelocityArray>(shopts, "~/group_states_in");
   
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry>>;
   // sh_group_odoms_     = std::vector<mrs_lib::SubscriberHandler<nav_msgs::msg::Odometry> (shopts, "~/group_odoms_in")>;
@@ -454,7 +454,7 @@ void WrapperRosRBL::initialize()  // //{
   RCLCPP_INFO_ONCE(node_->get_logger(), "Initialization completed");
 }  // //}
 
-void WrapperRosRBL::updateGroupStates(const rbl_controller_node::msg::PoseVelocityArray::ConstSharedPtr& msg) {
+void WrapperRosRBL::updateGroupStates(const filter_reflective_uavs::msg::PoseVelocityArray::ConstSharedPtr& msg) {
   if (!msg) {
     RCLCPP_WARN(node_->get_logger(), "Received empty group states message");
     return;
@@ -509,6 +509,7 @@ void WrapperRosRBL::updateGroupStates(const rbl_controller_node::msg::PoseVeloci
   }
 
   group_states_ = std::move(updated_group_states);
+  RCLCPP_INFO(node_->get_logger(), "Passing %zu group states to RBL", group_states_.size());
   rbl_controller_->setGroupStates(group_states_);
 }
 
@@ -594,8 +595,9 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       rbl_controller_->setAltitude(alt->value);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted cur altitude to rbl");
     }
-
+    
     if (sh_group_states_.newMsg()) {
+      RCLCPP_INFO_ONCE(node_->get_logger(), "Got new msg for update group states");
       updateGroupStates(sh_group_states_.getMsg());
       RCLCPP_INFO_ONCE(node_->get_logger(), "Updated group states");
     }
@@ -839,6 +841,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
 
       last_obstacle_cloud_ = cloud;
       pcl_loaded_ = true;
+      rbl_controller_->setPCL(last_obstacle_cloud_);
       rbl_controller_->setPCL1(last_obstacle_cloud_);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
@@ -850,6 +853,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       pcl::fromROSMsg(*msg, tmp);
       last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
       pcl_loaded_ = true;
+      rbl_controller_->setPCL(last_obstacle_cloud_);
       rbl_controller_->setPCL1(last_obstacle_cloud_);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
