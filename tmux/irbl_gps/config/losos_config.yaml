@@ -1,0 +1,89 @@
+simulation: false
+map_while_grounded: true
+data_mode: "semantic"  # Options: "basic", "intensity", "rgb", "semantic"
+config_files: []  
+
+robot_height: 0.5 
+occupancy_threshold: 0.5
+
+submap:
+  resolution: 0.1
+  finish_submap_distance_threshold: 100.0 # [m] if 0.0 not used
+  finish_submap_time_threshold: 0.0 # [S] if 0.0 not used 
+  visualization:
+    enabled: true
+    rate: 0.5 # Hz
+  esdf:
+    enabled: true 
+
+sensor_model:
+  hit: 0.7
+  miss: 0.4
+  min: 0.12
+  max: 0.97
+  occupancy_threshold: 0.5
+
+sensor_params:
+  3d_lidar:
+    n_sensors: 1 
+    sensor_0:
+      max_range: 50.0
+      free_ray_distance: 15.0
+      horizontal_rays: 1024 #
+      vertical_rays: 32    # Adjust based on your sensor
+      vertical_fov_angle: 0.52 # Radians (e.g., 30 degrees)
+      unknown_rays:
+        update_free_space: true
+        clear_occupied: true 
+        free_ray_distance_unknown: 10.0
+      # Point cloud filtering parameters
+      filter:
+        min_distance: 0.8    # Minimum distance filter [m]
+        max_distance: 50.0  # Maximum distance filter [m] 
+        row_step: 1          # Skip every n rows (1 = no skipping)
+        col_step: 1          # Skip every n columns (1 = no skipping)
+
+logging:
+  esdf_performance_throttle: 10.0     # ESDF performance logs every 10s (default: every update)
+  point_cloud_throttle: 5.0          # Point cloud processing logs every 5s  
+  submap_performance_throttle: 10.0   # Submap performance logs every 10s
+
+# Planner configuration  
+planner:
+  enabled: true  # Set to true to enable the ESDF-based planner
+  rate: 1.0     # Planning frequency in [Hz]
+  
+  # Core planning parameters
+  planning_safety_radius: 1.0        # Safety radius around obstacles [m] 
+  astar_resolution: 0.4               # Grid resolution for A* search [m]
+  timeout_threshold: 0.2              # Planning timeout [s]
+  euclidean_distance_cutoff: 3.0      # Distance cutoff for heuristic [m]
+  
+  # Trajectory generation
+  time_for_trajectory_generator: 0.3  # Time allowance for trajectory generation [s]
+  
+  # Flight constraints
+  max_waypoint_distance: 55000.0        # Maximum distance to waypoint [m]
+  min_altitude: -9999.99                   # Minimum flight altitude [m]  
+  max_altitude: 9999.99                  # Maximum flight altitude [m]
+  
+  # Replanning behavior
+  replan_after: 0.5                   # Time interval to trigger replanning [s]
+  
+  # Visualization
+  points_scale: 0.1                   # Scale for visualization points
+  lines_scale: 0.05                   # Scale for visualization lines
+  
+  escape_penalty_factor: 20.0 # Higher values make escaping faster but less smooth.
+
+  # Safety Heuristic: ESDF-based path cost optimization
+  # Encourages paths to stay away from obstacles by adding distance-based costs
+  safety_heuristic:
+    max_cost_distance: 3.0  # Distance at which safety penalty starts [m]. Recommended: 1.5-2.5 × safety_radius
+    cost_factor: 0.0       # Strength of safety cost penalty. Higher = more conservative paths. Range: 5.0-20.0
+
+  min_partial_path_length: 1.0 # Partial plans shorter than this are rejected [m]
+  min_goal_improvement: 0.0   #  A new partial plan must get at least this much closer to the goal to be accepted. [m]
+  planner_deadlock_timeout: 60.0 # Time after which the planner is considered frozen. [s]
+  safety_check_rate: 10.0
+
