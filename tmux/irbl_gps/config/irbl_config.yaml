@@ -23,7 +23,7 @@ rbl_controller:
   # lidar_tilt: 0.0 # [deg]
   # lidar_fov: 360.0 #[deg]
   step_size: 0.2
-  boundary_threshold: 0.4
+  boundary_threshold: 0.3
   z_min: 0.0
   z_max: 25.0
   z_ref: 1.0
@@ -35,7 +35,7 @@ rbl_controller:
   d6: 1.0
   d7: 1.0
   radius: 5.0 # max planning horizon
-  betaD: 1.0
+  betaD: 0.5
   beta_min: 0.1
   dt: 0.1
   encumbrance: 0.7
