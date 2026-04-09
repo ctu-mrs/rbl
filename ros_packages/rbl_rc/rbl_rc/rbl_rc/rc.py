@@ -28,7 +28,7 @@ class RCGoalController(Node):
         self.beta_threshold = 0.1
 
         # Params
-        self.step_size = 0.4
+        self.step_size = 0.6
         self.deadzone = 50
 
         # Estimator switching

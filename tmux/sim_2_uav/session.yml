@@ -60,8 +60,8 @@ windows:
       layout: tiled
       synchronize: after
       panes:
-        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
-        - export UAV_NAME=uav2; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
+        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin lidar3d_in:=ouster/points  
+        - export UAV_NAME=uav2; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin lidar3d_in:=ouster/points
   - gazebo:
       layout: tiled
       panes:
