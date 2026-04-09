@@ -32,7 +32,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
+find_package(ouster_sensor_msgs REQUIRED)
+find_package(filter_reflective_uavs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(mrs_lib REQUIRED)
@@ -50,11 +51,6 @@ find_package(std_srvs REQUIRED)
 find_package(rbl_replanner REQUIRED)
 find_package(ciri REQUIRED)
 find_package(rbl_controller_core REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/PoseVelocityArray.msg"
-  DEPENDENCIES std_msgs geometry_msgs
-)
 
 # Define the shared library created by this package
 set(RBL_CONTROLLER_NODE_TARGET ${PROJECT_NAME}_component)
@@ -76,12 +72,11 @@ ament_target_dependencies(
   geometry_msgs
   nav_msgs
   mrs_msgs
+  ouster_sensor_msgs
+  filter_reflective_uavs
   std_srvs
   std_msgs
 )
-
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-target_link_libraries(${RBL_CONTROLLER_NODE_TARGET} "${cpp_typesupport_target}")
 
 target_link_libraries(
   ${RBL_CONTROLLER_NODE_TARGET}
@@ -157,7 +152,5 @@ install(
 ament_export_targets(
   export_${PROJECT_NAME} HAS_LIBRARY_TARGET
 )
-
-ament_export_dependencies(rosidl_default_runtime)
 
 ament_package()
