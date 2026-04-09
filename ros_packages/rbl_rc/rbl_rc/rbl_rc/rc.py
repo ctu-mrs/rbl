@@ -28,7 +28,7 @@ class RCGoalController(Node):
         self.beta_threshold = 0.1
 
         # Params
-        self.step_size = 0.2
+        self.step_size = 0.4
         self.deadzone = 50
 
         # Estimator switching
@@ -150,7 +150,6 @@ class RCGoalController(Node):
         if pose_time.nanoseconds <= self.switch_time.nanoseconds:
             return
 
-        # ✅ First valid pose after switch
         pos = msg.pose.pose.position
         self.last_goal = [pos.x, pos.y, pos.z, 0.0]
 
