@@ -596,7 +596,7 @@ void RBLController::partitionCellA(std::vector<Eigen::Vector3d>&                
     Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
 
     Eigen::Vector3d plane_norm, plane_point;
-    if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) {
+    if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) { //if encum of both <= n 
       plane_norm  = tilde_p_j - tilde_p_i;
       plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
     }
@@ -706,7 +706,7 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
                                        bool&                                            threshold_active)
 {
   (void)waypoint;     // TODO - currently unused
-  (void)neighbors;     // TODO - currently unused
+  // (void)neighbors;     // TODO - currently unused
   (void)threshold_active;     // TODO - currently unused
 
   if (!ciri_solver_) {
@@ -818,6 +818,24 @@ bool RBLController::partitionCellACiri(std::vector<Eigen::Vector3d>&            
 
   plane_normals.clear();
   plane_points.clear();
+
+  for (const auto& neighbor : neighbors) {
+    double          Delta_i_j = 2 * params_.encumbrance;
+    Eigen::Vector3d tilde_p_i = Delta_i_j * (neighbor - agent_pos) / ((neighbor - agent_pos).norm()) + agent_pos;
+    Eigen::Vector3d tilde_p_j = Delta_i_j * (agent_pos - neighbor) / ((agent_pos - neighbor).norm()) + neighbor;
+
+    Eigen::Vector3d plane_norm, plane_point;
+    if ((agent_pos - tilde_p_i).norm() <= (agent_pos - tilde_p_j).norm()) { //if encum of both <= n 
+      plane_norm  = tilde_p_j - tilde_p_i;
+      plane_point = tilde_p_i + params_.cwvd_rob * plane_norm;
+    }
+    else {
+      plane_norm  = tilde_p_i - tilde_p_j;
+      plane_point = tilde_p_j;
+    }
+    plane_normals.push_back(plane_norm);
+    plane_points.push_back(plane_point);
+  }
 
   convertPlaneData(plane_data, plane_normals, plane_points, agent_pos);
 
@@ -997,7 +1015,7 @@ cloud_low_intensity->is_dense = true;
         std::cout << "[RBLController]: Skipping Ciri, low-intensity cloud is empty." << std::endl;
       }
       if (cell_B == cell_A) {
-        std::cout << "[RBLController]: equal" << std::endl;
+        std::cout << "[RBLController]: Cell A = Cell B" << std::endl;
       } 
 
       if (!success || cell_A.size() == 0) {
@@ -1108,7 +1126,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
     return;
   }
 
-  std::cout << "destitnation" << destination << std::endl;
+  std::cout << "[RBLController]: Destitnation: [" << destination[0] << ", " << destination[1] << ", " << destination[2] << "]" << std::endl;
   std::vector<double> x_in, y_in, z_in;
   for (const auto& point : cell) {
     x_in.push_back(point[0]);
@@ -1133,7 +1151,7 @@ void RBLController::computeCentroid(Eigen::Vector3d&              centroid,  // 
   if (sum <= std::numeric_limits<double>::epsilon() || !std::isfinite(sum)) {
     centroid = agent_pos;
     threshold_active = false;
-    std::cout << "[RBLController]: computeCentroid received invalid weights, using agent position." << std::endl;
+    std::cout << "[RBLController]: ComputeCentroid received invalid weights, using agent position." << std::endl;
     return;
   }
   centroid = Eigen::Vector3d(sum_x / sum, sum_y / sum, sum_z / sum);
