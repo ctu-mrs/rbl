@@ -22,6 +22,9 @@ class RCGoalController(Node):
         # Goal
         self.last_goal = [0.0, 0.0, 2.0, 0.0]
 
+        # Max distance constraint
+        self.max_distance = 6.0  # meters
+
         # betaD
         self.betaD = 0.0
         self.last_betaD_sent = None
@@ -76,7 +79,6 @@ class RCGoalController(Node):
     def odom_cb(self, msg):
         self.current_pose = msg
 
-        # 🔥 Handle estimator switch HERE (event-driven)
         if self.waiting_for_fresh_pose:
             self.handle_post_switch_hold(msg)
 
@@ -117,6 +119,7 @@ class RCGoalController(Node):
         goal_changed = self.handle_position(ch1, ch3)
 
         if goal_changed:
+            self.clamp_goal_distance()  # ✅ enforce limit
             self.get_logger().info(f"Sending goal: {self.last_goal}")
             self.send_goal()
 
@@ -135,10 +138,7 @@ class RCGoalController(Node):
 
         self.send_estimator(estimator)
 
-        # Mark switch moment
         self.switch_time = self.get_clock().now()
-
-        # Wait for fresh odometry
         self.waiting_for_fresh_pose = True
 
         self.get_logger().info(f"Waiting for fresh pose from {estimator}...")
@@ -146,17 +146,17 @@ class RCGoalController(Node):
     def handle_post_switch_hold(self, msg):
         pose_time = Time.from_msg(msg.header.stamp)
 
-        # Reject old data
         if pose_time.nanoseconds <= self.switch_time.nanoseconds:
             return
 
         pos = msg.pose.pose.position
         self.last_goal = [pos.x, pos.y, pos.z, 0.0]
 
+        self.clamp_goal_distance()  # ✅ enforce here too
+
         self.get_logger().info(f"[HOLD AFTER SWITCH] {self.last_goal}")
         self.send_goal()
 
-        # Done
         self.waiting_for_fresh_pose = False
 
     # -----------------------
@@ -186,6 +186,29 @@ class RCGoalController(Node):
         self.last_goal[1] += dy * self.step_size
 
         return True
+
+    # -----------------------
+    # Distance limiting
+    # -----------------------
+    def clamp_goal_distance(self):
+        if self.current_pose is None:
+            return
+
+        pos = self.current_pose.pose.pose.position
+
+        dx = self.last_goal[0] - pos.x
+        dy = self.last_goal[1] - pos.y
+
+        dist = (dx**2 + dy**2) ** 0.5
+
+        if dist > self.max_distance:
+            scale = self.max_distance / dist
+            self.last_goal[0] = pos.x + dx * scale
+            self.last_goal[1] = pos.y + dy * scale
+
+            self.get_logger().warn(
+                f"Goal limited to {self.max_distance} m from UAV"
+            )
 
     # -----------------------
     # Helpers
