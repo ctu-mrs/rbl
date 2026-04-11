@@ -22,16 +22,15 @@ class RCGoalController(Node):
         # Goal
         self.last_goal = [0.0, 0.0, 2.0, 0.0]
 
-        # Max distance constraint
-        self.max_distance = 6.0  # meters
+        # Max radius (meters)
+        self.max_distance = 6.0
 
         # betaD
         self.betaD = 0.0
         self.last_betaD_sent = None
         self.beta_threshold = 0.1
 
-        # Params
-        self.step_size = 0.6
+        # RC params
         self.deadzone = 50
 
         # Estimator switching
@@ -60,7 +59,7 @@ class RCGoalController(Node):
 
         self.wait_for_services()
 
-        self.get_logger().info('RC Goal Controller ready (event-driven)')
+        self.get_logger().info('RC Goal Controller ready (direct mapping mode)')
 
     # -----------------------
     # Setup
@@ -89,10 +88,10 @@ class RCGoalController(Node):
         if len(msg.channels) < 9:
             return
 
-        ch3 = msg.channels[0]
-        ch2 = msg.channels[1]
-        ch1 = msg.channels[2]
-        ch9 = msg.channels[8]
+        ch3 = msg.channels[0]  # pitch
+        ch2 = msg.channels[1]  # beta
+        ch1 = msg.channels[2]  # roll
+        ch9 = msg.channels[8]  # mode switch
 
         if ch9 < 1400:
             return
@@ -114,12 +113,11 @@ class RCGoalController(Node):
         self.handle_beta(ch2)
 
         # -----------------------
-        # Position control
+        # Position control (DIRECT MAPPING)
         # -----------------------
-        goal_changed = self.handle_position(ch1, ch3)
+        updated = self.handle_position(ch1, ch3)
 
-        if goal_changed:
-            self.clamp_goal_distance()  # ✅ enforce limit
+        if updated:
             self.get_logger().info(f"Sending goal: {self.last_goal}")
             self.send_goal()
 
@@ -152,8 +150,6 @@ class RCGoalController(Node):
         pos = msg.pose.pose.position
         self.last_goal = [pos.x, pos.y, pos.z, 0.0]
 
-        self.clamp_goal_distance()  # ✅ enforce here too
-
         self.get_logger().info(f"[HOLD AFTER SWITCH] {self.last_goal}")
         self.send_goal()
 
@@ -173,42 +169,34 @@ class RCGoalController(Node):
             self.send_beta()
 
     # -----------------------
-    # Position control
+    # Position control (NEW)
     # -----------------------
     def handle_position(self, ch1, ch3):
-        dx = self.process_channel(ch1)
-        dy = -self.process_channel(ch3)
-
-        if dx == 0.0 and dy == 0.0:
+        if self.current_pose is None:
             return False
 
-        self.last_goal[0] += dx * self.step_size
-        self.last_goal[1] += dy * self.step_size
-
-        return True
-
-    # -----------------------
-    # Distance limiting
-    # -----------------------
-    def clamp_goal_distance(self):
-        if self.current_pose is None:
-            return
+        sx = self.process_channel(ch1)   # [-1, 1]
+        sy = -self.process_channel(ch3)  # [-1, 1]
 
         pos = self.current_pose.pose.pose.position
 
-        dx = self.last_goal[0] - pos.x
-        dy = self.last_goal[1] - pos.y
+        # Stick centered → HOLD position
+        if sx == 0.0 and sy == 0.0:
+            self.last_goal[0] = pos.x
+            self.last_goal[1] = pos.y
+            return True
 
-        dist = (dx**2 + dy**2) ** 0.5
+        # Normalize to circular boundary
+        mag = (sx**2 + sy**2) ** 0.5
+        if mag > 1.0:
+            sx /= mag
+            sy /= mag
 
-        if dist > self.max_distance:
-            scale = self.max_distance / dist
-            self.last_goal[0] = pos.x + dx * scale
-            self.last_goal[1] = pos.y + dy * scale
+        # Map directly to position around UAV
+        self.last_goal[0] = pos.x + sx * self.max_distance
+        self.last_goal[1] = pos.y + sy * self.max_distance
 
-            self.get_logger().warn(
-                f"Goal limited to {self.max_distance} m from UAV"
-            )
+        return True
 
     # -----------------------
     # Helpers
