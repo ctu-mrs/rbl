@@ -50,6 +50,7 @@ void RBLReplanner::setAltitude(const double& alt)  // //{
 void RBLReplanner::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
 {
   cloud_ = cloud;
+  
 }  // //}
 
 std::vector<Eigen::Vector3d> RBLReplanner::getInflatedCloud()  // //{

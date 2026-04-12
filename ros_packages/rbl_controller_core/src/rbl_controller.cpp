@@ -13,8 +13,8 @@ RBLController::RBLController(const RBLParams& params) : params_(params)  // //{
     replanner_params.weight_safety      = 1.0;
     replanner_params.weight_deviation   = 100.0;
     replanner_params.inflation_bonus    = params.inflation_bonus;
-    replanner_params.replanner_vox_size = 0.4;
-    replanner_params.replanner_freq     = 0.5;  //[Hz]
+    replanner_params.replanner_vox_size = 0.3;
+    replanner_params.replanner_freq     = 1.0;  //[Hz]
 
     rbl_replanner_ = std::make_shared<RBLReplanner>(replanner_params);
   }
