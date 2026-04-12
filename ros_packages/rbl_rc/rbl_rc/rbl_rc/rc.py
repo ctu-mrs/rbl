@@ -22,13 +22,15 @@ class RCGoalController(Node):
         # Goal
         self.last_goal = [0.0, 0.0, 2.0, 0.0]
 
+        # Max radius (meters)
+        self.max_distance = 6.0
+
         # betaD
         self.betaD = 0.0
         self.last_betaD_sent = None
         self.beta_threshold = 0.1
 
-        # Params
-        self.step_size = 0.6
+        # RC params
         self.deadzone = 50
 
         # Estimator switching
@@ -57,7 +59,7 @@ class RCGoalController(Node):
 
         self.wait_for_services()
 
-        self.get_logger().info('RC Goal Controller ready (event-driven)')
+        self.get_logger().info('RC Goal Controller ready (direct mapping mode)')
 
     # -----------------------
     # Setup
@@ -76,7 +78,6 @@ class RCGoalController(Node):
     def odom_cb(self, msg):
         self.current_pose = msg
 
-        # 🔥 Handle estimator switch HERE (event-driven)
         if self.waiting_for_fresh_pose:
             self.handle_post_switch_hold(msg)
 
@@ -87,10 +88,10 @@ class RCGoalController(Node):
         if len(msg.channels) < 9:
             return
 
-        ch3 = msg.channels[0]
-        ch2 = msg.channels[1]
-        ch1 = msg.channels[2]
-        ch9 = msg.channels[8]
+        ch3 = msg.channels[0]  # pitch
+        ch2 = msg.channels[1]  # beta
+        ch1 = msg.channels[2]  # roll
+        ch9 = msg.channels[8]  # mode switch
 
         if ch9 < 1400:
             return
@@ -112,11 +113,11 @@ class RCGoalController(Node):
         self.handle_beta(ch2)
 
         # -----------------------
-        # Position control
+        # Position control (DIRECT MAPPING)
         # -----------------------
-        goal_changed = self.handle_position(ch1, ch3)
+        updated = self.handle_position(ch1, ch3)
 
-        if goal_changed:
+        if updated:
             self.get_logger().info(f"Sending goal: {self.last_goal}")
             self.send_goal()
 
@@ -135,10 +136,7 @@ class RCGoalController(Node):
 
         self.send_estimator(estimator)
 
-        # Mark switch moment
         self.switch_time = self.get_clock().now()
-
-        # Wait for fresh odometry
         self.waiting_for_fresh_pose = True
 
         self.get_logger().info(f"Waiting for fresh pose from {estimator}...")
@@ -146,7 +144,6 @@ class RCGoalController(Node):
     def handle_post_switch_hold(self, msg):
         pose_time = Time.from_msg(msg.header.stamp)
 
-        # Reject old data
         if pose_time.nanoseconds <= self.switch_time.nanoseconds:
             return
 
@@ -156,7 +153,6 @@ class RCGoalController(Node):
         self.get_logger().info(f"[HOLD AFTER SWITCH] {self.last_goal}")
         self.send_goal()
 
-        # Done
         self.waiting_for_fresh_pose = False
 
     # -----------------------
@@ -173,17 +169,32 @@ class RCGoalController(Node):
             self.send_beta()
 
     # -----------------------
-    # Position control
+    # Position control (NEW)
     # -----------------------
     def handle_position(self, ch1, ch3):
-        dx = self.process_channel(ch1)
-        dy = -self.process_channel(ch3)
-
-        if dx == 0.0 and dy == 0.0:
+        if self.current_pose is None:
             return False
 
-        self.last_goal[0] += dx * self.step_size
-        self.last_goal[1] += dy * self.step_size
+        sx = self.process_channel(ch1)   # [-1, 1]
+        sy = -self.process_channel(ch3)  # [-1, 1]
+
+        pos = self.current_pose.pose.pose.position
+
+        # Stick centered → HOLD position
+        if sx == 0.0 and sy == 0.0:
+            self.last_goal[0] = pos.x
+            self.last_goal[1] = pos.y
+            return True
+
+        # Normalize to circular boundary
+        mag = (sx**2 + sy**2) ** 0.5
+        if mag > 1.0:
+            sx /= mag
+            sy /= mag
+
+        # Map directly to position around UAV
+        self.last_goal[0] = pos.x + sx * self.max_distance
+        self.last_goal[1] = pos.y + sy * self.max_distance
 
         return True
 
