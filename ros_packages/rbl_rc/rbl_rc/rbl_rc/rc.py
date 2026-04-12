@@ -46,16 +46,16 @@ class RCGoalController(Node):
         # -----------------------
         # Subscribers
         # -----------------------
-        self.create_subscription(State, '/uav4/mavros/state', self.state_cb, 10)
-        self.create_subscription(RCIn, '/uav4/mavros/rc/in', self.rc_cb, 10)
-        self.create_subscription(Odometry, '/uav4/estimation_manager/odom_main', self.odom_cb, 10)
+        self.create_subscription(State, '/uav2/mavros/state', self.state_cb, 10)
+        self.create_subscription(RCIn, '/uav2/mavros/rc/in', self.rc_cb, 10)
+        self.create_subscription(Odometry, '/uav2/estimation_manager/odom_main', self.odom_cb, 10)
 
         # -----------------------
         # Service clients
         # -----------------------
-        self.goal_cli = self.create_client(Vec4, '/uav4/rbl_controller/goto')
-        self.beta_cli = self.create_client(Float64Srv, '/uav4/rbl_controller/set_betaD')
-        self.estimator_cli = self.create_client(String, '/uav4/estimation_manager/change_estimator')
+        self.goal_cli = self.create_client(Vec4, '/uav2/rbl_controller/goto')
+        self.beta_cli = self.create_client(Float64Srv, '/uav2/rbl_controller/set_betaD')
+        self.estimator_cli = self.create_client(String, '/uav2/estimation_manager/change_estimator')
 
         self.wait_for_services()
 
