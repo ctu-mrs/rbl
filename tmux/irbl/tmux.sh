@@ -52,8 +52,11 @@ input=(
 '
   'Pointlio' 'ros2 launch point_lio point_lio.launch.py preset:=mid360 topic_imu:=livox/imu topic_livox:=livox/custom topic_pc:=lidar/points config:=./config/point_lio.yaml
 '
-  'Losos'  'ros2 launch mrs_losos_server losos.launch.py lidar_3d_topic_0_in:=livox/points
+  'Losos'  'ros2 launch mrs_losos_server losos.launch.py lidar_3d_topic_0_in:=/'"$UAV_NAME"'/filter_reflective_uavs/filtered_pcl
 '
+
+  # 'Losos'  'ros2 launch mrs_losos_server losos.launch.py 
+# '
   'iRBL' 'ros2 launch rbl_controller_node rbl_controller.launch.py custom_config:=./config/irbl_config.yaml
 '
   'iRBLgoto' 'history -s ./activation.sh 
