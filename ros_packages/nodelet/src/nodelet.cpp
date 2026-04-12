@@ -598,7 +598,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       last_obstacle_cloud_ = cloud;
       pcl_loaded_ = true;
       rbl_controller_->setPCL(last_obstacle_cloud_);
-      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      // rbl_controller_->setPCL1(last_obstacle_cloud_);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
 
@@ -610,7 +610,7 @@ void WrapperRosRBL::cbTmSetRef()  // //{
       last_obstacle_cloud_ = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>(tmp);
       pcl_loaded_ = true;
       rbl_controller_->setPCL(last_obstacle_cloud_);
-      rbl_controller_->setPCL1(last_obstacle_cloud_);
+      // rbl_controller_->setPCL1(last_obstacle_cloud_);
       RCLCPP_INFO_ONCE(node_->get_logger(), "Setted last pcl to rbl");
     }
   }

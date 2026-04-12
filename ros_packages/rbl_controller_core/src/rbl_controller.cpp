@@ -51,10 +51,10 @@ void RBLController::setPCL(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>
 }  // //}
    //
 
-void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
-{
-  cloud_obs_ = cloud;
-}  // //}
+// void RBLController::setPCL1(const std::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>& cloud)  // //{
+// {
+//   cloud_obs_ = cloud;
+// }  // //}
    
 void RBLController::setGoal(const Eigen::Vector3d& point)  // //{
 {
@@ -188,7 +188,7 @@ std::optional<mrs_msgs::msg::Reference> RBLController::getNextRef()  // //{
         rbl_replanner_->setAltitude(altitude_);
         rbl_replanner_->setCurrentPosition(agent_pos_);
         rbl_replanner_->setGoal(goal_);
-        rbl_replanner_->setPCL(cloud_obs_);
+        rbl_replanner_->setPCL(cloud_);
 
         auto new_path = rbl_replanner_->plan();
 
