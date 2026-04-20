@@ -4,8 +4,8 @@
   <version>1.0.0</version>
   <description>Package implementing distributed control for multi-robot collision avoidance.</description>
 
-  <maintainer email="boldrman@fel.cvut.cz">Manuel Boldrer</maintainer>
-  <author email="ahmadafz@fel.cvut.cz">Afzal Ahmad</author>
+  <maintainer email="manuel.boldrer@gmail.com">Manuel Boldrer</maintainer>
+  <maintainer email="ahmadafz@fel.cvut.cz">Afzal Ahmad</maintainer>
 
   <license>MIT</license>
 
