@@ -5,6 +5,7 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="kamlem2002@gmail.com">root</maintainer>
+  <maintainer email="manuel.boldrer@gmail.com">Mauel Boldrer</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
