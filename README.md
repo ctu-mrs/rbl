@@ -10,7 +10,7 @@
   Ensure you have the following installed:
 
   - ** MRS System **  
-    Follow setup instructions here: [MRS Apptainer GitHub](https://github.com/ctu-mrs/mrs_apptainer)
+    Follow setup instructions here for ROS1 (master branch): [MRS Apptainer GitHub](https://github.com/ctu-mrs/mrs_apptainer)
 
   ---
 
