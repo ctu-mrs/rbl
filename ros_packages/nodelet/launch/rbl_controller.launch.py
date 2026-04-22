@@ -16,55 +16,45 @@ def generate_launch_description():
     pkg_name = "rbl_controller_node"
     pkg_path = get_package_share_directory(pkg_name)
 
-    ld = LaunchDescription()
+    default_config_path = os.path.join(pkg_path, "config", "default.yaml")
 
     # -------------------------------------------------
-    # UAV name
+    # Launch configurations
     # -------------------------------------------------
-    ld.add_action(DeclareLaunchArgument(
-        "uav_name",
-        default_value=EnvironmentVariable("UAV_NAME", default_value="uav1")
-    ))
     uav_name = LaunchConfiguration("uav_name")
-
-    # -------------------------------------------------
-    # run type
-    # -------------------------------------------------
-    ld.add_action(DeclareLaunchArgument(
-        "run_type",
-        default_value="simulation"
-    ))
-    run_type = LaunchConfiguration("run_type")
-
-    # -------------------------------------------------
-    # config file (DEFAULT + OVERRIDE SUPPORT)
-    # -------------------------------------------------
-    ld.add_action(DeclareLaunchArgument(
-        "config",
-        default_value=os.path.join(pkg_path, "config", "default.yaml")
-    ))
-    config = LaunchConfiguration("config")
-
-    # -------------------------------------------------
-    # standalone mode
-    # -------------------------------------------------
-    ld.add_action(DeclareLaunchArgument(
-        "standalone",
-        default_value="true"
-    ))
     standalone = LaunchConfiguration("standalone")
-
-    # -------------------------------------------------
-    # container name (if attaching externally)
-    # -------------------------------------------------
-    ld.add_action(DeclareLaunchArgument(
-        "container_name",
-        default_value=""
-    ))
     container_name = LaunchConfiguration("container_name")
 
+    # 👇 SINGLE SOURCE OF TRUTH
+    custom_config = LaunchConfiguration("custom_config")
+
+    ld = LaunchDescription([
+
+        DeclareLaunchArgument(
+            "uav_name",
+            default_value=EnvironmentVariable("UAV_NAME", default_value="uav1")
+        ),
+
+        DeclareLaunchArgument(
+            "standalone",
+            default_value="true"
+        ),
+
+        DeclareLaunchArgument(
+            "container_name",
+            default_value=""
+        ),
+
+        # 👇 user-facing argument
+        DeclareLaunchArgument(
+            "custom_config",
+            default_value=default_config_path,
+            description="Path to config file"
+        ),
+    ])
+
     # -------------------------------------------------
-    # RBL Controller component
+    # Node
     # -------------------------------------------------
     rbl_controller_node = ComposableNode(
 
@@ -74,7 +64,13 @@ def generate_launch_description():
         namespace=uav_name,
 
         parameters=[
-            {"config": config},
+            # ✅ Load YAML from custom_config
+            custom_config,
+
+            # ✅ BOTH params set to SAME value
+            {"config": custom_config},
+            {"custom_config": custom_config},
+
             {"simulation": True},
             {"uav_name": uav_name},
             {"control_frame": [uav_name, "/world_origin"]},
@@ -104,7 +100,7 @@ def generate_launch_description():
     )
 
     # -------------------------------------------------
-    # load into external container (if used)
+    # External container
     # -------------------------------------------------
     ld.add_action(
         LoadComposableNodes(
@@ -115,7 +111,7 @@ def generate_launch_description():
     )
 
     # -------------------------------------------------
-    # standalone container (default mode)
+    # Standalone container
     # -------------------------------------------------
     ld.add_action(
         ComposableNodeContainer(
