@@ -1,5 +1,6 @@
 ## 🎥 Multimedia material
 
+![Real-world Experiment (4 UAVs)](forest4.gif)
 
 - https://mrs.fel.cvut.cz/irbl
 
