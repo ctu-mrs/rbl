@@ -56,4 +56,4 @@ rbl_controller:
   n_uavs: 10
 
 replanner:
-  inflation_bonus: 0.35
+  inflation_bonus: 0.4

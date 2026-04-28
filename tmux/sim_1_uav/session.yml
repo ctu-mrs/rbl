@@ -13,7 +13,7 @@ pre_window:
   - export UAV_TYPE=x500
   - export CUSTOM_CONFIG=./config/custom_config.yaml 
   - export WORLD_CONFIG=./config/world_config.yaml 
-  - export WORLD_FILE=`ros2 pkg prefix mrs_gazebo_common_resources`/share/mrs_gazebo_common_resources/worlds/pine_forest.sdf
+  - export WORLD_FILE=`ros2 pkg prefix mrs_gazebo_common_resources`/share/mrs_gazebo_common_resources/worlds/forest.sdf
   # - export RMW_IMPLEMENTATION=rmw_zenoh_cpp
   - export PLATFORM_CONFIG=`ros2 pkg prefix mrs_uav_gazebo_simulator`/share/mrs_uav_gazebo_simulator/config/mrs_uav_system/$UAV_TYPE.yaml
 windows:
@@ -51,7 +51,7 @@ windows:
       layout: tiled
       synchronize: after
       panes:
-        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin
+        - export UAV_NAME=uav1; ros2 launch filter_reflective_uavs filter_reflective_uavs.launch.py uav_name:=$UAV_NAME global_frame:=$UAV_NAME/world_origin custom_config:=./config/filter_reflective_uavs.yaml
 
 
   - gazebo:
@@ -64,7 +64,7 @@ windows:
   - map_plan:
       layout: tiled
       panes:
-        - ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=filter_reflective_uavs/filtered_pcl
+        - ros2 launch mrs_octomap_mapping_planning mapplan.launch.py custom_config:=./config/mapplan_config.yaml lidar_3d_0:=filter_reflective_uavs/filtered_pcl custom_config:=./config/mapplan_config.yaml
         # - 'history -s ./goto.py'
   
   - takeoff:

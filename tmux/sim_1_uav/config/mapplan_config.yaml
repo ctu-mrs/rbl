@@ -2,7 +2,7 @@ mrs_octomap_server:
 
   octomap_server:
 
-    resolution: 0.4 # [m]
+    resolution: 0.2 # [m]
 
     # for point cloud raycasting
     sensor_params:
@@ -41,7 +41,7 @@ mrs_octomap_planner:
   octomap_planner:
 
     planning_tree:
-      resolution: 0.4
+      resolution: 0.2
 
     distance_transform:
       submap_distance: 20.0 # [m] from the UAV into all directions

@@ -64,10 +64,8 @@ def generate_launch_description():
         namespace=uav_name,
 
         parameters=[
-            # ✅ Load YAML from custom_config
             custom_config,
 
-            # ✅ BOTH params set to SAME value
             {"config": custom_config},
             {"custom_config": custom_config},
 
