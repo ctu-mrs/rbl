@@ -40,5 +40,5 @@ to activate the algorithm go to the pane "activation" and run the last command i
 try out mrs_9, mrs_16, mrs_9_circle.
 This code was used for some of the results reported in the following papers: 
 
-- [Rule-Based Lloyd Algorithm for Multi-Robot Motion Planning and Control with Safety and Convergence Guarantees](https://arxiv.org/pdf/2310.19511)
-- [Distributed Lloyd-based algorithm for uncertainty-aware multi-robot under-canopy flocking](https://arxiv.org/pdf/2504.18840)
+- [Distributed Lloyd-based algorithm for uncertainty-aware multi-robot under-canopy flocking](https://ieeexplore.ieee.org/abstract/document/11433776)
+- [Rule-Based Lloyd Algorithm for Multi-Robot Motion Planning and Control with Safety and Convergence Guarantees](https://arxiv.org/abs/2310.19511)
