@@ -1,0 +1,30 @@
+rosbag2_bagfile_information:
+  compression_format: ''
+  compression_mode: ''
+  custom_data: null
+  duration:
+    nanoseconds: 4000000000
+  files:
+  - duration:
+      nanoseconds: 4000000000
+    message_count: 5
+    path: super_dense_ros2.mcap
+    starting_time:
+      nanoseconds_since_epoch: 1772793363613344908
+  message_count: 5
+  relative_file_paths:
+  - super_dense_ros2.mcap
+  ros_distro: rosbags
+  starting_time:
+    nanoseconds_since_epoch: 1772793363613344908
+  storage_identifier: mcap
+  topics_with_message_count:
+  - message_count: 5
+    topic_metadata:
+      name: /map_generator/global_cloud
+      offered_qos_profiles: []
+      serialization_format: cdr
+      type: sensor_msgs/msg/PointCloud2
+      type_description_hash: 
+        RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5
+  version: 9

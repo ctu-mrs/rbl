@@ -78,6 +78,8 @@ def generate_launch_description():
             ("~/odom_in", "estimation_manager/odom_main"),
             ("~/alt_in", "estimation_manager/garmin_agl/agl_height"),
             ("~/pcl_in", "losos_server/current_submap_pc"),
+            # ("~/pcl_in", "/map_generator/global_cloud"),
+            # ("~/pcl_in", "filter_reflective_uavs/filtered_cloud"),
             ("~/octomap_in", "octomap_server/octomap_local_binary"),
             ("~/group_states_in", "filter_reflective_uavs/pose_vel"),
             ("~/tracker_cmd_in", "control_manager/tracker_cmd"),
